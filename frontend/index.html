@@ -775,9 +775,11 @@ tbody tr { transition: background var(--lt-tr); }
   body[data-page="settings"] .lt-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 
   /* stock follows the same two-column + scroll behavior as orders/vault */
-  body[data-page="stock"] #pageBody > .twoColPage{width:100%;}
-  body[data-page="stock"] .twoColPage > div{min-width:0;}
-  body[data-page="stock"] .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  body[data-page="stock"] #pageBody{width:100%;max-width:100%;}
+  body[data-page="stock"] #pageBody > .twoColPage{width:100%;max-width:100%;}
+  body[data-page="stock"] .twoColPage > div{min-width:0;width:100%;}
+  body[data-page="stock"] .panel,
+  body[data-page="stock"] .tableWrap{width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
 }
 @media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:repeat(2,minmax(0,1fr));} body[data-page="settings"] .theme-colors{grid-template-columns:repeat(2,minmax(0,1fr));} }
 .div-line { display: none !important; }
