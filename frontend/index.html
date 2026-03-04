@@ -2786,7 +2786,8 @@ function renderStock(){
   setHeader("Stock Batches","FIFO layers · progress = remaining");
   const q=state.q.trim().toLowerCase(),wacop=getWACOP();
   const perf=state.batches.map(b=>{const db=derived.batches.find(x=>x.id===b.id);const rem=db?Math.max(0,db.remainingUSDT):b.initialUSDT,used=b.initialUSDT-rem;let profit=0;for(const[,c]of derived.tradeCalc){if(!c.ok)continue;const s=c.slices.find(s=>s.batchId===b.id);if(s)profit+=s.qty*c.ppu;}return{...b,remaining:rem,used,profit};}).sort((a,b2)=>b2.ts-a.ts);
-  const filtered=!q?perf:perf.filter(b=>[fmtDate(b.ts),b.source,b.note].join(" ").toLowerCase().includes(q));
+  const list=perf.filter(b=>inRange(b.ts));
+  const filtered=!q?list:list.filter(b=>[fmtDate(b.ts),b.source,b.note].join(" ").toLowerCase().includes(q));
 
   const tableHtml=!filtered.length
     ?`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><div class="empty-t">No batches</div><div class="empty-s">Add your first USDT purchase →</div></div>`
