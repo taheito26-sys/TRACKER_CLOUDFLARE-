@@ -2702,6 +2702,13 @@ function renderLedger(){
   const all=state.trades.slice().sort((a,b)=>b.ts-a.ts);
   const list=all.filter(t=>inRange(t.ts));
   const filtered=!q?list:list.filter(t=>[fmtDate(t.ts),t.amountUSDT,t.sellPriceQAR].join(" ").toLowerCase().includes(q));
+  const okTrades=list.filter(t=>derived.tradeCalc.get(t.id)?.ok);
+  const bestSell=okTrades.length?Math.max(...okTrades.map(t=>t.sellPriceQAR)):null;
+  const avgSell=okTrades.length?okTrades.reduce((s,t)=>s+t.sellPriceQAR,0)/okTrades.length:null;
+  const bestNet=okTrades.length?Math.max(...okTrades.map(t=>num(derived.tradeCalc.get(t.id)?.netQAR,0))):null;
+  const totalVolQAR=list.reduce((s,t)=>s+t.amountUSDT*t.sellPriceQAR,0);
+  const todayOk=okTrades.filter(t=>inRange(t.ts,"today"));
+  const todayHigh=todayOk.length?Math.max(...todayOk.map(t=>t.sellPriceQAR)):null;
 
   const tableHtml=!filtered.length
     ?(!all.length?`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 4h10M7 8h10M7 12h10M7 16h10M7 20h10"/></svg><div class="empty-t">No trades yet</div><div class="empty-s">Add a batch, then log a sale →</div></div>`:
@@ -2714,6 +2721,13 @@ function renderLedger(){
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">
           <div><div style="font-size:calc(13px * var(--ui-scale,1));font-weight:800;">Trades</div><div style="font-size:calc(10px * var(--ui-scale,1));color:var(--muted);">FIFO cost basis · margin bar</div></div>
           <div style="display:flex;gap:6px;"><span class="pill">${esc(rl())}</span><button class="btn secondary" id="t_csv">CSV</button></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:8px;">
+          <div class="card" style="padding:10px;"><div class="kpi-lbl">BEST SELL</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--good);">${bestSell!==null?fmtP(bestSell):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
+          <div class="card" style="padding:10px;"><div class="kpi-lbl">SELL AVG</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--t1);">${avgSell!==null?fmtP(avgSell):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
+          <div class="card" style="padding:10px;"><div class="kpi-lbl">BEST NET</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:${bestNet!==null&&bestNet>=0?"var(--good)":"var(--bad)"};">${bestNet!==null?((bestNet>=0?"+":"")+fmtQ(bestNet)):"—"} ${curLabel()}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">Top trade P/L</div></div>
+          <div class="card" style="padding:10px;"><div class="kpi-lbl">VOLUME</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;">${fmtQ(totalVolQAR)} ${curLabel()}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">In ${esc(rl())}</div></div>
+          <div class="card" style="padding:10px;"><div class="kpi-lbl">TODAY HIGH SELL</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--good);">${todayHigh!==null?fmtP(todayHigh):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
         </div>
         ${tableHtml}
       </div>
@@ -2824,6 +2838,13 @@ function renderStock(){
   const q=state.q.trim().toLowerCase(),wacop=getWACOP();
   const perf=state.batches.map(b=>{const db=derived.batches.find(x=>x.id===b.id);const rem=db?Math.max(0,db.remainingUSDT):b.initialUSDT,used=b.initialUSDT-rem;let profit=0;for(const[,c]of derived.tradeCalc){if(!c.ok)continue;const s=c.slices.find(s=>s.batchId===b.id);if(s)profit+=s.qty*c.ppu;}return{...b,remaining:rem,used,profit};}).sort((a,b2)=>b2.ts-a.ts);
   const filtered=!q?perf:perf.filter(b=>[fmtDate(b.ts),b.source,b.note].join(" ").toLowerCase().includes(q));
+  const bWithBuy=perf.filter(b=>b.buyPriceQAR>0);
+  const bestRestock=bWithBuy.length?Math.min(...bWithBuy.map(b=>b.buyPriceQAR)):null;
+  const avgBuy=bWithBuy.length?bWithBuy.reduce((s,b)=>s+b.buyPriceQAR,0)/bWithBuy.length:null;
+  const totalVolQAR=perf.reduce((s,b)=>s+b.initialUSDT*b.buyPriceQAR,0);
+  const profitNow=(wacop&&p2p.sellAvg&&totalStock()>0)?totalStock()*(p2p.sellAvg-wacop):null;
+  const todayB=perf.filter(b=>inRange(b.ts,"today"));
+  const todayLow=todayB.length?Math.min(...todayB.map(b=>b.buyPriceQAR)):null;
 
   const tableHtml=!filtered.length
     ?`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><div class="empty-t">No batches</div><div class="empty-s">Add your first purchase →</div></div>`
@@ -2886,9 +2907,10 @@ function renderBatchTable(batches){
       <td>${esc(b.source||"—")}</td>
       <td class="mono r">${fmtU(b.initialUSDT)}</td>
       <td class="mono r">${fmtP(b.buyPriceQAR)}</td>
-      <td class="mono r">${fmtU(rem)}</td>
+      <td class="mono r">${fmtQ(b.initialUSDT*b.buyPriceQAR)} ${curLabel()}</td>
+      <td class="mono r">${fmtU(rem)} USDT</td>
       <td><div class="prog"><span style="width:${prog.toFixed(0)}%"></span></div><div class="muted" style="font-size:calc(9px * var(--ui-scale,1));margin-top:2px;">${prog.toFixed(0)}% remaining</div></td>
-      <td class="mono r" style="color:${(b.profit||0)>=0?"var(--good)":"var(--bad)"};font-weight:700;">${(b.profit||0)>=0?"+":""}${fmtQ(b.profit||0)}</td>
+      <td class="mono r" style="color:${(b.profit||0)>=0?"var(--good)":"var(--bad)"};font-weight:700;">${(b.profit||0)>=0?"+":""}${fmtQ(b.profit||0)} ${curLabel()}</td>
       <td><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="pill ${stCls}">${st}</span>${ct!==null?`<span class="cycle-badge">${fmtDur(ct)}</span>`:""}<button class="rowBtn" data-act="editB" data-id="${esc(b.id)}">Edit</button></div></td>
     </tr>`;
   }).join("");
