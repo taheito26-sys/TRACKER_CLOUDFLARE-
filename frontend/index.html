@@ -725,6 +725,10 @@ tbody tr { transition: background var(--lt-tr); }
   .dash-bottom{grid-template-columns:1fr;} .g2tight{grid-template-columns:1fr;}
   table{min-width:0;width:100%;}
 
+  /* full-width guard: prevent right-side empty strip across all pages */
+  .mainWrap,.topbar,.scroll,#pageBody{width:100%;max-width:100%;box-sizing:border-box;}
+  #pageBody > *,.panel,.card,.tableWrap,.twoColPage,.dash-bottom,.chart-grid,.kpis,.kpi-band-grid,.analytics-stats,.lt-grid,.theme-colors{min-width:0;max-width:100%;}
+
   /* mobile topbar: prevent title squeezing / clipped controls */
   .topbar{height:auto;padding:8px 10px;flex-direction:column;align-items:stretch;gap:8px;}
   .topbar > div:first-child{display:flex;align-items:center;justify-content:space-between;min-width:0;}
