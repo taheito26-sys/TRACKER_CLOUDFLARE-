@@ -544,6 +544,10 @@ tbody tr { transition: background var(--lt-tr); }
 /* ── ROW BUTTONS ── */
 .rowBtn { border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--muted); padding: 4px 8px; border-radius: var(--lt-radius-sm); cursor: pointer; font-size: calc(10px * var(--ui-scale,1)); display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; font-family: var(--app-font, var(--lt-font)); transition: all var(--lt-tr); font-weight: 600; }
 .rowBtn:hover { background: var(--hover-card); border-color: var(--brand); color: var(--brand); transform: translateY(-1px); box-shadow: 0 2px 8px var(--glow); }
+.statusInline{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;white-space:nowrap;}
+.statusInline .rowBtn{padding:3px 6px;}
+@media(max-width:900px){.statusInline{gap:3px;font-size:calc(9px * var(--ui-scale,1));}.statusInline .pill,.statusInline .cycle-badge{padding:1px 5px;font-size:calc(8px * var(--ui-scale,1));}}
+.m_cash_mode.on{background:var(--brand3);border-color:color-mix(in srgb,var(--brand) 35%,transparent);color:var(--brand);font-weight:800;}
 .actionsRow { display: flex; gap: 4px; flex-wrap: nowrap; }
 
 /* ── FORMS ── */
@@ -722,7 +726,7 @@ tbody tr { transition: background var(--lt-tr); }
 
 @media(max-width:900px){
   .app{display:block;} .sidebar{display:none;} .mobileNav{display:block;}
-  .scroll{padding-bottom:calc(150px + env(safe-area-inset-bottom));} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
+  .scroll{padding-bottom:calc(220px + env(safe-area-inset-bottom));} #pageBody{padding-bottom:calc(160px + env(safe-area-inset-bottom));} .scroll > *:last-child{margin-bottom:18px;} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
   .chart-grid,.analytics-stats,.lt-grid{grid-template-columns:1fr 1fr;}
   .twoColPage{grid-template-columns:1fr;}
   .dash-bottom{grid-template-columns:1fr;} .g2tight{grid-template-columns:1fr;}
@@ -2638,11 +2642,50 @@ function renderDashboard(){
 
   // Cash update handler
   $("#setCashBtn")?.addEventListener("click",()=>{
-    openModal("Update Cash on Hand",`<div class="form-field"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Physical QAR cash ready to deploy</label><input id="m_cash" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" placeholder="0.00"/></div><div style="margin-top:6px;color:var(--muted);font-size:10px;">Used to calculate Buying Power and Net Position on the dashboard.</div>`,
+    openModal("Update Cash on Hand",`
+      <div class="form-field">
+        <label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Action</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" class="rowBtn m_cash_mode on" data-mode="set" style="flex:1;min-width:96px;">Set Total</button>
+          <button type="button" class="rowBtn m_cash_mode" data-mode="add" style="flex:1;min-width:96px;">Add Amount</button>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" id="m_cash_lbl" style="font-size:10px;font-weight:700;color:var(--muted);">Total cash (QAR)</label>
+        <input id="m_cash" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" placeholder="0.00"/>
+      </div>
+      <div id="m_cash_preview" style="margin-top:6px;color:var(--muted);font-size:10px;">Current ${fmtQ(num(state.cashQAR,0))} → New total ${fmtQ(num(state.cashQAR,0))}</div>
+      <div style="margin-top:6px;color:var(--muted);font-size:10px;">Used to calculate Buying Power and Net Position on the dashboard.</div>`,
       `<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_s">Save Cash</button>`);
     setTimeout(()=>{
+      let cashMode="set";
+      const curr=num(state.cashQAR,0);
+      const inp=$("#m_cash"), lbl=$("#m_cash_lbl"), prev=$("#m_cash_preview");
+      const redraw=()=>{
+        const v=num(inp?.value,0);
+        const total=(cashMode==="add")?(curr+v):v;
+        if(lbl) lbl.textContent = cashMode==="add" ? "Add cash amount (QAR)" : "Total cash (QAR)";
+        if(prev) prev.textContent = cashMode==="add"
+          ? `Current ${fmtQ(curr)} + Add ${fmtQ(v)} = New total ${fmtQ(total)}`
+          : `Current ${fmtQ(curr)} → New total ${fmtQ(total)}`;
+      };
+      $$(".m_cash_mode").forEach(b=>b.addEventListener("click",()=>{
+        cashMode=b.dataset.mode||"set";
+        $$(".m_cash_mode").forEach(x=>x.classList.remove("on"));
+        b.classList.add("on");
+        if(inp && cashMode==="add"){inp.value="";inp.placeholder="22000";}
+        if(inp && cashMode==="set"){inp.value=String(curr||0);inp.placeholder="0.00";}
+        redraw();
+      }));
+      inp?.addEventListener("input",redraw);
+      redraw();
       $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_s")?.addEventListener("click",()=>{state.cashQAR=num($("#m_cash")?.value,0);saveRecompute("Cash updated ✓","good");closeModal();});
+      $("#m_s")?.addEventListener("click",()=>{
+        const v=num(inp?.value,0);
+        state.cashQAR=(cashMode==="add")?(curr+v):v;
+        saveRecompute(cashMode==="add"?"Cash added ✓":"Cash updated ✓","good");
+        closeModal();
+      });
     },0);
   });
   destroyChart("dashTrend");
@@ -2910,8 +2953,8 @@ function renderBatchTable(batches){
       <td class="mono r">${fmtQ(b.initialUSDT*b.buyPriceQAR)} ${curLabel()}</td>
       <td class="mono r">${fmtU(rem)} USDT</td>
       <td><div class="prog"><span style="width:${prog.toFixed(0)}%"></span></div><div class="muted" style="font-size:calc(9px * var(--ui-scale,1));margin-top:2px;">${prog.toFixed(0)}% remaining</div></td>
-      <td class="mono r" style="color:${(b.profit||0)>=0?"var(--good)":"var(--bad)"};font-weight:700;">${(b.profit||0)>=0?"+":""}${fmtQ(b.profit||0)} ${curLabel()}</td>
-      <td><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="pill ${stCls}">${st}</span>${ct!==null?`<span class="cycle-badge">${fmtDur(ct)}</span>`:""}<button class="rowBtn" data-act="editB" data-id="${esc(b.id)}">Edit</button></div></td>
+      <td class="mono r" style="color:${(b.profit||0)>=0?"var(--good)":"var(--bad)"};font-weight:700;">${(b.profit||0)>=0?"+":""}${fmtQ(b.profit||0)}</td>
+      <td><div class="statusInline"><span class="pill ${stCls}">${st}</span>${ct!==null?`<span class="cycle-badge">${fmtDur(ct)}</span>`:""}<button class="rowBtn" data-act="editB" data-id="${esc(b.id)}">Edit</button></div></td>
     </tr>`;
   }).join("");
   return`<div class="tableWrap"><table><thead><tr><th>Date</th><th>Source</th><th class="r">Total</th><th class="r">Buy</th><th class="r">Rem</th><th>Usage</th><th class="r">Profit</th><th>Status · Edit</th></tr></thead><tbody>${rows}</tbody></table></div>`;
