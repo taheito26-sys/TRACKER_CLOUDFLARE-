@@ -608,6 +608,7 @@ tbody tr { transition: background var(--lt-tr); }
 .chart-box { background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--lt-radius); overflow: hidden; box-shadow: var(--lt-shadow2); transition: all var(--lt-tr); }
 .chart-box:hover { border-color: color-mix(in srgb,var(--brand) 35%,transparent); box-shadow: var(--lt-shadow); }
 .chart-box.full { grid-column: 1 / -1; }
+.twoColPage { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,320px); gap:10px; align-items:start; }
 .chart-title { font-size: calc(11px * var(--ui-scale,1)); font-weight: 700; padding: 9px 12px 3px; }
 .chart-sub { font-size: calc(10px * var(--ui-scale,1)); color: var(--muted); padding: 0 12px 6px; }
 .chart-wrap { padding: 6px 12px 10px; height: 190px; position: relative; }
@@ -720,8 +721,25 @@ tbody tr { transition: background var(--lt-tr); }
   .app{display:block;} .sidebar{display:none;} .mobileNav{display:block;}
   .scroll{padding-bottom:75px;} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
   .chart-grid,.analytics-stats,.lt-grid{grid-template-columns:1fr 1fr;}
+  .twoColPage{grid-template-columns:1fr;}
   .dash-bottom{grid-template-columns:1fr;} .g2tight{grid-template-columns:1fr;}
   table{min-width:600px;}
+
+  /* tighter mobile tables for Orders/Stock so they fit like Vault/P2P */
+  body[data-page="orders"] table,
+  body[data-page="stock"] table{min-width:0;}
+  body[data-page="orders"] .tableWrap,
+  body[data-page="stock"] .tableWrap{overflow-x:hidden;}
+
+  body[data-page="orders"] table th:nth-child(3),
+  body[data-page="orders"] table td:nth-child(3),
+  body[data-page="orders"] table th:nth-child(5),
+  body[data-page="orders"] table td:nth-child(5){display:none;}
+
+  body[data-page="stock"] table th:nth-child(4),
+  body[data-page="stock"] table td:nth-child(4),
+  body[data-page="stock"] table th:nth-child(6),
+  body[data-page="stock"] table td:nth-child(6){display:none;}
 }
 @media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} }
 .div-line { display: none !important; }
@@ -2615,7 +2633,7 @@ function renderLedger(){
     :renderTradeTable(filtered);
 
   $("#pageBody").innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:10px;align-items:start;">
+    <div class="twoColPage">
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">
           <div><div style="font-size:calc(13px * var(--ui-scale,1));font-weight:800;">Trades</div><div style="font-size:calc(10px * var(--ui-scale,1));color:var(--muted);">FIFO cost basis · margin bar</div></div>
@@ -2736,7 +2754,7 @@ function renderStock(){
     :renderBatchTable(filtered);
 
   $("#pageBody").innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:10px;align-items:start;">
+    <div class="twoColPage">
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:calc(13px * var(--ui-scale,1));font-weight:800;">Batches</div><span class="pill">FIFO layers</span></div>
         ${tableHtml}
