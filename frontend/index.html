@@ -2829,13 +2829,6 @@ function renderStock(){
     <div class="twoColPage">
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;"><div><div style="font-size:calc(13px * var(--ui-scale,1));font-weight:800;">Batches</div><div style="font-size:calc(10px * var(--ui-scale,1));color:var(--muted);">FIFO layers · progress = remaining</div></div><div style="display:flex;gap:6px;"><span class="pill">${esc(rl())}</span></div></div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:8px;">
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">BEST RESTOCK</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--bad);">${bestRestock!==null?fmtP(bestRestock):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">BUY AVG</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--t1);">${avgBuy!==null?fmtP(avgBuy):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">PROFIT IF SOLD NOW</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:${profitNow!==null&&profitNow>=0?"var(--good)":"var(--bad)"};">${profitNow!==null?((profitNow>=0?"+":"")+fmtQ(profitNow)):"—"} ${curLabel()}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">${fmtU(totalStock())} USDT @ market</div></div>
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">BATCH VOLUME</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;">${fmtQ(totalVolQAR)} ${curLabel()}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">Total buy volume</div></div>
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">TODAY LOW BUY</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--bad);">${todayLow!==null?fmtP(todayLow):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
-        </div>
         ${tableHtml}
       </div>
       <div>
