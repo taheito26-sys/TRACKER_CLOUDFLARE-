@@ -608,6 +608,7 @@ tbody tr { transition: background var(--lt-tr); }
 .chart-box { background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--lt-radius); overflow: hidden; box-shadow: var(--lt-shadow2); transition: all var(--lt-tr); }
 .chart-box:hover { border-color: color-mix(in srgb,var(--brand) 35%,transparent); box-shadow: var(--lt-shadow); }
 .chart-box.full { grid-column: 1 / -1; }
+.twoColPage { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,320px); gap:10px; align-items:start; }
 .chart-title { font-size: calc(11px * var(--ui-scale,1)); font-weight: 700; padding: 9px 12px 3px; }
 .chart-sub { font-size: calc(10px * var(--ui-scale,1)); color: var(--muted); padding: 0 12px 6px; }
 .chart-wrap { padding: 6px 12px 10px; height: 190px; position: relative; }
@@ -710,7 +711,7 @@ tbody tr { transition: background var(--lt-tr); }
 .empty svg { width: 32px; height: 32px; opacity: .35; margin: 0 auto 8px; display: block; }
 .empty-t { font-size: calc(13px * var(--ui-scale,1)); font-weight: 700; }
 .empty-s { font-size: calc(11px * var(--ui-scale,1)); margin-top: 3px; }
-.mobileNav { display: none; position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 40; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 5px; backdrop-filter: blur(12px); }
+.mobileNav { display: none; position: fixed; left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); z-index: 40; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 5px; backdrop-filter: blur(12px); }
 .mobileNav .row { display: grid; grid-template-columns: repeat(8,1fr); gap: 3px; }
 .mBtn { border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: 14px; padding: 7px 3px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; font-size: calc(8px * var(--ui-scale,1)); font-family: var(--app-font, var(--lt-font)); transition: all var(--lt-tr); }
 .mBtn svg { width: 14px; height: 14px; }
@@ -718,19 +719,74 @@ tbody tr { transition: background var(--lt-tr); }
 
 @media(max-width:900px){
   .app{display:block;} .sidebar{display:none;} .mobileNav{display:block;}
-  .scroll{padding-bottom:75px;} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
+  .scroll{padding-bottom:calc(150px + env(safe-area-inset-bottom));} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
   .chart-grid,.analytics-stats,.lt-grid{grid-template-columns:1fr 1fr;}
+  .twoColPage{grid-template-columns:1fr;}
   .dash-bottom{grid-template-columns:1fr;} .g2tight{grid-template-columns:1fr;}
-  table{min-width:600px;}
+  table{min-width:0;width:100%;}
+
+  /* mobile topbar: prevent title squeezing / clipped controls */
+  .topbar{height:auto;padding:8px 10px;flex-direction:column;align-items:stretch;gap:8px;}
+  .topbar > div:first-child{display:flex;align-items:center;justify-content:space-between;min-width:0;}
+  .pageSub{display:none;}
+  .topRight{width:100%;display:grid;grid-template-columns:1fr;gap:6px;align-items:stretch;}
+  .searchBox{min-width:0;}
+  .searchBox input{min-width:0;max-width:none;width:100%;}
+  #rangeSeg{justify-self:stretch;width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;}
+  #rangeSeg button{padding:6px 4px;min-width:0;}
+  #curSeg,#diagBtn,#exportBtn,#syncBadge,#topbarUser,#addBtn{display:none;}
+  .pageTitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+
+  /* compact table density across pages on mobile */
+  thead th{padding:7px 6px;font-size:calc(9px * var(--ui-scale,1));}
+  tbody td{padding:7px 6px;font-size:calc(10px * var(--ui-scale,1));}
+
+  /* force inline two/three-column content grids to stack on phones */
+  #pageBody [style*="grid-template-columns:1fr 1fr"],
+  #pageBody [style*="grid-template-columns:1fr 1fr 1fr"],
+  #pageBody [style*="grid-template-columns:1.1fr .9fr"]{grid-template-columns:1fr !important;}
+
+  /* tighter mobile tables for Orders/Stock so they fit like Vault/P2P */
+  body[data-page="orders"] table,
+  body[data-page="stock"] table{min-width:0;}
+  body[data-page="orders"] .tableWrap,
+  body[data-page="stock"] .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+
+  body[data-page="orders"] table th:nth-child(3),
+  body[data-page="orders"] table td:nth-child(3),
+  body[data-page="orders"] table th:nth-child(5),
+  body[data-page="orders"] table td:nth-child(5),
+  body[data-page="orders"] table th:nth-child(8),
+  body[data-page="orders"] table td:nth-child(8){display:none;}
+  body[data-page="orders"] table td:nth-child(7) .prog{max-width:68px;}
+
+  body[data-page="stock"] table th:nth-child(4),
+  body[data-page="stock"] table td:nth-child(4),
+  body[data-page="stock"] table th:nth-child(6),
+  body[data-page="stock"] table td:nth-child(6),
+  body[data-page="stock"] table th:nth-child(8),
+  body[data-page="stock"] table td:nth-child(8){display:none;}
+
+  /* page-specific mobile tuning (P2P/Settings) */
+  body[data-page="p2p"] .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  body[data-page="p2p"] table{min-width:520px;}
+
+  body[data-page="settings"] .theme-colors{grid-template-columns:repeat(2,minmax(0,1fr));}
+  body[data-page="settings"] .lt-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+
+  /* stock follows the same two-column + scroll behavior as orders/vault */
+  body[data-page="stock"] #pageBody{width:100%;max-width:100%;}
+  body[data-page="stock"] #pageBody > .twoColPage{width:100%;max-width:100%;}
+  body[data-page="stock"] .twoColPage > div{min-width:0;width:100%;}
+  body[data-page="stock"] .panel,
+  body[data-page="stock"] .tableWrap{width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
 }
-@media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} }
+@media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:repeat(2,minmax(0,1fr));} body[data-page="settings"] .theme-colors{grid-template-columns:repeat(2,minmax(0,1fr));} }
 .div-line { display: none !important; }
-/* ── TOOLTIPS ─────────────────────────────────────────────── */
-[data-tip]{position:relative;}
-[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#ffffff;color:#111111;border:1px solid #e2e8f0;padding:7px 10px;border-radius:8px;font-size: calc(10.5px * var(--ui-scale,1));font-weight:500;font-family:'Inter',sans-serif;line-height:1.5;white-space:pre-wrap;max-width:240px;text-align:left;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.15);pointer-events:none;opacity:0;transition:opacity .15s ease;width:max-content;}
-[data-tip]:hover::after{opacity:1;}
-[data-tip-left]::after{left:0;transform:none;}
-[data-tip-right]::after{left:auto;right:0;transform:none;}
+/* ── TOOLTIPS DISABLED ───────────────────────────────────── */
+[data-tip]::after,
+[data-tip-left]::after,
+[data-tip-right]::after{content:none !important;display:none !important;}
 .cal-day{aspect-ratio:unset!important;min-height:40px!important;max-height:52px!important;}
 
 /* Dashboard titles should ignore global font scaling */
@@ -2615,7 +2671,7 @@ function renderLedger(){
     :renderTradeTable(filtered);
 
   $("#pageBody").innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:10px;align-items:start;">
+    <div class="twoColPage">
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">
           <div><div style="font-size:calc(13px * var(--ui-scale,1));font-weight:800;">Trades</div><div style="font-size:calc(10px * var(--ui-scale,1));color:var(--muted);">FIFO cost basis · margin bar</div></div>
@@ -2736,13 +2792,13 @@ function renderStock(){
     :renderBatchTable(filtered);
 
   $("#pageBody").innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:10px;align-items:start;">
+    <div class="twoColPage">
       <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:calc(13px * var(--ui-scale,1));font-weight:800;">Batches</div><span class="pill">FIFO layers</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;"><div><div style="font-size:calc(13px * var(--ui-scale,1));font-weight:800;">Batches</div><div style="font-size:calc(10px * var(--ui-scale,1));color:var(--muted);">FIFO layers · progress = remaining</div></div><div style="display:flex;gap:6px;"><span class="pill">${esc(rl())}</span></div></div>
         ${tableHtml}
       </div>
       <div>
-        <div class="formPanel"><div class="hdr">Add Batch</div><div class="inner">
+        <div class="formPanel salePanel"><div class="hdr">Add Batch</div><div class="inner">
           ${wacop?`<div class="bannerRow"><span class="bLbl">Current WACOP</span><span class="bVal">${fmtP(wacop)} QAR</span><span class="bSpacer"></span><span class="bPill">Avg</span></div>`:""}
           <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="b_dt" type="datetime-local" style="padding-right:0"/></div></div>
           <div class="g2tight">
@@ -2798,7 +2854,7 @@ function renderBatchTable(batches){
       <td><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="pill ${stCls}">${st}</span>${ct!==null?`<span class="cycle-badge">${fmtDur(ct)}</span>`:""}<button class="rowBtn" data-act="editB" data-id="${esc(b.id)}">Edit</button></div></td>
     </tr>`;
   }).join("");
-  return`<div class="tableWrap"><table><thead><tr><th>Date</th><th>Source</th><th class="r">Total</th><th class="r">Buy QAR</th><th class="r">Remaining</th><th>Usage</th><th class="r">Profit</th><th>Status · Edit</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return`<div class="tableWrap ledgerWrap"><table><thead><tr><th>Date</th><th>Source</th><th class="r">Total</th><th class="r">Buy QAR</th><th class="r">Remaining</th><th>Usage</th><th class="r">Profit</th><th>Status · Edit</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 // ── P2P ──────────────────────────────────────────────────────────
