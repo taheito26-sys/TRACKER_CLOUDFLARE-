@@ -719,7 +719,8 @@ tbody tr { transition: background var(--lt-tr); }
 
 @media(max-width:900px){
   .app{display:block;} .sidebar{display:none;} .mobileNav{display:block;}
-  .scroll{padding-bottom:calc(150px + env(safe-area-inset-bottom));} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
+  .scroll{padding-bottom:calc(190px + env(safe-area-inset-bottom));} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
+  #pageBody{padding-bottom:calc(28px + env(safe-area-inset-bottom));}
   .chart-grid,.analytics-stats,.lt-grid{grid-template-columns:1fr 1fr;}
   .twoColPage{grid-template-columns:1fr;}
   .dash-bottom{grid-template-columns:1fr;} .g2tight{grid-template-columns:1fr;}
@@ -777,10 +778,14 @@ tbody tr { transition: background var(--lt-tr); }
   body[data-page="calendar"] .cal-grid{gap:3px;}
   body[data-page="calendar"] .cal-day{min-height:34px !important;padding:2px;}
 
-  body[data-page="settings"] .theme-colors{grid-template-columns:1fr;}
-  body[data-page="settings"] .lt-grid{grid-template-columns:1fr;}
+  body[data-page="settings"] .theme-colors{grid-template-columns:1fr !important;}
+  body[data-page="settings"] .lt-grid{grid-template-columns:1fr !important;}
+  body[data-page="settings"] .tc-btn,
+  body[data-page="settings"] .lt-card{min-width:0;width:100%;}
 }
-@media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:1fr;} body[data-page="settings"] .theme-colors{grid-template-columns:1fr;} }
+@media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:1fr !important;}
+  body[data-page="settings"] .tc-btn,
+  body[data-page="settings"] .lt-card{min-width:0;width:100%;} body[data-page="settings"] .theme-colors{grid-template-columns:1fr !important;} }
 .div-line { display: none !important; }
 /* ── TOOLTIPS ─────────────────────────────────────────────── */
 [data-tip]{position:relative;}
@@ -2786,7 +2791,8 @@ function renderStock(){
   setHeader("Stock Batches","FIFO layers · progress = remaining");
   const q=state.q.trim().toLowerCase(),wacop=getWACOP();
   const perf=state.batches.map(b=>{const db=derived.batches.find(x=>x.id===b.id);const rem=db?Math.max(0,db.remainingUSDT):b.initialUSDT,used=b.initialUSDT-rem;let profit=0;for(const[,c]of derived.tradeCalc){if(!c.ok)continue;const s=c.slices.find(s=>s.batchId===b.id);if(s)profit+=s.qty*c.ppu;}return{...b,remaining:rem,used,profit};}).sort((a,b2)=>b2.ts-a.ts);
-  const filtered=!q?perf:perf.filter(b=>[fmtDate(b.ts),b.source,b.note].join(" ").toLowerCase().includes(q));
+  const list=perf.filter(b=>inRange(b.ts));
+  const filtered=!q?list:list.filter(b=>[fmtDate(b.ts),b.source,b.note].join(" ").toLowerCase().includes(q));
 
   const tableHtml=!filtered.length
     ?`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><div class="empty-t">No batches</div><div class="empty-s">Add your first USDT purchase →</div></div>`
