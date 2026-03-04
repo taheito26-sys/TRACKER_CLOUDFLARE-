@@ -755,9 +755,13 @@ tbody tr { transition: background var(--lt-tr); }
 
   /* tighter mobile tables for Orders/Stock so they fit like Vault/P2P */
   body[data-page="orders"] table,
-  body[data-page="stock"] table{min-width:0;}
+  body[data-page="stock"] table{min-width:0;width:100%;table-layout:fixed;}
   body[data-page="orders"] .tableWrap,
-  body[data-page="stock"] .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  body[data-page="stock"] .tableWrap{overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+  body[data-page="orders"] table th,
+  body[data-page="orders"] table td,
+  body[data-page="stock"] table th,
+  body[data-page="stock"] table td{min-width:0;overflow:hidden;text-overflow:ellipsis;}
 
   body[data-page="orders"] table th:nth-child(3),
   body[data-page="orders"] table td:nth-child(3),
@@ -781,8 +785,29 @@ tbody tr { transition: background var(--lt-tr); }
   body[data-page="settings"] .theme-colors{grid-template-columns:repeat(2,minmax(0,1fr));}
   body[data-page="settings"] .lt-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 
-  /* keep stock table scroll behavior explicit */
-  body[data-page="stock"] .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  /* keep stock table pinned to viewport width on mobile */
+  body[data-page="stock"] .tableWrap{overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+
+  /* force full-width containers/panels for Orders & Stock on phones */
+  body[data-page="orders"] #pageBody,
+  body[data-page="stock"] #pageBody,
+  body[data-page="orders"] .twoColPage,
+  body[data-page="stock"] .twoColPage,
+  body[data-page="orders"] .twoColPage > div,
+  body[data-page="stock"] .twoColPage > div,
+  body[data-page="orders"] .formPanel,
+  body[data-page="stock"] .formPanel,
+  body[data-page="orders"] .panel,
+  body[data-page="stock"] .panel,
+  body[data-page="orders"] .tableWrap,
+  body[data-page="stock"] .tableWrap{width:100%;max-width:100%;min-width:0;box-sizing:border-box;}
+
+  body[data-page="orders"] .inputBox,
+  body[data-page="stock"] .inputBox,
+  body[data-page="orders"] .inputBox input,
+  body[data-page="stock"] .inputBox input,
+  body[data-page="orders"] .inputBox select,
+  body[data-page="stock"] .inputBox select{max-width:100%;min-width:0;}
 }
 @media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:repeat(2,minmax(0,1fr));} body[data-page="settings"] .theme-colors{grid-template-columns:repeat(2,minmax(0,1fr));} }
 .div-line { display: none !important; }
@@ -1544,7 +1569,7 @@ body[data-page="dashboard"] #pageTitle{--ui-scale:1;}
       <button class="navBtn" data-go="stock" data-tip="Manage USDT batches&#10;FIFO layers · suppliers auto-tracked"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.5"/></svg><div><div>Stock</div><small>Batches</small></div></button>
 <button class="navBtn" data-go="calendar" data-tip="Trade calendar&#10;Visual daily activity · click a day for detail"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="1.5"/></svg><div><div>Calendar</div><small>Trade view</small></div></button>
       <button class="navBtn" data-go="crm" data-tip="Customer CRM&#10;Trust tiers A/B/C/D · limits · history"><svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div><div>CRM</div><small>Customers</small></div></button>
-      <button class="navBtn" data-go="p2p" data-tip="Live P2P rates&#10;Binance QAR/USDT buy &amp; sell offers"><svg viewBox="0 0 24 24" fill="none"><path d="M8 7h8M6 11h12M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0" stroke="currentColor" stroke-width="1.5"/></svg><div><div>P2P</div><small>Live rates</small></div></button>
+      <button class="navBtn" data-go="p2p" data-tip="Live P2P rates&#10;Binance QAR buy &amp; sell offers"><svg viewBox="0 0 24 24" fill="none"><path d="M8 7h8M6 11h12M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0" stroke="currentColor" stroke-width="1.5"/></svg><div><div>P2P</div><small>Live rates</small></div></button>
       
             
       <button class="navBtn" data-go="vault" data-tip="Vault &amp; Cloud Backup&#10;Google Drive · export · import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-.57A7 7 0 1 0 4 15.5"/><polyline points="8 17 12 21 16 17"/><line x1="12" y1="21" x2="12" y2="13"/></svg><div><div>Vault</div><small>Cloud &amp; Backup</small></div></button>
@@ -1608,7 +1633,7 @@ body[data-page="dashboard"] #pageTitle{--ui-scale:1;}
   <button class="mBtn" data-go="dashboard" data-tip="Main dashboard&#10;KPIs · WACOP · Cash position · Trend chart"><svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V11h-7v9Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Home</button>
   <button class="mBtn" data-go="orders" data-tip="Trade ledger&#10;Log USDT sales · FIFO cost basis · margin"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10M7 8h10M7 12h10M7 16h10M7 20h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Trade</button>
   <button class="mBtn" data-go="stock"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.5"/></svg>Stock</button>
-  <button class="mBtn" data-go="p2p" data-tip="Live P2P rates&#10;Binance QAR/USDT buy &amp; sell offers"><svg viewBox="0 0 24 24" fill="none"><path d="M8 7h8M6 11h12M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0" stroke="currentColor" stroke-width="1.5"/></svg>P2P</button>
+  <button class="mBtn" data-go="p2p" data-tip="Live P2P rates&#10;Binance QAR buy &amp; sell offers"><svg viewBox="0 0 24 24" fill="none"><path d="M8 7h8M6 11h12M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0" stroke="currentColor" stroke-width="1.5"/></svg>P2P</button>
   
   <button class="mBtn" data-go="calendar" data-tip="Trade calendar&#10;Visual daily activity · click a day for detail"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Cal</button>
   
@@ -1684,7 +1709,17 @@ const startOfDay=ts=>{const d=new Date(ts);d.setHours(0,0,0,0);return d.getTime(
 const trunc0 = n => { n = num(n); if(!Number.isFinite(n)) return NaN; return n < 0 ? Math.ceil(n) : Math.floor(n); };
 const fmt0=n=>Number.isFinite(num(n))?trunc0(n).toLocaleString(undefined,{maximumFractionDigits:0}):"—";
 // Totals (QAR, KPIs) are shown with no decimals (truncated display)
-const fmtQ=n=>fmt0(n);
+const fmtQRaw=n=>fmt0(n);
+// Currency-aware amount formatter used throughout UI
+const fmtQ=n=>{
+  const q=num(n);
+  if(!Number.isFinite(q))return "—";
+  if(state?.currency==="USDT"){
+    const w=(typeof getWACOP==="function")?getWACOP():null;
+    if(w&&w>0)return fmtU(q/w);
+  }
+  return fmtQRaw(q);
+};
 // Quantities (USDT) keep up to 2 decimals for readability
 const fmtU=n=>Number.isFinite(num(n))?num(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2}):"—";
 // Prices show decimals (default 2)
@@ -1768,7 +1803,7 @@ function dispAmt(qarAmount){
 }
 function dispRate(qarRate){
   if(state.currency==="USDT")return"— USDT";
-  return fmtP(qarRate)+" QAR/USDT";
+  return fmtP(qarRate)+" QAR";
 }
 function curLabel(){return state.currency==="USDT"?"USDT":"QAR";}
 
@@ -2060,7 +2095,7 @@ function setMode(m){
   if($("#t_mode_val"))$("#t_mode_val").value=m;
   $("#modeUSDT")?.classList.toggle("active",m==="USDT");
   $("#modeQAR")?.classList.toggle("active",m==="QAR");
-  const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=m==="USDT"?"Quantity USDT":"Amount QAR";
+  const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=m==="USDT"?"Quantity":"Amount";
   updateSalePreview();
 }
 function updateSalePreview(){
@@ -2572,7 +2607,7 @@ function renderDashboard(){
     <div class="kpi-card" data-tip="How many USDT you could buy with cash&#10;Formula: Cash ÷ WACOP&#10;Assumes you buy at current avg cost">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--t5);border-color:color-mix(in srgb,var(--t5) 30%,transparent);background:color-mix(in srgb,var(--t5) 10%,transparent)">${wacop?"@WACOP":"—"}</span></div>
       <div class="kpi-lbl">BUYING POWER</div><div class="kpi-val" style="color:var(--t5)">${(wacop&&num(state.cashQAR,0)>0)?fmtU(num(state.cashQAR,0)/wacop,0)+" USDT":"Set cash →"}</div>
-      <div class="kpi-sub">${wacop?"@ "+fmtP(wacop)+" QAR/USDT":"Add batches first"}</div>
+      <div class="kpi-sub">${wacop?"@ "+fmtP(wacop)+" QAR":"Add batches first"}</div>
     </div>
     <div class="kpi-card" data-tip="Total deployable capital&#10;Formula: USDT stock cost + Cash&#10;Your full book position">
       <div class="kpi-head"><span class="kpi-badge good" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">Net</span></div>
@@ -2698,15 +2733,15 @@ function renderLedger(){
       </div>
       <div>
         <div class="formPanel salePanel"><div class="hdr">New Sale</div><div class="inner">
-          ${wacop?`<div class="bannerRow"><span class="bLbl">WACOP</span><span class="bVal">${fmtP(wacop)} QAR</span><span class="bSpacer"></span><span class="bPill">FIFO</span></div>`:""}
+          ${wacop?`<div class="bannerRow"><span class="bLbl">WACOP</span><span class="bVal">${fmtP(wacop)}</span><span class="bSpacer"></span><span class="bPill">FIFO</span></div>`:""}
           <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="t_dt" type="datetime-local" style="padding-right:0"/></div></div>
           <div class="field2"><div class="lbl">Input Mode</div>
-            <div class="modeToggle"><button id="modeUSDT" class="active" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9 7h6M9 17h6M12 7v10" stroke-linecap="round"/></svg>USDT</button><button id="modeQAR" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>QAR</button></div>
+            <div class="modeToggle"><button id="modeUSDT" class="active" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9 7h6M9 17h6M12 7v10" stroke-linecap="round"/></svg>Qty</button><button id="modeQAR" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>Amt</button></div>
             <input type="hidden" id="t_mode_val" value="USDT"/>
           </div>
           <div class="g2tight">
-            <div class="field2"><div class="lbl" id="t_amt_lbl">Quantity USDT</div><div class="inputBox"><input id="t_amt" inputmode="decimal" placeholder="0.00"/><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9h4.5a2.5 2.5 0 0 1 0 5H9" stroke-linecap="round"/></svg></div></div>
-            <div class="field2"><div class="lbl">Sell Price QAR</div><div class="inputBox" style="display:flex;gap:5px;padding-right:5px;"><input id="t_sell" inputmode="decimal" placeholder="${wacop?fmtP(wacop):"0.00"}" value="${wacop?fmtP(wacop):""}"/><button class="sideAction" id="t_p2p" title="P2P rate" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 7h8M6 11h12M8 15h8" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0"/></svg></button></div></div>
+            <div class="field2"><div class="lbl" id="t_amt_lbl">Quantity</div><div class="inputBox"><input id="t_amt" inputmode="decimal" placeholder="0.00"/><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9h4.5a2.5 2.5 0 0 1 0 5H9" stroke-linecap="round"/></svg></div></div>
+            <div class="field2"><div class="lbl">Sell Price</div><div class="inputBox" style="display:flex;gap:5px;padding-right:5px;"><input id="t_sell" inputmode="decimal" placeholder="${wacop?fmtP(wacop):"0.00"}" value="${wacop?fmtP(wacop):""}"/><button class="sideAction" id="t_p2p" title="P2P rate" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 7h8M6 11h12M8 15h8" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0"/></svg></button></div></div>
           </div>
 <div class="field2" data-tip="Link this trade to a CRM customer&#10;Tracks volume and P&amp;L per customer">
             <div class="lbl">Customer</div>
@@ -2775,7 +2810,7 @@ function renderTradeTable(trades){
     </tr>
     <tr id="det-${t.id.replace(/[^a-zA-Z0-9_-]/g,"_")}" style="display:none;"><td colspan="8">${renderTradeDetail(t,c)}</td></tr>`;
   }).join("");
-  return`<div class="tableWrap ledgerWrap"><table><thead><tr><th>Date</th><th class="r">Qty (USDT)</th><th class="r">Avg Buy (QAR/USDT)</th><th class="r">Sell (QAR/USDT)</th><th class="r">Volume (${curLabel()} )</th><th class="r">Net (${curLabel()} )</th><th>Margin</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return`<div class="tableWrap ledgerWrap"><table><thead><tr><th>Date</th><th class="r">Qty</th><th class="r">Avg Buy</th><th class="r">Sell</th><th class="r">Volume</th><th class="r">Net</th><th>Margin</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderTradeDetail(t,c){
@@ -2812,7 +2847,7 @@ function renderStock(){
   const todayLow=todayB.length?Math.min(...todayB.map(b=>b.buyPriceQAR)):null;
 
   const tableHtml=!filtered.length
-    ?`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><div class="empty-t">No batches</div><div class="empty-s">Add your first USDT purchase →</div></div>`
+    ?`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><div class="empty-t">No batches</div><div class="empty-s">Add your first purchase →</div></div>`
     :renderBatchTable(filtered);
 
   $("#pageBody").innerHTML=`
@@ -2823,11 +2858,11 @@ function renderStock(){
       </div>
       <div>
         <div class="formPanel salePanel"><div class="hdr">Add Batch</div><div class="inner">
-          ${wacop?`<div class="bannerRow"><span class="bLbl">Current WACOP</span><span class="bVal">${fmtP(wacop)} QAR</span><span class="bSpacer"></span><span class="bPill">Avg</span></div>`:""}
+          ${wacop?`<div class="bannerRow"><span class="bLbl">Current WACOP</span><span class="bVal">${fmtP(wacop)}</span><span class="bSpacer"></span><span class="bPill">Avg</span></div>`:""}
           <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="b_dt" type="datetime-local" style="padding-right:0"/></div></div>
           <div class="g2tight">
-            <div class="field2"><div class="lbl">Quantity USDT</div><div class="inputBox"><input id="b_amt" inputmode="decimal" placeholder="1000.00"/></div></div>
-            <div class="field2"><div class="lbl">Buy Price QAR</div><div class="inputBox"><input id="b_px" inputmode="decimal" placeholder="3.5900"/></div></div>
+            <div class="field2"><div class="lbl">Quantity</div><div class="inputBox"><input id="b_amt" inputmode="decimal" placeholder="1000.00"/></div></div>
+            <div class="field2"><div class="lbl">Buy Price</div><div class="inputBox"><input id="b_px" inputmode="decimal" placeholder="3.5900"/></div></div>
           </div>
           <div class="g2tight">
             <div class="field2"><div class="lbl">Supplier</div>
@@ -2851,7 +2886,7 @@ function renderStock(){
   // Suppliers list
   const suppliers=[...new Set(state.batches.map(b=>b.source.trim()).filter(Boolean))];
   if(suppliers.length){
-    const suppHtml=`<div class="panel" style="margin-top:9px;"><div class="panel-head"><h2>📦 Suppliers</h2><span class="pill" data-tip="Auto-populated from batch sources&#10;Click to filter">Auto-tracked</span></div><div class="panel-body" style="display:flex;flex-wrap:wrap;gap:5px;">${suppliers.map(s=>`<span class="pill" style="cursor:pointer;" data-tip="Supplier: ${s}&#10;Total batches: ${state.batches.filter(b=>b.source===s).length}&#10;Total USDT: ${state.batches.filter(b=>b.source===s).reduce((a,b)=>a+b.initialUSDT,0).toFixed(0)}" onclick="document.getElementById('q').value='${s}';document.getElementById('q').dispatchEvent(new Event('input'));">${s}</span>`).join("")}</div></div>`;
+    const suppHtml=`<div class="panel" style="margin-top:9px;"><div class="panel-head"><h2>📦 Suppliers</h2><span class="pill" data-tip="Auto-populated from batch sources&#10;Click to filter">Auto-tracked</span></div><div class="panel-body" style="display:flex;flex-wrap:wrap;gap:5px;">${suppliers.map(s=>`<span class="pill" style="cursor:pointer;" data-tip="Supplier: ${s}&#10;Total batches: ${state.batches.filter(b=>b.source===s).length}&#10;Total: ${state.batches.filter(b=>b.source===s).reduce((a,b)=>a+b.initialUSDT,0).toFixed(0)}" onclick="document.getElementById('q').value='${s}';document.getElementById('q').dispatchEvent(new Event('input'));">${s}</span>`).join("")}</div></div>`;
     const pb3=document.getElementById("pageBody");if(pb3)pb3.insertAdjacentHTML("beforeend",suppHtml);
   }
   $("#b_add")?.addEventListener("click",addBatch);
@@ -2879,12 +2914,12 @@ function renderBatchTable(batches){
       <td><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="pill ${stCls}">${st}</span>${ct!==null?`<span class="cycle-badge">${fmtDur(ct)}</span>`:""}<button class="rowBtn" data-act="editB" data-id="${esc(b.id)}">Edit</button></div></td>
     </tr>`;
   }).join("");
-  return`<div class="tableWrap ledgerWrap"><table><thead><tr><th>Date</th><th>Source</th><th class="r">Total (USDT)</th><th class="r">Buy (QAR/USDT)</th><th class="r">Volume (${curLabel()} )</th><th class="r">Remaining (USDT)</th><th>Usage</th><th class="r">Profit (${curLabel()} )</th><th>Status · Edit</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return`<div class="tableWrap"><table><thead><tr><th>Date</th><th>Source</th><th class="r">Total</th><th class="r">Buy</th><th class="r">Rem</th><th>Usage</th><th class="r">Profit</th><th>Status · Edit</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 // ── P2P ──────────────────────────────────────────────────────────
 function renderP2P(){
-  setHeader("P2P Market","Live Binance QAR/USDT · 24h backend monitoring");
+  setHeader("P2P Market","Live Binance QAR · 24h backend monitoring");
   const wacop=getWACOP(), stock=totalStock(), cash=num(state.cashQAR,0);
   const ts=p2p.ts?new Date(p2p.ts).toLocaleTimeString():"—";
   const spread=p2p.sellAvg&&p2p.buyAvg?p2p.sellAvg-p2p.buyAvg:null;
@@ -3189,7 +3224,7 @@ function renderCalendar(){
   if(selectedDay&&selData&&selData.trades>0){
     detailHtml=`<div class="cal-detail">
       <div style="font-size:calc(12px * var(--ui-scale,1));font-weight:800;margin-bottom:8px;">📅 ${mn[month]} ${selectedDay}, ${year} — ${selData.trades} trade${selData.trades!==1?"s":""} · Vol ${fmtQ(selData.volumeQAR)} QAR · Net ${(selData.profit>=0?"+":"")+fmtQ(selData.profit)} QAR · Win ${(selData.trades?((selData.wins/selData.trades)*100).toFixed(0):"0")}%</div>
-      <div class="tableWrap"><table><thead><tr><th>Time</th><th class="r">Qty USDT</th><th class="r">Avg Buy</th><th class="r">Sell</th><th class="r">Volume</th><th class="r">Net</th><th class="r">Margin</th></tr></thead>
+      <div class="tableWrap"><table><thead><tr><th>Time</th><th class="r">Qty</th><th class="r">Avg Buy</th><th class="r">Sell</th><th class="r">Volume</th><th class="r">Net</th><th class="r">Margin</th></tr></thead>
       <tbody>${selData.tradeList.map(t=>`<tr><td class="mono">${new Date(t.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</td><td class="mono r">${fmtU(t.amountUSDT)}</td><td class="mono r" style="color:var(--bad)">${fmtP(t.avgBuy)}</td><td class="mono r" style="color:var(--good)">${fmtP(t.sellPriceQAR)}</td><td class="mono r">${fmtQ(t.rev)}</td><td class="mono r" style="color:${t.net>=0?"var(--good)":"var(--bad)"};font-weight:700;">${(t.net>=0?"+":"")+fmtQ(t.net)}</td><td class="mono r" style="color:${t.margin>=1?"var(--good)":t.margin<0?"var(--bad)":"var(--warn)"}">${fmtPct(t.margin)}</td></tr>`).join("")}</tbody></table></div>
     </div>`;
   }else if(selectedDay){
@@ -3426,7 +3461,7 @@ function renderCRM() {
       formHtml += "<div class='form-panel-body'>" +
         "<div class='form-field'><label class='form-label'>Supplier Name *</label><input id='sn_name' class='inp-field' placeholder='e.g. Ahmed Crypto Exchange' autocomplete='off'/></div>" +
         "<div class='form-field'><label class='form-label'>Phone / Contact</label><input id='sn_phone' class='inp-field' placeholder='+974 5XXX XXXX'/></div>" +
-        "<div class='form-field'><label class='form-label'>Typical Price QAR/USDT</label><input id='sn_price' class='inp-field' inputmode='decimal' placeholder='e.g. 3.678'/></div>" +
+        "<div class='form-field'><label class='form-label'>Typical Price QAR</label><input id='sn_price' class='inp-field' inputmode='decimal' placeholder='e.g. 3.678'/></div>" +
         "<button class='btn' id='sn_add' style='width:100%;margin-top:8px;'>Add Supplier</button>" +
         "<div class='msg' id='sn_msg'></div>" +
       "</div>";
