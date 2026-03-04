@@ -1684,21 +1684,11 @@ const startOfDay=ts=>{const d=new Date(ts);d.setHours(0,0,0,0);return d.getTime(
 const trunc0 = n => { n = num(n); if(!Number.isFinite(n)) return NaN; return n < 0 ? Math.ceil(n) : Math.floor(n); };
 const fmt0=n=>Number.isFinite(num(n))?trunc0(n).toLocaleString(undefined,{maximumFractionDigits:0}):"—";
 // Totals (QAR, KPIs) are shown with no decimals (truncated display)
-const fmtQRaw=n=>fmt0(n);
+const fmtQ=n=>fmt0(n);
 // Quantities (USDT) keep up to 2 decimals for readability
 const fmtU=n=>Number.isFinite(num(n))?num(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2}):"—";
 // Prices show decimals (default 2)
 const fmtP=(n,d=2)=>Number.isFinite(num(n))?num(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
-// Currency-aware amount formatter used throughout UI
-const fmtQ=n=>{
-  const q=num(n);
-  if(!Number.isFinite(q))return "—";
-  if(state?.currency==="USDT"){
-    const w=(typeof getWACOP==="function")?getWACOP():null;
-    if(w&&w>0)return fmtU(q/w);
-  }
-  return fmtQRaw(q);
-};
 const fmtPct=n=>Number.isFinite(num(n))?((num(n)>=0?"+":"")+String(Math.trunc(num(n)))+"%"):"—";
 const fmtDur=ms=>{if(!ms||ms<0)return"—";const m=Math.floor(ms/60000),h=Math.floor(m/60),d=Math.floor(h/24);if(d>0)return d+"d "+(h%24)+"h";if(h>0)return h+"h "+(m%60)+"m";return m+"m";};
 const fmtDate=ts=>new Date(ts).toLocaleDateString();
