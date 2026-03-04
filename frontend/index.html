@@ -771,14 +771,15 @@ tbody tr { transition: background var(--lt-tr); }
   body[data-page="p2p"] .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   body[data-page="p2p"] table{min-width:520px;}
 
-  body[data-page="settings"] .theme-colors{grid-template-columns:1fr;}
-  body[data-page="settings"] .lt-grid{grid-template-columns:1fr;}
+  body[data-page="settings"] .theme-colors{grid-template-columns:repeat(2,minmax(0,1fr));}
+  body[data-page="settings"] .lt-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 
   /* stock follows the same two-column + scroll behavior as orders/vault */
+  body[data-page="stock"] #pageBody > .twoColPage{width:100%;}
   body[data-page="stock"] .twoColPage > div{min-width:0;}
   body[data-page="stock"] .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 }
-@media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:1fr;} body[data-page="settings"] .theme-colors{grid-template-columns:1fr;} }
+@media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:repeat(2,minmax(0,1fr));} body[data-page="settings"] .theme-colors{grid-template-columns:repeat(2,minmax(0,1fr));} }
 .div-line { display: none !important; }
 /* ── TOOLTIPS DISABLED ───────────────────────────────────── */
 [data-tip]::after,
@@ -2792,7 +2793,7 @@ function renderStock(){
   $("#pageBody").innerHTML=`
     <div class="twoColPage">
       <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;"><div><div style="font-size:calc(13px * var(--ui-scale,1));font-weight:800;">Batches</div><div style="font-size:calc(10px * var(--ui-scale,1));color:var(--muted);">FIFO layers · progress = remaining</div></div><div style="display:flex;gap:6px;"><span class="pill">${esc(rl())}</span><span class="pill">FIFO layers</span></div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;"><div><div style="font-size:calc(13px * var(--ui-scale,1));font-weight:800;">Batches</div><div style="font-size:calc(10px * var(--ui-scale,1));color:var(--muted);">FIFO layers · progress = remaining</div></div><div style="display:flex;gap:6px;"><span class="pill">${esc(rl())}</span></div></div>
         ${tableHtml}
       </div>
       <div>
