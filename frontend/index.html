@@ -724,6 +724,22 @@ tbody tr { transition: background var(--lt-tr); }
   .twoColPage{grid-template-columns:1fr;}
   .dash-bottom{grid-template-columns:1fr;} .g2tight{grid-template-columns:1fr;}
   table{min-width:600px;}
+
+  /* tighter mobile tables for Orders/Stock so they fit like Vault/P2P */
+  body[data-page="orders"] table,
+  body[data-page="stock"] table{min-width:0;}
+  body[data-page="orders"] .tableWrap,
+  body[data-page="stock"] .tableWrap{overflow-x:hidden;}
+
+  body[data-page="orders"] table th:nth-child(3),
+  body[data-page="orders"] table td:nth-child(3),
+  body[data-page="orders"] table th:nth-child(5),
+  body[data-page="orders"] table td:nth-child(5){display:none;}
+
+  body[data-page="stock"] table th:nth-child(4),
+  body[data-page="stock"] table td:nth-child(4),
+  body[data-page="stock"] table th:nth-child(6),
+  body[data-page="stock"] table td:nth-child(6){display:none;}
 }
 @media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} }
 .div-line { display: none !important; }
