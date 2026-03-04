@@ -767,18 +767,16 @@ tbody tr { transition: background var(--lt-tr); }
   body[data-page="stock"] table th:nth-child(8),
   body[data-page="stock"] table td:nth-child(8){display:none;}
 
-  /* page-specific mobile tuning (P2P/Calendar/Settings) */
-  body[data-page="p2p"] .tableWrap,
-  body[data-page="calendar"] .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  body[data-page="p2p"] table,
-  body[data-page="calendar"] table{min-width:520px;}
-
-  body[data-page="calendar"] .cal-stats{grid-template-columns:1fr;}
-  body[data-page="calendar"] .cal-grid{gap:3px;}
-  body[data-page="calendar"] .cal-day{min-height:34px !important;padding:2px;}
+  /* page-specific mobile tuning (P2P/Settings) */
+  body[data-page="p2p"] .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  body[data-page="p2p"] table{min-width:520px;}
 
   body[data-page="settings"] .theme-colors{grid-template-columns:1fr;}
   body[data-page="settings"] .lt-grid{grid-template-columns:1fr;}
+
+  /* stock follows the same two-column + scroll behavior as orders/vault */
+  body[data-page="stock"] .twoColPage > div{min-width:0;}
+  body[data-page="stock"] .tableWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 }
 @media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:1fr;} body[data-page="settings"] .theme-colors{grid-template-columns:1fr;} }
 .div-line { display: none !important; }
