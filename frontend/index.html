@@ -719,8 +719,7 @@ tbody tr { transition: background var(--lt-tr); }
 
 @media(max-width:900px){
   .app{display:block;} .sidebar{display:none;} .mobileNav{display:block;}
-  .scroll{padding-bottom:calc(190px + env(safe-area-inset-bottom));} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
-  #pageBody{padding-bottom:calc(28px + env(safe-area-inset-bottom));}
+  .scroll{padding-bottom:calc(150px + env(safe-area-inset-bottom));} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
   .chart-grid,.analytics-stats,.lt-grid{grid-template-columns:1fr 1fr;}
   .twoColPage{grid-template-columns:1fr;}
   .dash-bottom{grid-template-columns:1fr;} .g2tight{grid-template-columns:1fr;}
@@ -778,14 +777,10 @@ tbody tr { transition: background var(--lt-tr); }
   body[data-page="calendar"] .cal-grid{gap:3px;}
   body[data-page="calendar"] .cal-day{min-height:34px !important;padding:2px;}
 
-  body[data-page="settings"] .theme-colors{grid-template-columns:1fr !important;}
-  body[data-page="settings"] .lt-grid{grid-template-columns:1fr !important;}
-  body[data-page="settings"] .tc-btn,
-  body[data-page="settings"] .lt-card{min-width:0;width:100%;}
+  body[data-page="settings"] .theme-colors{grid-template-columns:1fr;}
+  body[data-page="settings"] .lt-grid{grid-template-columns:1fr;}
 }
-@media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:1fr !important;}
-  body[data-page="settings"] .tc-btn,
-  body[data-page="settings"] .lt-card{min-width:0;width:100%;} body[data-page="settings"] .theme-colors{grid-template-columns:1fr !important;} }
+@media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:1fr;} body[data-page="settings"] .theme-colors{grid-template-columns:1fr;} }
 .div-line { display: none !important; }
 /* ── TOOLTIPS ─────────────────────────────────────────────── */
 [data-tip]{position:relative;}
