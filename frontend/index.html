@@ -1610,6 +1610,7 @@ body[data-page="dashboard"] #pageTitle{--ui-scale:1;}
         <div class="seg" id="curSeg" data-tip="Display currency&#10;Auto-converts amounts using WACOP">
           <button data-cur="QAR" class="active">QAR</button><button data-cur="USDT">USDT</button>
         </div>
+        <button class="iconBtn" id="langBtn" data-tip="Toggle language">EN</button>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card-bg);border:1px solid var(--line);border-radius:var(--lt-radius-sm);padding:3px 8px;" data-tip="Price alert threshold&#10;Notifies when P2P moves this % from WACOP">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;color:var(--warn);flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <input id="topAlertPct" type="number" step="0.5" value="" style="width:36px;border:none;background:transparent;color:var(--text);font-size:calc(10px * var(--ui-scale,1));font-family:var(--lt-font);outline:none;padding:0;" placeholder="2%"/>
@@ -1734,7 +1735,7 @@ const fmtDate=ts=>new Date(ts).toLocaleDateString();
 const isToday=ts=>ts>=startOfDay(Date.now());
 
 // ── STATE ──────────────────────────────────────────────────────
-const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
+const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",lang:"en",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
 let state=dflt(), derived={batches:[],tradeCalc:new Map(),health:{ok:true,issues:[]}};
 let charts={}, p2p={
   ts:0, buyAvg:null, sellAvg:null, buyOffers:[], sellOffers:[],
@@ -1747,6 +1748,37 @@ let charts={}, p2p={
   _calcMode:"sell", autoRefresh:false, _arTimer:null, _arCountdown:0
 };
 let storageOk=true;
+
+// ── I18N ─────────────────────────────────────────────────────────
+const I18N={
+  en:{dashboard:"Dashboard",orders:"Trade",stock:"Stock",p2p:"P2P",calendar:"Cal",vault:"Vault",settings:"More",
+      loginTab:"Sign In",registerTab:"Register",loginAction:"Sign In →",registerAction:"Create Account →",
+      search:"Search...",sub:"FIFO · QAR",home:"Home",lang:"EN",signOut:"Sign out"},
+  ar:{dashboard:"لوحة التحكم",orders:"التداول",stock:"المخزون",p2p:"ند للند",calendar:"التقويم",vault:"النسخ",settings:"المزيد",
+      loginTab:"تسجيل الدخول",registerTab:"إنشاء حساب",loginAction:"دخول ←",registerAction:"إنشاء حساب ←",
+      search:"بحث...",sub:"FIFO · ريال",home:"الرئيسية",lang:"AR",signOut:"تسجيل الخروج"}
+};
+const t=(k)=>((I18N[state.lang]||I18N.en)[k]||I18N.en[k]||k);
+function applyI18nUI(){
+  try{ document.documentElement.lang = state.lang||"en"; document.documentElement.dir = state.lang==="ar"?"rtl":"ltr"; }catch(e){}
+  const pt=$("#pageTitle"); if(pt) pt.textContent=t(state.page);
+  const ps=$("#pageSub"); if(ps) ps.textContent=t("sub");
+  const q=$("#q"); if(q) q.placeholder=t("search");
+  const lb=$("#langBtn"); if(lb) lb.textContent=t("lang");
+  const lm=$("#authModeLoginBtn"); if(lm) lm.textContent=t("loginTab");
+  const rm=$("#authModeRegisterBtn"); if(rm) rm.textContent=t("registerTab");
+  const li=$("#loginBtn"); if(li) li.textContent=t("loginAction");
+  const rg=$("#registerBtn"); if(rg) rg.textContent=t("registerAction");
+  ["dashboard","orders","stock","p2p","calendar","vault","settings"].forEach(pg=>{
+    $$(`.navBtn[data-go="${pg}"]`).forEach(b=>{ const tt=b.querySelector("div > div"); if(tt) tt.textContent=t(pg); });
+    $$(`.mBtn[data-go="${pg}"]`).forEach(b=>{
+      const svg=b.querySelector("svg"); if(!svg) return;
+      let sp=b.querySelector(".mTxt"); if(!sp){ sp=document.createElement("span"); sp.className="mTxt"; b.appendChild(sp); }
+      sp.textContent = pg==="dashboard" ? t("home") : t(pg);
+      [...b.childNodes].forEach(n=>{ if(n.nodeType===3) n.remove(); });
+    });
+  });
+}
 
 // ── TOAST ────────────────────────────────────────────────────────
 let _tt;
@@ -1766,6 +1798,7 @@ function sanitize(s){
   out.page=["dashboard","orders","stock","crm","p2p","analytics","calendar","vault","settings"].includes(out.page)?out.page:"dashboard";
   out.range=["today","7d","30d","all"].includes(out.range)?out.range:"7d";
   out.currency=["QAR","USDT"].includes(out.currency)?out.currency:"QAR";
+  out.lang=["en","ar"].includes(out.lang)?out.lang:"en";
   out.q=String(out.q||"");
   out.cashQAR=num(out.cashQAR,0);
   out.prefs={...d.prefs,...(out.prefs||{})};
@@ -5111,6 +5144,7 @@ function render(){
   const sc=$("#pageScroll");if(sc)sc.scrollTop=0;
 
   try{ wireSystemHealth_(); }catch(e){}
+  applyI18nUI();
 }
 
 function navTo(page){state.page=page;if(page==="settings")settingsDraftEnsure_();render();updateSaveSettingsBtn_();}
@@ -5613,6 +5647,7 @@ function showLoginScreen() {
     }
   } catch(e) {}
 
+  applyI18nUI();
 }
 function hideLoginScreen() {
   var s = document.getElementById("loginScreen");
@@ -5992,7 +6027,7 @@ function renderTopbarUser() {
       "<span style='font-size:10px;font-weight:700;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>" +
         esc(_authUser.name || _authUser.email) + "</span>" +
     "</button>" +
-    "<button id='signOutBtn' class='rowBtn' style='font-size:9px;padding:2px 7px;margin-left:8px;'>Sign out</button>";
+    "<button id='signOutBtn' class='rowBtn' style='font-size:9px;padding:2px 7px;margin-left:8px;'>" + t("signOut") + "</button>";
   var pb = document.getElementById("userProfileBtn");
   if (pb) pb.addEventListener("click", function(){ try{ openUserProfileModal(); }catch(e){} });
   var sob = document.getElementById("signOutBtn");
@@ -6036,6 +6071,7 @@ function init(){
   load();recompute();applyLayout();initGasBackup();renderTopbarUser();updateSyncBadge("saved");
   $$("[data-go]").forEach(b=>b.addEventListener("click",()=>navTo(b.dataset.go)));
   $$("button[data-cur]").forEach(b=>b.addEventListener("click",()=>{state.currency=b.dataset.cur;save();render();}));
+  $("#langBtn")?.addEventListener("click",()=>{state.lang=state.lang==="ar"?"en":"ar";save();render();});
   // Topbar alert input
   const syncAlertInput=()=>{const el=document.getElementById("topAlertPct");if(el)el.value=num(state.settings?.priceAlertThreshold,2);};
   syncAlertInput();
@@ -7719,6 +7755,7 @@ function jsonOut_(obj) {
     if (window.state && state.page === "crm") setTimeout(function(){ renderCRM_v3(); }, 0);
   } catch(e) {}
 
+  applyI18nUI();
 })();
 
 })();
@@ -7979,6 +8016,7 @@ function runSettingsTest() {
     }
   } catch(e) {}
 
+  applyI18nUI();
 })();
 
 function runSettingsTest() {
