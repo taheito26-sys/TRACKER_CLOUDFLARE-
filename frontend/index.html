@@ -2814,7 +2814,7 @@ function renderLedger(){
   ["t_amt","t_sell","t_dt"].forEach(id=>document.getElementById(id)?.addEventListener("input",updateSalePreview));
   updateSalePreview();
   $("#t_p2p")?.addEventListener("click",async()=>{if(!p2p.ts)await refreshP2P();if(p2p.sellAvg&&$("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();toast("P2P rate applied","good");}});
-  $("#showAll_t")?.addEventListener("click",()=>{state.range="all";saveRecompute();});
+  $("#showAll_t")?.addEventListener("click",()=>{state.range="all";render();});
   const pb=$("#pageBody");
   if(pb)pb.addEventListener("click",e=>{const btn=e.target.closest("button[data-act]");if(!btn)return;const id=btn.dataset.id,act=btn.dataset.act;if(act==="edit")editTrade(id);if(act==="detail"){const safeId=id.replace(/[^a-zA-Z0-9_-]/g,"_");const r=document.getElementById("det-"+safeId);if(r){r.style.display=r.style.display==="none"?"table-row":"none";btn.textContent=r.style.display!=="none"?"▼ Hide":"▶ Details";}}});
 }
@@ -5180,8 +5180,9 @@ function gasBackup() {
     renderGasStatus();
     updateSyncBadge("saved");
   }).catch(function(e) {
-    toast("Backup failed: " + e.message, "warn");
-    updateSyncBadge("error");
+    var msg = String((e && e.message) ? e.message : e || "");
+    if (/\b429\b|limit|quota/i.test(msg)) { _enterQuotaLocalMode_(); }
+    else { toast("Backup failed: " + msg, "warn"); updateSyncBadge("error"); }
   }).finally(function() {
     if (btn) { btn.disabled = false; btn.textContent = "☁ Backup Now"; }
   });
@@ -5762,22 +5763,31 @@ function gasRestoreSilent() {
 
 // ── Cloud sync dedup (ignore UI-only keys to avoid backups on navigation/search/range) ──
 var _cloudLastHash = "";
+var _syncDebounceMs = 15000;
+var _syncMinIntervalMs = 60000;
+var _syncPendingHash = "";
+
 function cloudStateForCloud_(){
   var s = {};
   try { s = JSON.parse(localStorage.getItem(SK) || "{}"); } catch(e) { s = {}; }
   try {
     // remove UI-only noise
     delete s.page; delete s.q; delete s.range; delete s.currency;
+    delete s.ui; delete s.modal; delete s._tmp; delete s._ui;
     if (s.cal && typeof s.cal === "object") { delete s.cal.selectedDay; delete s.cal.view; delete s.cal.month; delete s.cal.year; }
+    if (s.prefs && typeof s.prefs === "object") { delete s.prefs.uiAutoSave; delete s.prefs.uiLogsEnabled; delete s.prefs.uiLogLevel; }
   } catch(e){}
   return s;
 }
 
 function gasAutoSaveEnabled_(){
   try{
+    var prefs = (typeof getUiPrefs === "function") ? getUiPrefs() : { autoSave:true, localOnlyUntil:0 };
+    var lockTs = Number((prefs && prefs.localOnlyUntil) || 0) || 0;
+    if (lockTs > Date.now()) return false;
+    if (lockTs && lockTs <= Date.now() && typeof setUiPrefs === "function") { prefs.localOnlyUntil = 0; setUiPrefs(prefs); }
     var cb = document.getElementById("gasAutoSave");
     if (cb) return !!cb.checked;
-    var prefs = (typeof getUiPrefs === "function") ? getUiPrefs() : { autoSave:true };
     return (prefs && prefs.autoSave === false) ? false : true;
   } catch(e){ return true; }
 }
@@ -5789,6 +5799,23 @@ function cloudHash_(){
   for (var i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h>>>0).toString(16);
 }
+function _nextUtcResetTs_(){
+  var n = new Date();
+  return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()+1, 0, 0, 0, 0);
+}
+function _enterQuotaLocalMode_(){
+  try{
+    var p = (typeof getUiPrefs === "function") ? getUiPrefs() : { autoSave:true, localOnlyUntil:0 };
+    p.autoSave = false;
+    p.localOnlyUntil = _nextUtcResetTs_();
+    if (typeof setUiPrefs === "function") setUiPrefs(p);
+    var cb = document.getElementById("gasAutoSave");
+    if (cb) cb.checked = false;
+    updateSyncBadge("paused");
+    toast("Cloud write limit hit (429). Auto-backup OFF until UTC reset; local mode active.","warn");
+  }catch(e){}
+}
+
 function syncSchedule() {
   gasLoadConfig();
   if (!gasAutoSaveEnabled_()) { updateSyncBadge("paused"); return; }
@@ -5797,15 +5824,26 @@ function syncSchedule() {
   var h = cloudHash_();
   if (h && h === _cloudLastHash) { updateSyncBadge("saved"); return; }
 
+  _syncPendingHash = h || _syncPendingHash;
   if (_syncTimer) clearTimeout(_syncTimer);
   updateSyncBadge("syncing");
-  _syncTimer = setTimeout(function() { drivePush(h); }, 1800);
+  var sinceLast = Date.now() - (Number(_gasLastSync)||0);
+  var waitMin = Math.max(0, _syncMinIntervalMs - sinceLast);
+  var waitMs = Math.max(_syncDebounceMs, waitMin);
+  _syncTimer = setTimeout(function() { drivePush(_syncPendingHash); }, waitMs);
 }
 
 function drivePush(expectedHash) {
   gasLoadConfig();
   if (!gasAutoSaveEnabled_()) { updateSyncBadge("paused"); return Promise.resolve(); }
   if (!_gasUrl || _syncBusy || !_authUser || !_authToken) return Promise.resolve();
+
+  var sinceLast = Date.now() - (Number(_gasLastSync)||0);
+  if (sinceLast < _syncMinIntervalMs) {
+    if (_syncTimer) clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(function(){ drivePush(expectedHash); }, _syncMinIntervalMs - sinceLast);
+    return Promise.resolve();
+  }
 
   // if something changed since schedule, let next schedule handle it
   var nowH = cloudHash_();
@@ -5828,8 +5866,10 @@ function drivePush(expectedHash) {
     gasSaveConfig();
     updateSyncBadge("saved");
     renderGasStatus();
-  }).catch(function() {
-    updateSyncBadge("error");
+  }).catch(function(e) {
+    var msg = String((e && e.message) ? e.message : e || "");
+    if (/\b429\b|limit|quota/i.test(msg)) _enterQuotaLocalMode_();
+    else updateSyncBadge("error");
   }).finally(function() { _syncBusy = false; });
 }
 
@@ -6000,7 +6040,7 @@ function init(){
   const syncAlertInput=()=>{const el=document.getElementById("topAlertPct");if(el)el.value=num(state.settings?.priceAlertThreshold,2);};
   syncAlertInput();
   document.addEventListener("input",e=>{if(e.target.id==="topAlertPct"){settingsDraftSet_("settings.priceAlertThreshold", num(e.target.value,2)); updateSaveSettingsBtn_();}});
-  $$("#rangeSeg button[data-range]").forEach(b=>b.addEventListener("click",()=>{state.range=b.dataset.range;save();render();}));
+  $$("#rangeSeg button[data-range]").forEach(b=>b.addEventListener("click",()=>{state.range=b.dataset.range;render();}));
   $("#q")?.addEventListener("input",e=>{state.q=String(e.target.value||"");save();render();});
   if($("#q"))$("#q").value=state.q;
   $("#themeToggleBtn")?.addEventListener("click",()=>{
@@ -6147,14 +6187,15 @@ window.addEventListener("DOMContentLoaded", function(){
   // ---------- UI prefs ----------
   var _UI_PREF_KEY = "taheito_ui_prefs_v1";
   function getUiPrefs(){
-    var d = { autoSave: true, logsEnabled: true, logLevel: "info" };
+    var d = { autoSave: true, logsEnabled: true, logLevel: "info", localOnlyUntil: 0 };
     try {
       var raw = localStorage.getItem(_UI_PREF_KEY) || "";
       var o = _safeParse(raw, null) || {};
       return {
         autoSave: (o.autoSave === false) ? false : true,
         logsEnabled: (o.logsEnabled === false) ? false : true,
-        logLevel: (o.logLevel === "error" || o.logLevel === "warn" || o.logLevel === "info") ? o.logLevel : "info"
+        logLevel: (o.logLevel === "error" || o.logLevel === "warn" || o.logLevel === "info") ? o.logLevel : "info",
+        localOnlyUntil: Number(o.localOnlyUntil || 0) || 0
       };
     } catch(e) { return d; }
   }
@@ -6167,6 +6208,7 @@ window.addEventListener("DOMContentLoaded", function(){
       state.prefs.uiAutoSave = (pp.autoSave === false) ? false : true;
       state.prefs.uiLogsEnabled = (pp.logsEnabled === false) ? false : true;
       state.prefs.uiLogLevel = (pp.logLevel === "error" || pp.logLevel === "warn" || pp.logLevel === "info") ? pp.logLevel : "info";
+      state.prefs.uiLocalOnlyUntil = Number(pp.localOnlyUntil||0) || 0;
       if (typeof save === "function") save();
     }catch(e){}
   }
