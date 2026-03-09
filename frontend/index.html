@@ -521,6 +521,81 @@ body {
 .kpi-cell-val { font-size: calc(18px * var(--ui-scale,1)); font-weight: 800; }
 .kpi-cell-sub { font-size: calc(10px * var(--ui-scale,1)); color: var(--muted); margin-top: 3px; }
 
+
+/* ── DASHBOARD KPI COMPACT / ALIGNED ── */
+body[data-page="dashboard"] .kpi-band-grid,
+body[data-page="dashboard"] .kpis {
+  gap: 6px;
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+body[data-page="dashboard"] .kpi-band,
+body[data-page="dashboard"] .kpi-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+body[data-page="dashboard"] .kpi-band {
+  padding: 10px 11px;
+}
+body[data-page="dashboard"] .kpi-card {
+  padding: 9px 10px 8px;
+}
+body[data-page="dashboard"] .kpi-head {
+  margin-bottom: 6px;
+  min-height: 20px;
+}
+body[data-page="dashboard"] .kpi-band-title,
+body[data-page="dashboard"] .kpi-period,
+body[data-page="dashboard"] .kpi-lbl {
+  letter-spacing: .55px;
+}
+body[data-page="dashboard"] .kpi-band-title {
+  font-size: calc(8px * var(--ui-scale,1));
+  margin-bottom: 7px;
+}
+body[data-page="dashboard"] .kpi-period,
+body[data-page="dashboard"] .kpi-lbl {
+  font-size: calc(7px * var(--ui-scale,1));
+  margin-bottom: 4px;
+}
+body[data-page="dashboard"] .kpi-cell-val {
+  font-size: calc(15px * var(--ui-scale,1));
+  line-height: 1.12;
+}
+body[data-page="dashboard"] .kpi-val {
+  font-size: calc(17px * var(--ui-scale,1)) !important;
+  line-height: 1.1;
+}
+body[data-page="dashboard"] .kpi-cell-sub,
+body[data-page="dashboard"] .kpi-sub {
+  font-size: calc(9px * var(--ui-scale,1));
+  line-height: 1.22;
+  margin-top: 3px;
+}
+body[data-page="dashboard"] .kpi-badge {
+  font-size: calc(8px * var(--ui-scale,1));
+  padding: 2px 6px;
+}
+body[data-page="dashboard"] .kpi-band-cols {
+  gap: 10px;
+}
+body[data-page="dashboard"] .dash-bottom {
+  gap: 6px;
+}
+@media (max-width: 900px) {
+  body[data-page="dashboard"] .kpi-band {
+    padding: 9px 10px;
+  }
+  body[data-page="dashboard"] .kpi-card {
+    padding: 8px 9px;
+  }
+  body[data-page="dashboard"] .kpi-val {
+    font-size: calc(16px * var(--ui-scale,1)) !important;
+  }
+}
+
 /* ── TABLES ── */
 .tableWrap { overflow-x: auto; border-radius: var(--lt-radius); border: 1px solid var(--line); }
 .ledgerWrap{overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
@@ -1910,7 +1985,7 @@ function syncBatchDraftFromInputs(){
   const amtEl=$("#b_amt");
   d.amountUSDT=amtEl&&String(amtEl.value||"").trim()!==""?num(amtEl.value):NaN;
   const pxEl=$("#b_px");
-  d.buyPriceQAR=pxEl&&String(pxEl.value||"").trim()!==""?displayToQar(pxEl.value):NaN;
+  d.buyPriceQAR=pxEl&&String(pxEl.value||"").trim()!==""?num(pxEl.value):NaN;
   const src=$("#b_src");if(src)d.source=String(src.value||"");
   const note=$("#b_note");if(note)d.note=String(note.value||"");
   return d;
@@ -2200,7 +2275,7 @@ function openAddCustomerModal(prefillName=""){
 
 function addBatch(){
   syncBatchDraftFromInputs();
-  const ts=inputToTs($("#b_dt")?.value),amt=num($("#b_amt")?.value),px=displayToQar($("#b_px")?.value),src=$("#b_src")?.value.trim()||"",note=$("#b_note")?.value.trim()||"";
+  const ts=inputToTs($("#b_dt")?.value),amt=num($("#b_amt")?.value),px=num($("#b_px")?.value),src=$("#b_src")?.value.trim()||"",note=$("#b_note")?.value.trim()||"";
   const errs=[];if(!Number.isFinite(ts))errs.push("date");if(!(amt>0))errs.push("qty");if(!(px>0))errs.push("price");if(!src)errs.push("supplier");
   if(errs.length){const el=$("#b_msg");if(el){el.textContent="Fix: "+errs.join(", ");el.className="msg err";}return;}
   ensureSupplierRecord({name:src});
@@ -3042,7 +3117,7 @@ function renderStock(){
   const batchDraft=getBatchDraft();
   const batchTs=Number.isFinite(batchDraft.ts)?batchDraft.ts:Date.now();
   const batchAmtValue=Number.isFinite(batchDraft.amountUSDT)?num(batchDraft.amountUSDT).toFixed(2):"";
-  const batchPxValue=Number.isFinite(batchDraft.buyPriceQAR)?inputRateQAR(batchDraft.buyPriceQAR,4,4):"";
+  const batchPxValue=Number.isFinite(batchDraft.buyPriceQAR)?num(batchDraft.buyPriceQAR).toFixed(4):"";
   const perf=state.batches.map(b=>{const db=derived.batches.find(x=>x.id===b.id);const rem=db?Math.max(0,db.remainingUSDT):b.initialUSDT,used=b.initialUSDT-rem;let profit=0;for(const[,c]of derived.tradeCalc){if(!c.ok)continue;const s=c.slices.find(s=>s.batchId===b.id);if(s)profit+=s.qty*c.ppu;}return{...b,remaining:rem,used,profit};}).sort((a,b2)=>b2.ts-a.ts);
   const filtered=!q?perf:perf.filter(b=>[fmtDate(b.ts),b.source,b.note].join(" ").toLowerCase().includes(q));
   const bWithBuy=perf.filter(b=>b.buyPriceQAR>0);
@@ -3065,12 +3140,12 @@ function renderStock(){
       </div>
       <div>
         <div class="formPanel salePanel"><div class="hdr">Add Batch</div><div class="inner">
-          ${wacop?`<div class="bannerRow"><span class="bLbl">Current WACOP</span><span class="bVal">${fmtRateQAR(wacop)}</span><span class="bSpacer"></span><span class="bPill">${displayCurrency()}</span></div>`:""}
+          ${wacop?`<div class="bannerRow"><span class="bLbl">Current WACOP</span><span class="bVal">${fmtRateQARFixed(wacop)}</span><span class="bSpacer"></span><span class="bPill">QAR</span></div>`:""}
           <div class="field2"><div class="lbl">Currency</div><div class="seg" data-tip="Display and form currency"><button type="button" data-formcur="QAR" class="${state.currency==="QAR"?"active":""}">QAR</button><button type="button" data-formcur="USDT" class="${state.currency==="USDT"?"active":""}">USDT</button></div></div>
           <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="b_dt" type="datetime-local" style="padding-right:0" value="${dtToInput(batchTs)}"/></div></div>
           <div class="g2tight">
             <div class="field2"><div class="lbl">Quantity</div><div class="inputBox"><input id="b_amt" inputmode="decimal" placeholder="1000.00" value="${batchAmtValue}"/></div></div>
-            <div class="field2"><div class="lbl">Buy Price (${displayCurrency()})</div><div class="inputBox"><input id="b_px" inputmode="decimal" placeholder="${wacop?inputRateQAR(wacop,4,4):"3.5900"}" value="${batchPxValue}"/></div></div>
+            <div class="field2"><div class="lbl">Buy Price (QAR)</div><div class="inputBox"><input id="b_px" inputmode="decimal" placeholder="${wacop?num(wacop).toFixed(4):"3.5900"}" value="${batchPxValue}"/></div></div>
           </div>
           <div class="g2tight">
             <div class="field2"><div class="lbl">Supplier</div>
@@ -3116,7 +3191,7 @@ function renderBatchTable(batches){
       <td>${esc(b.source||"—")}</td>
       <td class="mono r">${fmtU(b.initialUSDT)}</td>
       <td class="mono r">${fmtP(b.buyPriceQAR)}</td>
-      <td class="mono r">${fmtQ(b.initialUSDT*b.buyPriceQAR)} ${curLabel()}</td>
+      <td class="mono r">${fmtQRaw(b.initialUSDT*b.buyPriceQAR)} QAR</td>
       <td class="mono r">${fmtU(rem)} USDT</td>
       <td><div class="prog"><span style="width:${prog.toFixed(0)}%"></span></div><div class="muted" style="font-size:calc(9px * var(--ui-scale,1));margin-top:2px;">${prog.toFixed(0)}% remaining</div></td>
       <td class="mono r" style="color:${(b.profit||0)>=0?"var(--good)":"var(--bad)"};font-weight:700;">${(b.profit||0)>=0?"+":""}${fmtQ(b.profit||0)}</td>
