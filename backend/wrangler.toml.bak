@@ -1,0 +1,18 @@
+name = "p2p-monitor"
+main = "src/index.js"
+compatibility_date = "2026-03-10"
+
+[triggers]
+crons = ["*/2 * * * *"]
+
+[[kv_namespaces]]
+binding = "P2P_KV"
+id = "00e9cb0899964d34a89b8b41376682ed"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "crypto-tracker"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[vars]
+ALLOWED_ORIGINS = "https://p2p-tracker.pages.dev,https://tracker.pages.dev,https://lovable.dev"
