@@ -1883,6 +1883,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
 <button class="navBtn" data-go="calendar" data-tip="Trade calendar&#10;Visual daily activity · click a day for detail"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="1.5"/></svg><div><div>Calendar</div><small>Trade view</small></div></button>
       <button class="navBtn" data-go="crm" data-tip="Customer CRM&#10;Trust tiers A/B/C/D · limits · history"><svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div><div>CRM</div><small>Customers</small></div></button>
       <button class="navBtn" data-go="merchants" data-tip="Merchant partnerships&#10;Lending · arbitrage · profit sharing · capital"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2Z" stroke="currentColor" stroke-width="1.5"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div><div>Merchants</div><small>Partnerships</small></div></button>
+      <button class="navBtn" data-go="shared_merchants" data-tip="Shared partnerships&#10;Real-time collaboration · activity log · audit trail"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M1 20c0-3.9 3.6-7 8-7s7 3.1 7 7M16 11h6M19 8v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div><div>Shared</div><small>Collaborate</small></div></button>
       <button class="navBtn" data-go="p2p" data-tip="Live P2P rates&#10;Binance QAR buy &amp; sell offers"><svg viewBox="0 0 24 24" fill="none"><path d="M8 7h8M6 11h12M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0" stroke="currentColor" stroke-width="1.5"/></svg><div><div>P2P</div><small>Live rates</small></div></button>
       
             
@@ -2218,7 +2219,7 @@ const fmtDate=ts=>new Date(ts).toLocaleDateString();
 const isToday=ts=>ts>=startOfDay(Date.now());
 
 // ── STATE ──────────────────────────────────────────────────────
-const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
+const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],invitations:[],shared_merchants:[],current_user_id:null,current_user_name:"",checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
 let state=dflt(), derived={batches:[],tradeCalc:new Map(),health:{ok:true,issues:[]}};
 let charts={}, p2p={
   ts:0, buyAvg:null, sellAvg:null, buyOffers:[], sellOffers:[],
@@ -2247,7 +2248,7 @@ function sanitize(s){
   const THEMES=["t1","t2","t3","t4","t5"];
   out.layout=LAYOUTS.includes(out.layout)?out.layout:"flux";
   out.theme=["t1","t2","t3","t4","t5"].includes(out.theme)?out.theme:"t1";
-  out.page=["dashboard","orders","stock","crm","merchants","p2p","analytics","calendar","vault","settings"].includes(out.page)?out.page:"dashboard";
+  out.page=["dashboard","orders","stock","crm","merchants","shared_merchants","p2p","analytics","calendar","vault","settings"].includes(out.page)?out.page:"dashboard";
   out.range=["today","7d","30d","all"].includes(out.range)?out.range:"7d";
   out.currency=["QAR","USDT"].includes(out.currency)?out.currency:"QAR";
   out.q=String(out.q||"");
@@ -2278,8 +2279,28 @@ function sanitize(s){
     capital_placement:(m.capital_placement&&typeof m.capital_placement==="object")?{active:!!m.capital_placement.active,usdt_capital:num(m.capital_placement.usdt_capital,0),date_placed:num(m.capital_placement.date_placed,Date.now()),monthly_profit_rate:num(m.capital_placement.monthly_profit_rate,0),profit_type:m.capital_placement.profit_type||"percentage",fixed_amount_if_applicable:num(m.capital_placement.fixed_amount_if_applicable,0),payment_schedule:m.capital_placement.payment_schedule||"monthly_28th",monthly_profits:Array.isArray(m.capital_placement.monthly_profits)?m.capital_placement.monthly_profits.map(p=>({month:String(p.month||""),profit_qar:num(p.profit_qar,0),profit_usdt:num(p.profit_usdt,0),conversion_rate:num(p.conversion_rate,3.7),paid_date:num(p.paid_date,Date.now())})):[],cumulative_profit_usdt:num(m.capital_placement.cumulative_profit_usdt,0),suspended:!!m.capital_placement.suspended}:{active:false},
     created_date:num(m.created_date,Date.now()),last_activity_date:num(m.last_activity_date,Date.now()),risk_level:m.risk_level||"low"
   })).filter(m=>m.name.trim().length>0):[];
-  return out;
-}
+  
+  out.invitations=Array.isArray(out.invitations)?out.invitations.map(inv=>({
+    id:String(inv.id||uid()),type:inv.type||"merchant_partnership",status:inv.status||"pending",
+    inviter:{user_id:String(inv.inviter?.user_id||""),name:String(inv.inviter?.name||""),email:String(inv.inviter?.email||""),timestamp:num(inv.inviter?.timestamp,Date.now())},
+    invitee:{user_id:String(inv.invitee?.user_id||""),email:String(inv.invitee?.email||""),accepted_timestamp:num(inv.invitee?.accepted_timestamp)||null},
+    merchant_details:{name:String(inv.merchant_details?.name||""),description:String(inv.merchant_details?.description||""),profit_ratio:{user_a_percentage:num(inv.merchant_details?.profit_ratio?.user_a_percentage,50),user_b_percentage:num(inv.merchant_details?.profit_ratio?.user_b_percentage,50)}},
+    shared_merchant_id:String(inv.shared_merchant_id||""),invite_code:String(inv.invite_code||""),expires_at:num(inv.expires_at,Date.now()+(7*24*60*60*1000)),created_at:num(inv.created_at,Date.now()),responded_at:num(inv.responded_at)||null
+  })).filter(inv=>inv.status!=="expired"):[];
+  
+  out.shared_merchants=Array.isArray(out.shared_merchants)?out.shared_merchants.map(sm=>({
+    id:String(sm.id||uid()),type:"shared_partnership",name:String(sm.name||""),description:String(sm.description||""),created_date:num(sm.created_date,Date.now()),status:sm.status||"active",created_by_user_id:String(sm.created_by_user_id||""),
+    partners:Array.isArray(sm.partners)?sm.partners.map(p=>({user_id:String(p.user_id||""),name:String(p.name||""),email:String(p.email||""),role:p.role||"partner",joined_date:num(p.joined_date,Date.now()),share_percentage:num(p.share_percentage,50),notification_enabled:p.notification_enabled!==false,last_viewed:num(p.last_viewed)||null})):[],
+    transactions:Array.isArray(sm.transactions)?sm.transactions.map(tx=>({id:String(tx.id||uid()),type:tx.type||"lending",added_by_user_id:String(tx.added_by_user_id||""),added_by_name:String(tx.added_by_name||""),added_at:num(tx.added_at,Date.now()),data:tx.data||{},edits:Array.isArray(tx.edits)?tx.edits.map(e=>({edit_id:String(e.edit_id||uid()),edited_by_user_id:String(e.edited_by_user_id||""),edited_by_name:String(e.edited_by_name||""),edited_at:num(e.edited_at,Date.now()),fields_changed:Array.isArray(e.fields_changed)?e.fields_changed.map(f=>({field:String(f.field||""),old_value:f.old_value,new_value:f.new_value,timestamp:num(f.timestamp,Date.now())})):[]})):[],visibility:tx.visibility||"both",locked:!!tx.locked})):[],
+    activity_log:Array.isArray(sm.activity_log)?sm.activity_log.map(log=>({log_id:String(log.log_id||uid()),timestamp:num(log.timestamp,Date.now()),user_id:String(log.user_id||""),user_name:String(log.user_name||""),action:String(log.action||""),description:String(log.description||""),affected_transaction_id:String(log.affected_transaction_id||""),details:log.details||{}})):[],
+    settings:{auto_sync:sm.settings?.auto_sync!==false,edit_permissions:sm.settings?.edit_permissions||"both_partners",notification_on_edit:sm.settings?.notification_on_edit!==false,allow_partner_delete:!!sm.settings?.allow_partner_delete},
+    statistics:{total_transactions:num(sm.statistics?.total_transactions,0),lending_active:num(sm.statistics?.lending_active,0),total_usdt_active:num(sm.statistics?.total_usdt_active,0),total_profit_calculated:num(sm.statistics?.total_profit_calculated,0)},
+    created_at:num(sm.created_at,Date.now()),updated_at:num(sm.updated_at,Date.now()),closed_at:num(sm.closed_at)||null
+  })):[],
+  
+  out.current_user_id=String(out.current_user_id||"user_"+uid().slice(0,8));
+  out.current_user_name=String(out.current_user_name||"User");
+  
 function load(){
   try{const r=localStorage.getItem(SK);if(r){state=sanitize(JSON.parse(r));return;}}catch{storageOk=false;}
   for(const k of["usdt_pro_v14","usdt_pro_v13","usdt_pro_v12","usdt_pro_v11","usdt_pro_x_v4","usdt_v10"]){
@@ -4958,6 +4979,102 @@ function recordProfitModal(id){const m=state.merchants.find(x=>x.id===id);if(!m)
 
 function deleteM(id){if(!confirm("Delete this merchant? History will be lost."))return;state.merchants=(state.merchants||[]).filter(x=>x.id!==id);window._selectedMerchantId=null;saveRecompute("Merchant deleted","warn");}
 
+// ─── COLLABORATIVE MERCHANT SYSTEM ─────────────────────────────────────────
+function renderSharedMerchants(){
+  setHeader("Shared Merchants","Real-time collaboration · Full transparency · Complete audit trail");
+  state.shared_merchants=Array.isArray(state.shared_merchants)?state.shared_merchants:[];
+  state.invitations=Array.isArray(state.invitations)?state.invitations:[];
+  
+  const myShared=state.shared_merchants.filter(sm=>sm.partners.some(p=>p.user_id===state.current_user_id));
+  const myInvites=state.invitations.filter(inv=>inv.status==="pending");
+  
+  const statsTotal=myShared.reduce((s,sm)=>s+((sm.statistics?.total_transactions)||0),0);
+  const statsActive=myShared.reduce((s,sm)=>s+((sm.statistics?.lending_active)||0),0);
+  const statsUsdt=myShared.reduce((s,sm)=>s+((sm.statistics?.total_usdt_active)||0),0);
+  const statsProfit=myShared.reduce((s,sm)=>s+((sm.statistics?.total_profit_calculated)||0),0);
+  
+  const html=`
+    <div class="kpis" style="margin-bottom:12px;">
+      <div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--brand)">Shared</span></div><div class="kpi-lbl">TOTAL PARTNERSHIPS</div><div class="kpi-val">${myShared.length}</div><div class="kpi-sub">${myShared.length!==1?"partnerships":"partnership"}</div></div>
+      <div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--good)">Active</span></div><div class="kpi-lbl">ACTIVE USDT</div><div class="kpi-val">${fmtU(statsUsdt,0)}</div><div class="kpi-sub">Across all partnerships</div></div>
+      <div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--warn)">${myInvites.length}</span></div><div class="kpi-lbl">PENDING INVITES</div><div class="kpi-val">${myInvites.length}</div><div class="kpi-sub">Awaiting your response</div></div>
+      <div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--good)">Synced</span></div><div class="kpi-lbl">TRANSACTIONS</div><div class="kpi-val">${statsTotal}</div><div class="kpi-sub">Real-time collaboration</div></div>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="panel">
+        <div class="panel-head"><h2>Pending Invitations</h2><button class="rowBtn" id="newInviteBtn" style="font-size:9px;padding:3px 8px;">+ New Invite</button></div>
+        <div class="panel-body">
+          ${myInvites.length===0?`<div class="empty"><div class="empty-t">No pending invitations</div><div class="empty-s">Invite a partner to start collaborating →</div></div>`:`<div style="display:flex;flex-direction:column;gap:8px;">
+          ${myInvites.map(inv=>`<div style="padding:10px;background:var(--panel2);border-radius:var(--lt-radius-sm);">
+            <div style="font-weight:600;margin-bottom:4px;">${esc(inv.merchant_details.name)}</div>
+            <div style="font-size:9px;color:var(--muted);margin-bottom:6px;">From: ${esc(inv.inviter.name)} (${esc(inv.inviter.email)})</div>
+            <div style="font-size:9px;margin-bottom:6px;">📊 Ratio: ${inv.merchant_details.profit_ratio.user_a_percentage}% / ${inv.merchant_details.profit_ratio.user_b_percentage}%</div>
+            <div style="display:flex;gap:6px;font-size:9px;">
+              <button class="rowBtn" onclick="acceptSharedInvite('${esc(inv.id)}');" style="flex:1;padding:4px;">✓ Accept</button>
+              <button class="rowBtn" onclick="declineSharedInvite('${esc(inv.id)}');" style="flex:1;padding:4px;">✕ Decline</button>
+            </div>
+          </div>`).join("")}
+          </div>`}
+        </div>
+      </div>
+      
+      <div class="panel">
+        <div class="panel-head"><h2>Active Partnerships</h2><button class="rowBtn" id="setPeerBtn" style="font-size:9px;padding:3px 8px;">Set Peer ID</button></div>
+        <div class="panel-body">
+          ${myShared.length===0?`<div class="empty"><div class="empty-t">No shared partnerships yet</div><div class="empty-s">Accept an invitation to collaborate</div></div>`:`<div class="tableWrap"><table><thead><tr><th>Merchant</th><th>Partner</th><th>Deals</th><th>USDT</th><th></th></tr></thead><tbody>
+          ${myShared.map(sm=>{const partner=sm.partners.find(p=>p.user_id!==state.current_user_id);return`<tr onclick="window._selectedSharedId='${esc(sm.id)}';render();" style="cursor:pointer;"><td><strong>${esc(sm.name)}</strong></td><td>${esc(partner?.name||"Unknown")}</td><td class="r">${sm.statistics?.total_transactions||0}</td><td class="r mono">${fmtU(sm.statistics?.total_usdt_active||0,0)}</td><td><button class="rowBtn" onclick="event.stopPropagation();deleteSharedM('${esc(sm.id)}');" style="font-size:8px;padding:2px 4px;">×</button></td></tr>`;}).join("")}
+          </tbody></table></div>`}
+        </div>
+      </div>
+    </div>
+    
+    ${window._selectedSharedId?(()=>{const sm=state.shared_merchants.find(x=>x.id===window._selectedSharedId);if(!sm)return"";const partner=sm.partners.find(p=>p.user_id!==state.current_user_id);return`<div style="margin-top:12px;"><div class="panel"><div class="panel-head"><h2>${esc(sm.name)} - With ${esc(partner?.name||"Unknown")}</h2><button class="rowBtn" id="addTxBtn" style="font-size:9px;padding:3px 8px;">+ Add Transaction</button></div><div class="panel-body" style="display:flex;flex-direction:column;gap:8px;">
+      <div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:9px;">PARTNER INFO</div><div style="margin-top:4px;"><span style="font-weight:600;">${esc(partner?.name)}</span> <span style="font-size:9px;color:var(--muted);">${esc(partner?.email)}</span></div><div style="font-size:9px;color:var(--muted);margin-top:4px;">Joined: ${new Date(partner?.joined_date).toLocaleDateString()}</div></div>
+      <div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:9px;">TRANSACTIONS (${sm.transactions?.length||0})</div><div style="margin-top:6px;max-height:200px;overflow-y:auto;"><div style="font-size:9px;display:flex;flex-direction:column;gap:4px;">
+      ${(sm.transactions||[]).length===0?`<div style="color:var(--muted);">No transactions yet. Add one to get started!</div>`:(sm.transactions||[]).slice(-5).reverse().map(tx=>`<div style="padding:6px;background:var(--panel);border-radius:6px;border-left:3px solid var(--brand);"><div style="font-weight:600;font-size:8px;">${tx.type.toUpperCase()} by ${esc(tx.added_by_name)}</div><div style="font-size:8px;color:var(--muted);margin-top:2px;">${new Date(tx.added_at).toLocaleString()}</div>${tx.edits?.length>0?`<div style="font-size:8px;color:var(--good);margin-top:2px;">✎ ${tx.edits.length} edit${tx.edits.length!==1?"s":""}</div>`:""}
+      </div>`).join("")}
+      </div></div>
+      <div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:9px;">ACTIVITY LOG (Recent)</div><div style="margin-top:6px;max-height:150px;overflow-y:auto;"><div style="font-size:8px;display:flex;flex-direction:column;gap:3px;">
+      ${(sm.activity_log||[]).slice(-5).reverse().map(log=>`<div><span style="font-weight:600;">${esc(log.user_name)}</span> <span style="color:var(--muted);">${log.action.replace(/_/g," ")}</span><div style="font-size:7px;color:var(--muted);">${new Date(log.timestamp).toLocaleString()}</div></div>`).join("")}
+      </div></div>
+      </div></div></div>`;})():""}
+  `;
+  
+  $("#pageBody").innerHTML=html;
+  $("#newInviteBtn")?.addEventListener("click",()=>newSharedInviteModal());
+  $("#setPeerBtn")?.addEventListener("click",()=>setPeerIdModal());
+  $("#addTxBtn")?.addEventListener("click",()=>addSharedTransactionModal(window._selectedSharedId));
+}
+
+function newSharedInviteModal(){openModal("Invite Partner",`
+  <div class="form-field"><label class="form-label">Partnership Name *</label><input id="partnerName" class="inp-field" placeholder="e.g., Ahmed & Sara Trading"/></div>
+  <div class="form-field"><label class="form-label">Partner Email *</label><input id="partnerEmail" class="inp-field" placeholder="partner@email.com"/></div>
+  <div class="form-field"><label class="form-label">Your Profit Share % *</label><input id="yourShare" class="inp-field" inputmode="decimal" placeholder="50" value="50"/></div>
+  <div class="msg" id="invMsg"></div>
+`,`<button class="btn secondary" id="cancel">Cancel</button><button class="btn" id="send">Send Invite</button>`);setTimeout(()=>{$("#cancel")?.addEventListener("click",closeModal);$("#send")?.addEventListener("click",()=>{const name=($("#partnerName")?.value||"").trim();const email=($("#partnerEmail")?.value||"").trim();const share=num($("#yourShare")?.value,50);if(!name||!email){const msg=$("#invMsg");if(msg){msg.textContent="Name and email required";msg.className="msg err";}return;}state.invitations=state.invitations||[];const inv={id:uid(),type:"merchant_partnership",status:"pending",inviter:{user_id:state.current_user_id,name:state.current_user_name,email:"current@user.com",timestamp:Date.now()},invitee:{user_id:"",email:email,accepted_timestamp:null},merchant_details:{name:name,description:"",profit_ratio:{user_a_percentage:share,user_b_percentage:100-share}},shared_merchant_id:"",invite_code:"MER-"+uid().slice(0,8).toUpperCase(),expires_at:Date.now()+(7*24*60*60*1000),created_at:Date.now(),responded_at:null};state.invitations.push(inv);saveRecompute("Invitation sent to "+email,"good");closeModal();});},0);}
+
+function acceptSharedInvite(invId){const inv=state.invitations.find(x=>x.id===invId);if(!inv)return;const newPartner={user_id:state.current_user_id,name:state.current_user_name,email:inv.invitee.email,role:"partner",joined_date:Date.now(),share_percentage:inv.merchant_details.profit_ratio.user_b_percentage,notification_enabled:true,last_viewed:null};const sm={id:"smerch_"+uid(),type:"shared_partnership",name:inv.merchant_details.name,description:inv.merchant_details.description,created_date:inv.created_at,status:"active",created_by_user_id:inv.inviter.user_id,partners:[{user_id:inv.inviter.user_id,name:inv.inviter.name,email:inv.inviter.email,role:"initiator",joined_date:inv.created_at,share_percentage:inv.merchant_details.profit_ratio.user_a_percentage,notification_enabled:true,last_viewed:Date.now()},newPartner],transactions:[],activity_log:[{log_id:uid(),timestamp:Date.now(),user_id:state.current_user_id,user_name:state.current_user_name,action:"accepted_invite",description:state.current_user_name+" accepted partnership invitation",affected_transaction_id:"",details:{}}],settings:{auto_sync:true,edit_permissions:"both_partners",notification_on_edit:true,allow_partner_delete:false},statistics:{total_transactions:0,lending_active:0,total_usdt_active:0,total_profit_calculated:0},created_at:Date.now(),updated_at:Date.now(),closed_at:null};state.shared_merchants.push(sm);inv.status="accepted";inv.invitee.user_id=state.current_user_id;inv.invitee.accepted_timestamp=Date.now();inv.shared_merchant_id=sm.id;window._selectedSharedId=sm.id;saveRecompute("Partnership accepted!","good");}
+
+function declineSharedInvite(invId){const inv=state.invitations.find(x=>x.id===invId);if(!inv)return;inv.status="declined";inv.responded_at=Date.now();saveRecompute("Invitation declined","warn");}
+
+function setPeerIdModal(){openModal("Set Your User ID",`
+  <div class="form-field"><label class="form-label">Your User ID *</label><input id="userId" class="inp-field" placeholder="e.g., user_abc123" value="${state.current_user_id||""}"/></div>
+  <div class="form-field"><label class="form-label">Your Display Name *</label><input id="userName" class="inp-field" placeholder="e.g., Ahmed" value="${state.current_user_name||""}"/></div>
+  <div style="font-size:9px;color:var(--muted);margin-top:8px;">This identifies you to partners in shared merchants.</div>
+  <div class="msg" id="peerMsg"></div>
+`,`<button class="btn secondary" id="cancel">Cancel</button><button class="btn" id="save">Save</button>`);setTimeout(()=>{$("#cancel")?.addEventListener("click",closeModal);$("#save")?.addEventListener("click",()=>{const uid=($("#userId")?.value||"").trim();const name=($("#userName")?.value||"").trim();if(!uid||!name){const msg=$("#peerMsg");if(msg){msg.textContent="Both fields required";msg.className="msg err";}return;}state.current_user_id=uid;state.current_user_name=name;saveRecompute("User ID set","good");closeModal();});},0);}
+
+function addSharedTransactionModal(smId){const sm=state.shared_merchants.find(x=>x.id===smId);if(!sm)return;openModal("Add Transaction",`
+  <div class="form-field"><label class="form-label">Type *</label><select id="txType" class="inp-field"><option value="lending">Lending</option><option value="arbitrage">Arbitrage</option><option value="settlement">Settlement</option><option value="other">Other</option></select></div>
+  <div class="form-field"><label class="form-label">Amount (USDT) *</label><input id="txAmount" class="inp-field" inputmode="decimal" placeholder="50000"/></div>
+  <div class="form-field"><label class="form-label">Date *</label><input id="txDate" type="date" class="inp-field" value="${new Date().toISOString().slice(0,10)}"/></div>
+  <div class="form-field"><label class="form-label">Notes</label><textarea id="txNotes" class="inp-field" style="min-height:50px;" placeholder="Any additional notes..."></textarea></div>
+  <div class="msg" id="txMsg"></div>
+`,`<button class="btn secondary" id="cancel">Cancel</button><button class="btn" id="save">Add</button>`);setTimeout(()=>{$("#cancel")?.addEventListener("click",closeModal);$("#save")?.addEventListener("click",()=>{const type=$("#txType")?.value||"lending";const amt=num($("#txAmount")?.value,0);if(!(amt>0)){const msg=$("#txMsg");if(msg){msg.textContent="Amount required";msg.className="msg err";}return;}const tx={id:"tx_"+uid(),type:type,added_by_user_id:state.current_user_id,added_by_name:state.current_user_name,added_at:Date.now(),data:{amount_usdt:amt,sent_date:new Date($("#txDate")?.value).getTime(),status:"active",notes:($("#txNotes")?.value||"").trim()},edits:[],visibility:"both",locked:false};sm.transactions.push(tx);sm.activity_log.push({log_id:uid(),timestamp:Date.now(),user_id:state.current_user_id,user_name:state.current_user_name,action:"added_transaction",description:state.current_user_name+" added "+type+" transaction",affected_transaction_id:tx.id,details:{type:type,amount:amt}});sm.statistics.total_transactions=(sm.statistics.total_transactions||0)+1;sm.statistics.total_usdt_active=(sm.statistics.total_usdt_active||0)+amt;sm.updated_at=Date.now();saveRecompute("Transaction added","good");closeModal();});},0);}
+
+function deleteSharedM(id){if(!confirm("Close this partnership? History will be preserved."))return;const sm=state.shared_merchants.find(x=>x.id===id);if(!sm)return;sm.status="closed";sm.closed_at=Date.now();sm.activity_log.push({log_id:uid(),timestamp:Date.now(),user_id:state.current_user_id,user_name:state.current_user_name,action:"closed_partnership",description:state.current_user_name+" closed the partnership",affected_transaction_id:"",details:{}});window._selectedSharedId=null;saveRecompute("Partnership closed","warn");}
+
 // ─── renderVault ──────────────────────────────────────────────────────────────
 function renderVault(){
   setHeader("Vault","Backup · Restore · Cloud · Drive sync");
@@ -5714,6 +5831,7 @@ function render(){
   else if(p==="p2p")renderP2P();
   else if(p==="crm")renderCRM();
   else if(p==="merchants")renderMerchants();
+  else if(p==="shared_merchants")renderSharedMerchants();
   else if(p==="calendar")renderCalendar();
   else if(p==="vault")renderVault();
   else renderSettings();
