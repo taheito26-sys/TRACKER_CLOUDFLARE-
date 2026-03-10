@@ -521,81 +521,6 @@ body {
 .kpi-cell-val { font-size: calc(18px * var(--ui-scale,1)); font-weight: 800; }
 .kpi-cell-sub { font-size: calc(10px * var(--ui-scale,1)); color: var(--muted); margin-top: 3px; }
 
-
-/* ── DASHBOARD KPI COMPACT / ALIGNED ── */
-body[data-page="dashboard"] .kpi-band-grid,
-body[data-page="dashboard"] .kpis {
-  gap: 6px;
-  align-items: stretch;
-  grid-auto-rows: 1fr;
-}
-body[data-page="dashboard"] .kpi-band,
-body[data-page="dashboard"] .kpi-card {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-}
-body[data-page="dashboard"] .kpi-band {
-  padding: 10px 11px;
-}
-body[data-page="dashboard"] .kpi-card {
-  padding: 9px 10px 8px;
-}
-body[data-page="dashboard"] .kpi-head {
-  margin-bottom: 6px;
-  min-height: 20px;
-}
-body[data-page="dashboard"] .kpi-band-title,
-body[data-page="dashboard"] .kpi-period,
-body[data-page="dashboard"] .kpi-lbl {
-  letter-spacing: .55px;
-}
-body[data-page="dashboard"] .kpi-band-title {
-  font-size: calc(8px * var(--ui-scale,1));
-  margin-bottom: 7px;
-}
-body[data-page="dashboard"] .kpi-period,
-body[data-page="dashboard"] .kpi-lbl {
-  font-size: calc(7px * var(--ui-scale,1));
-  margin-bottom: 4px;
-}
-body[data-page="dashboard"] .kpi-cell-val {
-  font-size: calc(15px * var(--ui-scale,1));
-  line-height: 1.12;
-}
-body[data-page="dashboard"] .kpi-val {
-  font-size: calc(17px * var(--ui-scale,1)) !important;
-  line-height: 1.1;
-}
-body[data-page="dashboard"] .kpi-cell-sub,
-body[data-page="dashboard"] .kpi-sub {
-  font-size: calc(9px * var(--ui-scale,1));
-  line-height: 1.22;
-  margin-top: 3px;
-}
-body[data-page="dashboard"] .kpi-badge {
-  font-size: calc(8px * var(--ui-scale,1));
-  padding: 2px 6px;
-}
-body[data-page="dashboard"] .kpi-band-cols {
-  gap: 10px;
-}
-body[data-page="dashboard"] .dash-bottom {
-  gap: 6px;
-}
-@media (max-width: 900px) {
-  body[data-page="dashboard"] .kpi-band {
-    padding: 9px 10px;
-  }
-  body[data-page="dashboard"] .kpi-card {
-    padding: 8px 9px;
-  }
-  body[data-page="dashboard"] .kpi-val {
-    font-size: calc(16px * var(--ui-scale,1)) !important;
-  }
-}
-
 /* ── TABLES ── */
 .tableWrap { overflow-x: auto; border-radius: var(--lt-radius); border: 1px solid var(--line); }
 .ledgerWrap{overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
@@ -619,10 +544,6 @@ tbody tr { transition: background var(--lt-tr); }
 /* ── ROW BUTTONS ── */
 .rowBtn { border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--muted); padding: 4px 8px; border-radius: var(--lt-radius-sm); cursor: pointer; font-size: calc(10px * var(--ui-scale,1)); display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; font-family: var(--app-font, var(--lt-font)); transition: all var(--lt-tr); font-weight: 600; }
 .rowBtn:hover { background: var(--hover-card); border-color: var(--brand); color: var(--brand); transform: translateY(-1px); box-shadow: 0 2px 8px var(--glow); }
-.statusInline{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;white-space:nowrap;}
-.statusInline .rowBtn{padding:3px 6px;}
-@media(max-width:900px){.statusInline{gap:3px;font-size:calc(9px * var(--ui-scale,1));}.statusInline .pill,.statusInline .cycle-badge{padding:1px 5px;font-size:calc(8px * var(--ui-scale,1));}}
-.m_cash_mode.on{background:var(--brand3);border-color:color-mix(in srgb,var(--brand) 35%,transparent);color:var(--brand);font-weight:800;}
 .actionsRow { display: flex; gap: 4px; flex-wrap: nowrap; }
 
 /* ── FORMS ── */
@@ -801,7 +722,7 @@ tbody tr { transition: background var(--lt-tr); }
 
 @media(max-width:900px){
   .app{display:block;} .sidebar{display:none;} .mobileNav{display:block;}
-  .scroll{padding-bottom:calc(220px + env(safe-area-inset-bottom));} #pageBody{padding-bottom:calc(160px + env(safe-area-inset-bottom));} .scroll > *:last-child{margin-bottom:18px;} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
+  .scroll{padding-bottom:calc(150px + env(safe-area-inset-bottom));} .kpis,.kpi-band-grid{grid-template-columns:1fr 1fr;}
   .chart-grid,.analytics-stats,.lt-grid{grid-template-columns:1fr 1fr;}
   .twoColPage{grid-template-columns:1fr;}
   .dash-bottom{grid-template-columns:1fr;} .g2tight{grid-template-columns:1fr;}
@@ -1374,6 +1295,313 @@ body[data-page="dashboard"] #pageTitle{--ui-scale:1;}
   
   
 }
+
+
+
+/* ══════════════════════════════════════════════════════════════════
+   LAYOUT 12: PULSE — CoinPulse-inspired dark crypto board
+   Dark glass shell, neon accents, bento dashboard cards
+══════════════════════════════════════════════════════════════════ */
+[data-layout="pulse"] {
+  --lt-font: 'DM Sans', 'Inter', sans-serif;
+  --lt-font-mono: 'JetBrains Mono', monospace;
+  --lt-radius: 22px; --lt-radius-sm: 16px; --lt-radius-lg: 30px;
+  --lt-shadow: 0 22px 60px rgba(0,0,0,.35); --lt-shadow2: 0 8px 24px rgba(0,0,0,.22);
+  --lt-sidebar-w: 196px; --lt-topbar-h: 62px; --lt-tr: .22s cubic-bezier(.22,.61,.36,1);
+}
+[data-layout="pulse"][data-theme="t1"] {
+  --bg:#071018; --panel:rgba(11,20,31,.78); --panel2:rgba(14,26,40,.76); --panel3:rgba(18,34,52,.9);
+  --text:#edf6ff; --muted:#8aa0b7; --muted2:#5e7388;
+  --line:rgba(122,162,196,.14); --line2:rgba(122,162,196,.08);
+  --brand:#27e0a3; --brand2:#2bb8ff; --brand3:rgba(39,224,163,.12);
+  --good:#27e0a3; --bad:#ff627e; --warn:#ffb84d;
+  --sidebar-bg:rgba(6,14,22,.9); --topbar-bg:rgba(8,16,26,.74);
+  --card-bg:rgba(12,23,36,.78); --input-bg:rgba(13,27,42,.82);
+  --t1:#27e0a3; --t2:#2bb8ff; --t3:#8b7bff; --t4:#ff627e; --t5:#ffb84d;
+  --hover-card:rgba(39,224,163,.06); --glow:rgba(43,184,255,.2);
+  --kpi-accent:linear-gradient(135deg,#27e0a3 0%,#2bb8ff 52%,#8b7bff 100%);
+  --body-bg: radial-gradient(900px 560px at 10% -10%, rgba(39,224,163,.10), transparent 60%),
+             radial-gradient(780px 480px at 100% 0%, rgba(43,184,255,.12), transparent 55%),
+             radial-gradient(800px 500px at 50% 100%, rgba(139,123,255,.10), transparent 60%),
+             #071018;
+}
+[data-layout="pulse"][data-theme="t2"] {
+  --bg:#090b16; --panel:rgba(15,16,30,.8); --panel2:rgba(20,22,38,.78); --panel3:rgba(28,30,54,.9);
+  --text:#f3f4ff; --muted:#9fa2c7; --muted2:#6b6f95;
+  --line:rgba(150,154,255,.16); --line2:rgba(150,154,255,.08);
+  --brand:#8b7bff; --brand2:#6e5cff; --brand3:rgba(139,123,255,.14);
+  --good:#3fe0a5; --bad:#ff627e; --warn:#ffb84d;
+  --sidebar-bg:rgba(8,10,20,.92); --topbar-bg:rgba(10,12,24,.76);
+  --card-bg:rgba(18,20,34,.82); --input-bg:rgba(23,25,42,.88);
+  --t1:#8b7bff; --t2:#6e5cff; --t3:#2bb8ff; --t4:#3fe0a5; --t5:#ff7ecf;
+  --hover-card:rgba(139,123,255,.07); --glow:rgba(139,123,255,.22);
+  --kpi-accent:linear-gradient(135deg,#8b7bff 0%,#6e5cff 55%,#2bb8ff 100%);
+  --body-bg: radial-gradient(860px 520px at 0% 0%, rgba(139,123,255,.14), transparent 58%),
+             radial-gradient(760px 460px at 100% 0%, rgba(43,184,255,.10), transparent 55%),
+             radial-gradient(700px 420px at 50% 100%, rgba(255,126,207,.08), transparent 58%),
+             #090b16;
+}
+[data-layout="pulse"][data-theme="t3"] {
+  --bg:#061220; --panel:rgba(10,24,40,.82); --panel2:rgba(13,30,49,.78); --panel3:rgba(16,38,63,.92);
+  --text:#ebf6ff; --muted:#90aac2; --muted2:#5c7690;
+  --line:rgba(88,178,255,.15); --line2:rgba(88,178,255,.08);
+  --brand:#2bb8ff; --brand2:#0e90ff; --brand3:rgba(43,184,255,.14);
+  --good:#27e0a3; --bad:#ff627e; --warn:#ffc857;
+  --sidebar-bg:rgba(5,16,28,.92); --topbar-bg:rgba(7,19,33,.78);
+  --card-bg:rgba(10,24,40,.82); --input-bg:rgba(12,28,46,.9);
+  --t1:#2bb8ff; --t2:#0e90ff; --t3:#27e0a3; --t4:#8b7bff; --t5:#ffc857;
+  --hover-card:rgba(43,184,255,.07); --glow:rgba(43,184,255,.24);
+  --kpi-accent:linear-gradient(135deg,#2bb8ff 0%,#0e90ff 55%,#27e0a3 100%);
+  --body-bg: radial-gradient(920px 540px at 0% 0%, rgba(43,184,255,.14), transparent 58%),
+             radial-gradient(740px 420px at 100% 0%, rgba(14,144,255,.10), transparent 54%),
+             radial-gradient(700px 440px at 50% 100%, rgba(39,224,163,.08), transparent 60%),
+             #061220;
+}
+[data-layout="pulse"][data-theme="t4"] {
+  --bg:#07150f; --panel:rgba(9,22,18,.82); --panel2:rgba(12,29,23,.78); --panel3:rgba(16,39,31,.92);
+  --text:#effff7; --muted:#94b8a7; --muted2:#5f7e70;
+  --line:rgba(67,225,154,.14); --line2:rgba(67,225,154,.08);
+  --brand:#27e0a3; --brand2:#06b676; --brand3:rgba(39,224,163,.14);
+  --good:#27e0a3; --bad:#ff627e; --warn:#ffb84d;
+  --sidebar-bg:rgba(7,17,13,.92); --topbar-bg:rgba(8,20,16,.76);
+  --card-bg:rgba(10,24,19,.82); --input-bg:rgba(11,27,22,.9);
+  --t1:#27e0a3; --t2:#06b676; --t3:#2bb8ff; --t4:#ffd166; --t5:#8b7bff;
+  --hover-card:rgba(39,224,163,.07); --glow:rgba(39,224,163,.2);
+  --kpi-accent:linear-gradient(135deg,#27e0a3 0%,#06b676 55%,#2bb8ff 100%);
+  --body-bg: radial-gradient(900px 540px at 0% 0%, rgba(39,224,163,.12), transparent 58%),
+             radial-gradient(720px 430px at 100% 0%, rgba(43,184,255,.08), transparent 55%),
+             radial-gradient(760px 450px at 50% 100%, rgba(255,209,102,.08), transparent 58%),
+             #07150f;
+}
+[data-layout="pulse"][data-theme="t5"] {
+  --bg:#15110a; --panel:rgba(27,21,13,.82); --panel2:rgba(34,27,16,.78); --panel3:rgba(46,36,21,.92);
+  --text:#fff7ea; --muted:#c2ad8f; --muted2:#8d7759;
+  --line:rgba(255,193,94,.15); --line2:rgba(255,193,94,.08);
+  --brand:#ffb84d; --brand2:#ff8a3d; --brand3:rgba(255,184,77,.13);
+  --good:#42e1a7; --bad:#ff6b6b; --warn:#ffd166;
+  --sidebar-bg:rgba(19,14,9,.92); --topbar-bg:rgba(22,16,10,.78);
+  --card-bg:rgba(28,21,13,.84); --input-bg:rgba(32,25,16,.9);
+  --t1:#ffb84d; --t2:#ff8a3d; --t3:#2bb8ff; --t4:#42e1a7; --t5:#8b7bff;
+  --hover-card:rgba(255,184,77,.07); --glow:rgba(255,184,77,.2);
+  --kpi-accent:linear-gradient(135deg,#ffb84d 0%,#ff8a3d 50%,#2bb8ff 100%);
+  --body-bg: radial-gradient(860px 520px at 0% 0%, rgba(255,184,77,.13), transparent 58%),
+             radial-gradient(720px 440px at 100% 0%, rgba(255,138,61,.08), transparent 55%),
+             radial-gradient(740px 450px at 50% 100%, rgba(43,184,255,.08), transparent 58%),
+             #15110a;
+}
+body[data-layout="pulse"] { background: var(--body-bg); }
+[data-layout="pulse"] .sidebar {
+  background: linear-gradient(180deg, color-mix(in srgb,var(--sidebar-bg) 92%, transparent), rgba(4,10,16,.94));
+  border-right: 1px solid color-mix(in srgb,var(--line) 92%, transparent);
+  backdrop-filter: blur(18px);
+  box-shadow: inset -1px 0 0 rgba(255,255,255,.02), 12px 0 30px rgba(0,0,0,.18);
+}
+[data-layout="pulse"] .brand,
+[data-layout="pulse"] .sideFooter {
+  background: linear-gradient(180deg, rgba(255,255,255,.03), transparent);
+  border-color: color-mix(in srgb,var(--line) 92%, transparent);
+}
+[data-layout="pulse"] .logo {
+  border-radius: 14px;
+  box-shadow: 0 10px 24px color-mix(in srgb,var(--brand) 26%, transparent);
+}
+[data-layout="pulse"] .navBtn {
+  border-radius: 18px;
+  padding: 10px 10px;
+  color: color-mix(in srgb,var(--text) 80%, var(--muted));
+}
+[data-layout="pulse"] .navBtn::before {
+  width: 4px;
+  border-radius: 0 8px 8px 0;
+  background: linear-gradient(180deg,var(--brand),var(--brand2));
+}
+[data-layout="pulse"] .navBtn:hover,
+[data-layout="pulse"] .navBtn.active {
+  background: linear-gradient(180deg, color-mix(in srgb,var(--brand3) 72%, transparent), rgba(255,255,255,.02));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 10px 24px rgba(0,0,0,.14);
+  border-color: color-mix(in srgb,var(--brand) 32%, transparent);
+}
+[data-layout="pulse"] .topbar,
+[data-layout="pulse"] .mobileNav {
+  background: color-mix(in srgb,var(--topbar-bg) 88%, transparent);
+  backdrop-filter: blur(18px) saturate(130%);
+  border-bottom-color: color-mix(in srgb,var(--line) 92%, transparent);
+  box-shadow: 0 8px 28px rgba(0,0,0,.14);
+}
+[data-layout="pulse"] .searchBox,
+[data-layout="pulse"] .seg,
+[data-layout="pulse"] .pill,
+[data-layout="pulse"] .rowBtn,
+[data-layout="pulse"] .btn,
+[data-layout="pulse"] .btn.secondary,
+[data-layout="pulse"] .btn.ghost,
+[data-layout="pulse"] .btn.danger,
+[data-layout="pulse"] .input,
+[data-layout="pulse"] .inp-field,
+[data-layout="pulse"] select,
+[data-layout="pulse"] textarea {
+  border-radius: 16px;
+}
+[data-layout="pulse"] .panel,
+[data-layout="pulse"] .card,
+[data-layout="pulse"] .tableWrap,
+[data-layout="pulse"] .kpi-card,
+[data-layout="pulse"] .kpi-band,
+[data-layout="pulse"] .tj-panel,
+[data-layout="pulse"] .modal {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
+    var(--panel);
+  border: 1px solid color-mix(in srgb,var(--line) 96%, transparent);
+  box-shadow: var(--lt-shadow2);
+  backdrop-filter: blur(18px) saturate(135%);
+}
+[data-layout="pulse"] .panel:hover,
+[data-layout="pulse"] .card:hover,
+[data-layout="pulse"] .kpi-card:hover,
+[data-layout="pulse"] .kpi-band:hover,
+[data-layout="pulse"] .astat:hover,
+[data-layout="pulse"] .cal-stat:hover {
+  border-color: color-mix(in srgb,var(--brand) 34%, transparent);
+  box-shadow: 0 18px 36px rgba(0,0,0,.18), 0 0 0 1px color-mix(in srgb,var(--brand2) 8%, transparent);
+}
+[data-layout="pulse"] .panel-head,
+[data-layout="pulse"] .modalHead,
+[data-layout="pulse"] .tableHead {
+  border-color: color-mix(in srgb,var(--line) 96%, transparent);
+  background: linear-gradient(180deg, rgba(255,255,255,.03), transparent);
+}
+[data-layout="pulse"] .kpi-band-grid { gap: 12px; margin-bottom: 12px; }
+[data-layout="pulse"] .kpis { gap: 12px; }
+[data-layout="pulse"] .kpi-band {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 16px;
+  border-radius: 26px;
+  min-height: 132px;
+}
+[data-layout="pulse"] .kpi-band::before,
+[data-layout="pulse"] .kpi-card::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  background: radial-gradient(420px 160px at 100% 0%, color-mix(in srgb,var(--brand2) 12%, transparent), transparent 70%);
+  pointer-events:none;
+}
+[data-layout="pulse"] .kpi-band-title,
+[data-layout="pulse"] .kpi-lbl {
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  font-weight:800;
+}
+[data-layout="pulse"] .kpi-period { color: var(--muted2); }
+[data-layout="pulse"] .kpi-cell-val,
+[data-layout="pulse"] .kpi-val {
+  font-size: calc(22px * var(--ui-scale,1));
+  font-weight: 900;
+}
+[data-layout="pulse"] .kpi-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  min-height: 138px;
+}
+[data-layout="pulse"] .kpi-badge,
+[data-layout="pulse"] .cycle-badge,
+[data-layout="pulse"] .pill {
+  background: color-mix(in srgb,var(--brand3) 72%, transparent);
+  border-color: color-mix(in srgb,var(--brand) 22%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+[data-layout="pulse"] .dash-bottom { gap: 12px; }
+[data-layout="pulse"] .chart-wrap,
+[data-layout="pulse"] .panel-body[style*="height:"] {
+  border-radius: 18px;
+}
+[data-layout="pulse"] .stats-table tr:hover td,
+[data-layout="pulse"] .tr:hover td,
+[data-layout="pulse"] .prev-row:hover {
+  background: color-mix(in srgb,var(--brand3) 38%, transparent);
+}
+[data-layout="pulse"] .tableWrap,
+[data-layout="pulse"] table {
+  overflow: hidden;
+}
+[data-layout="pulse"] .input,
+[data-layout="pulse"] .inp-field,
+[data-layout="pulse"] select,
+[data-layout="pulse"] textarea,
+[data-layout="pulse"] .searchBox {
+  background: linear-gradient(180deg, rgba(255,255,255,.03), transparent), var(--input-bg);
+  border-color: color-mix(in srgb,var(--line) 92%, transparent);
+  color: var(--text);
+}
+[data-layout="pulse"] .input:focus,
+[data-layout="pulse"] .inp-field:focus,
+[data-layout="pulse"] textarea:focus,
+[data-layout="pulse"] select:focus {
+  box-shadow: 0 0 0 4px color-mix(in srgb,var(--brand) 14%, transparent), 0 0 0 1px color-mix(in srgb,var(--brand) 32%, transparent);
+}
+[data-layout="pulse"] .btn,
+[data-layout="pulse"] .rowBtn {
+  background: linear-gradient(180deg, color-mix(in srgb,var(--brand3) 72%, transparent), rgba(255,255,255,.02));
+  border-color: color-mix(in srgb,var(--brand) 22%, transparent);
+}
+[data-layout="pulse"] .btn:hover,
+[data-layout="pulse"] .rowBtn:hover,
+[data-layout="pulse"] .tc-btn:hover,
+[data-layout="pulse"] .lt-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(0,0,0,.16);
+}
+[data-layout="pulse"] .lt-card,
+[data-layout="pulse"] .tc-btn,
+[data-layout="pulse"] .astat,
+[data-layout="pulse"] .cal-stat,
+[data-layout="pulse"] .crm-card,
+[data-layout="pulse"] .crm-col,
+[data-layout="pulse"] .cal-day {
+  background: linear-gradient(180deg, rgba(255,255,255,.03), transparent), var(--card-bg);
+  border: 1px solid color-mix(in srgb,var(--line) 94%, transparent);
+  box-shadow: var(--lt-shadow2);
+}
+[data-layout="pulse"] .lt-card.active,
+[data-layout="pulse"] .tc-btn.active,
+[data-layout="pulse"] .cal-day.today,
+[data-layout="pulse"] .cal-day.selected {
+  box-shadow: 0 0 0 1px color-mix(in srgb,var(--brand) 32%, transparent), 0 0 0 4px color-mix(in srgb,var(--brand) 10%, transparent);
+}
+body[data-layout="pulse"][data-page="dashboard"] #pageBody {
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+body[data-layout="pulse"][data-page="dashboard"] .panel-head h2,
+body[data-layout="pulse"][data-page="dashboard"] .kpi-band-title,
+body[data-layout="pulse"][data-page="dashboard"] .kpi-lbl {
+  font-family: var(--app-font, var(--lt-font));
+}
+@media (max-width: 900px) {
+  [data-layout="pulse"] .sidebar { box-shadow:none; }
+  [data-layout="pulse"] .kpi-band,
+  [data-layout="pulse"] .kpi-card { min-height: 124px; }
+}
+
+/* ──────────────────────────────────────────────
+   RTL + Arabic UI (forced sidebar to the right)
+   ────────────────────────────────────────────── */
+html[data-ui-lang="ar"] { direction: rtl; }
+html[data-ui-lang="ar"] body { direction: rtl; }
+html[data-ui-lang="ar"] .app { flex-direction: row-reverse !important; }
+html[data-ui-lang="ar"] .sidebar { border-right: none !important; border-left: 1px solid var(--line) !important; }
+html[data-ui-lang="ar"] .navBtn { text-align: right; }
+html[data-ui-lang="ar"] .navBtn > div { align-items: flex-end; }
+html[data-ui-lang="ar"] .topbar { direction: rtl; }
+html[data-ui-lang="ar"] .topRight { direction: rtl; }
+html[data-ui-lang="ar"] .searchBox input { text-align: right; }
+html[data-ui-lang="ar"] .seg { direction: rtl; }
+/* Keep numbers Western in Arabic UI (we use ar-QA-u-nu-latn in JS) */
+
 </style>
 </head>
 <body data-layout="flux" data-theme="t1">
@@ -1639,7 +1867,7 @@ body[data-page="dashboard"] #pageTitle{--ui-scale:1;}
       </div>
       <div>
         <div class="brand-name">Taheito Pro X</div>
-        <div class="brand-ver">v13 · FIFO · QAR</div>
+        <div class="brand-ver" id="brandVer">v13 · FIFO · <span id="brandCur">QAR</span></div>
       </div>
     </div>
     <nav class="nav">
@@ -1674,7 +1902,7 @@ body[data-page="dashboard"] #pageTitle{--ui-scale:1;}
     <header class="topbar">
       <div>
         <div class="pageTitle" id="pageTitle">Dashboard</div>
-        <div class="pageSub" id="pageSub">FIFO · QAR</div>
+        <div class="pageSub" id="pageSub">FIFO · <span id="pageCur">QAR</span></div>
       </div>
       <div class="topRight">
         <div class="searchBox" data-tip="Search across trades, batches and notes&#10;Filters results on current page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" stroke-linecap="round"/></svg><input id="q" placeholder="Search..."/></div>
@@ -1682,7 +1910,12 @@ body[data-page="dashboard"] #pageTitle{--ui-scale:1;}
           <button data-range="today">1D</button><button data-range="7d" class="active">7D</button>
           <button data-range="30d">30D</button><button data-range="all">ALL</button>
         </div>
-        <button class="iconBtn" id="langBtn" data-tip="Toggle language">EN</button>
+        <div class="seg" id="curSeg" data-tip="Display currency&#10;Auto-converts amounts using WACOP">
+          <button data-cur="QAR" class="active">QAR</button><button data-cur="USDT">USDT</button>
+        </div>
+        <div class="seg" id="langSeg" data-tip="Language">
+          <button data-lang="ar" data-label-en="Arabic" data-label-ar="العربية">Arabic</button><button data-lang="en" data-label-en="English" data-label-ar="الإنجليزية" class="active">English</button>
+        </div>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card-bg);border:1px solid var(--line);border-radius:var(--lt-radius-sm);padding:3px 8px;" data-tip="Price alert threshold&#10;Notifies when P2P moves this % from WACOP">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;color:var(--warn);flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <input id="topAlertPct" type="number" step="0.5" value="" style="width:36px;border:none;background:transparent;color:var(--text);font-size:calc(10px * var(--ui-scale,1));font-family:var(--lt-font);outline:none;padding:0;" placeholder="2%"/>
@@ -1783,8 +2016,163 @@ const z=n=>String(n).padStart(2,"0");
 const dtToInput=ts=>{const d=new Date(ts);return`${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;};
 const inputToTs=s=>{if(!s)return NaN;const t=new Date(String(s)).getTime();return Number.isFinite(t)?t:NaN;};
 const startOfDay=ts=>{const d=new Date(ts);d.setHours(0,0,0,0);return d.getTime();};
+
+
+// ── UI LANGUAGE / I18N (Arabic + RTL) ─────────────────────────────
+const UI_LANG_KEY = "taheito_ui_lang_v1";
+let uiLang = (() => {
+  try {
+    const v = (localStorage.getItem(UI_LANG_KEY) || "en").toLowerCase();
+    return v.startsWith("ar") ? "ar" : "en";
+  } catch (e) { return "en"; }
+})();
+function uiIsAr(){ return uiLang === "ar"; }
+// Arabic UI with Western digits (nu-latn), matches exchange UIs
+function uiLocale(){ return uiIsAr() ? "ar-QA-u-nu-latn" : undefined; }
+
+function applyLangToDoc_(){
+  const h = document.documentElement;
+  h.dataset.uiLang = uiLang;
+  h.lang = uiIsAr() ? "ar" : "en";
+  h.dir  = uiIsAr() ? "rtl" : "ltr";
+}
+
+function syncLangSegLabels_(){
+  $$("button[data-lang]").forEach(b=>{
+    const en = b.getAttribute("data-label-en") || b.textContent;
+    const ar = b.getAttribute("data-label-ar") || b.textContent;
+    b.textContent = uiIsAr() ? ar : en;
+  });
+}
+
+function setUiLang_(lang){
+  uiLang = (String(lang||"").toLowerCase().startsWith("ar")) ? "ar" : "en";
+  try { localStorage.setItem(UI_LANG_KEY, uiLang); } catch(e){}
+  applyLangToDoc_();
+  syncLangSegLabels_();
+  // Re-render (nav is static HTML, so we must re-apply i18n after render)
+  try { render(); } catch(e) {}
+  try { applyI18n_(document.body); } catch(e) {}
+}
+
+// Professional exchange-aligned Arabic terms (Binance, OKX style)
+const I18N_AR = [
+  // Navigation / pages
+  ["Dashboard","لوحة التحكم"],["Orders","الطلبات"],["Stock","المخزون"],["CRM","العملاء"],
+  ["P2P Market","سوق P2P"],["P2P","تداول P2P"],["Analytics","التحليلات"],["Calendar","التقويم"],
+  ["Vault","الخزنة"],["Settings","الإعدادات"],["Diagnostics","التشخيص"],
+  // Common subtitles / hints
+  ["KPIs · trend","مؤشرات · اتجاه"],["FIFO · trades","FIFO · صفقات"],["Batches","دفعات"],["view page","عرض الصفحة"],
+  ["Live rates","أسعار مباشرة"],["Backup & cloud","نسخ احتياطي · سحابة"],["Layout · themes","تخطيط · سمات"],
+  ["FIFO cost basis · margin bar","تكلفة FIFO · شريط الهامش"],
+  ["FIFO layers · progress = remaining","طبقات FIFO · التقدم = المتبقي"],
+  ["Visual daily trading activity view","عرض مرئي للنشاط اليومي"],
+  ["Trade Pipeline · Customer Intel · Supplier Network","مسار الصفقات · بيانات العملاء · شبكة الموردين"],
+  ["Directory · Customers + Suppliers · History","الدليل · العملاء + الموردون · السجل"],
+  // Topbar / filters
+  ["Search...","بحث..."],["Search","بحث"],["Date range filter","مرشح المدة"],["Display currency","عملة العرض"],
+  ["All Time","كل الوقت"],["Period","الفترة"],["Today","اليوم"],["All","الكل"],
+  // Tables / actions
+  ["Trades","الصفقات"],["Trade","صفقة"],["Stock Batches","دفعات المخزون"],["Batch","دفعة"],
+  ["Details","تفاصيل"],["Edit","تعديل"],["Delete","حذف"],["Actions","الإجراءات"],
+  ["Revenue","الإيرادات"],["Cost (FIFO)","التكلفة (FIFO)"],["Profit","الربح"],["Net","الصافي"],["Margin","الهامش"],
+  ["Type","النوع"],["Time","الوقت"],["Price","السعر"],["Qty","الكمية"],["Quantity","الكمية"],["Amount","المبلغ"],
+  ["Fee","الرسوم"],["Note","ملاحظة"],["Date","التاريخ"],["Date & Time","التاريخ والوقت"],
+  ["Buy","شراء"],["Sell","بيع"],["Open","مفتوح"],["New","جديد"],["Last","آخر"],["First","أول"],
+  // Status / banners
+  ["No stock","لا مخزون"],["Low stock","مخزون منخفض"],
+  // Misc UI strings seen in templates
+  ["Enter details above...","أدخل التفاصيل أعلاه..."],
+  ["Loading...","جار التحميل..."],["Loading…","جار التحميل…"],
+  ["Export","تصدير"],["Import","استيراد"],["Download","تنزيل"],["Preview","معاينة"],["Restore","استعادة"],
+  ["Copy","نسخ"],["Apply","تطبيق"],["Reset","إعادة ضبط"],["Yes","نعم"],["No","لا"],["OK","موافق"],
+  // Keep acronyms / tickers as-is
+  ["CSV","CSV"],["FIFO","FIFO"],["USDT","USDT"],["QAR","QAR"]
+];
+
+function escapeRe_(s){ return String(s).replace(/[.*+?^${}()|[\[\]\\]/g, "\\$&"); }
+
+function trText_(txt){
+  txt = String(txt ?? "");
+  if (!uiIsAr()) return txt;
+
+  let out = txt;
+  const pairs = I18N_AR.slice().sort((a,b)=>String(b[0]).length-String(a[0]).length);
+  for (const [en, ar] of pairs){
+    if(!en) continue;
+    const enS = String(en);
+    const isWord = /^[A-Za-z][A-Za-z ]+[A-Za-z]$/.test(enS);
+    const re = isWord ? new RegExp("\b"+escapeRe_(enS)+"\b","gi") : new RegExp(escapeRe_(enS),"gi");
+    out = out.replace(re, ar);
+  }
+  // Arabic percent sign, keep Western digits
+  out = out.replace(/%/g, "٪");
+  return out;
+}
+
+const _i18nTextOrig = new WeakMap();
+const _i18nAttrOrig = new WeakMap(); // element -> {attr:orig}
+function _origText_(node){
+  if(!_i18nTextOrig.has(node)) _i18nTextOrig.set(node, node.nodeValue);
+  return _i18nTextOrig.get(node);
+}
+function _origAttr_(el, attr){
+  let m = _i18nAttrOrig.get(el);
+  if(!m){ m = {}; _i18nAttrOrig.set(el, m); }
+  if(m[attr] == null) m[attr] = el.getAttribute(attr);
+  return m[attr];
+}
+
+function applyI18n_(root){
+  if(!root) return;
+  const isAr = uiIsAr();
+
+  // Text nodes
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(n){
+      const v = n.nodeValue;
+      if(!v || !v.trim()) return NodeFilter.FILTER_REJECT;
+      const p = n.parentElement;
+      if(!p) return NodeFilter.FILTER_REJECT;
+      if(p.closest("script,style,code,pre,textarea")) return NodeFilter.FILTER_REJECT;
+      if(p.closest("[data-no-i18n],.no-i18n")) return NodeFilter.FILTER_REJECT;
+      // Skip most table body data cells, keep controls inside them
+      if(p.closest("tbody") && !p.closest("button,a,label,th,.navBtn,.seg,.topbar,.modal,.drawer,.pill")) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  let n;
+  while((n = walker.nextNode())){
+    const orig = _origText_(n);
+    n.nodeValue = isAr ? trText_(orig) : orig;
+  }
+
+  // Key attributes
+  const attrs = ["placeholder","title","aria-label","data-tip"];
+  root.querySelectorAll(attrs.map(a=>`[${a}]`).join(",")).forEach(el=>{
+    for(const a of attrs){
+      if(!el.hasAttribute(a)) continue;
+      const orig = _origAttr_(el, a);
+      el.setAttribute(a, isAr ? trText_(orig) : orig);
+    }
+  });
+}
+
+// Mutation observer to keep Arabic translation applied on dynamic renders
+let _i18nMoLock = false;
+const _i18nMo = new MutationObserver(() => {
+  if(!uiIsAr() || _i18nMoLock) return;
+  _i18nMoLock = true;
+  try { applyI18n_(document.body); } catch(e){}
+  _i18nMoLock = false;
+});
+window.addEventListener("DOMContentLoaded", () => {
+  try { applyLangToDoc_(); syncLangSegLabels_(); } catch(e){}
+  try { _i18nMo.observe(document.body, { childList:true, subtree:true }); } catch(e){}
+});
+
 const trunc0 = n => { n = num(n); if(!Number.isFinite(n)) return NaN; return n < 0 ? Math.ceil(n) : Math.floor(n); };
-const fmt0=n=>Number.isFinite(num(n))?trunc0(n).toLocaleString(undefined,{maximumFractionDigits:0}):"—";
+const fmt0=n=>Number.isFinite(num(n))?trunc0(n).toLocaleString(uiLocale(),{maximumFractionDigits:0}):"—";
 // Totals (QAR, KPIs) are shown with no decimals (truncated display)
 const fmtQRaw=n=>fmt0(n);
 // Currency-aware amount formatter used throughout UI
@@ -1797,17 +2185,33 @@ const fmtQ=n=>{
   }
   return fmtQRaw(q);
 };
+
+function curUnit(){ return (state && state.currency==="USDT") ? "USDT" : "QAR"; }
+// QAR-amount formatter with unit that respects the currency toggle.
+// If user selects USDT but WACOP is missing, we fall back to QAR display (same behavior as before).
+function fmtQWithUnit(qarAmount){
+  const q = num(qarAmount);
+  if(!Number.isFinite(q)) return "—";
+  const w = (typeof getWACOP==="function") ? getWACOP() : null;
+  if(state && state.currency==="USDT"){
+    if(w && w>0) return fmtU(q/w)+" USDT";
+    return fmtQRaw(q)+" QAR";
+  }
+  return fmtQRaw(q)+" QAR";
+}
+
+
 // Quantities (USDT) keep up to 2 decimals for readability
-const fmtU=n=>Number.isFinite(num(n))?num(n).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:2}):"—";
+const fmtU=n=>Number.isFinite(num(n))?num(n).toLocaleString(uiLocale(),{minimumFractionDigits:0,maximumFractionDigits:2}):"—";
 // Prices show decimals (default 2)
-const fmtP=(n,d=2)=>Number.isFinite(num(n))?num(n).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
-const fmtPct=n=>Number.isFinite(num(n))?((num(n)>=0?"+":"")+String(Math.trunc(num(n)))+"%"):"—";
+const fmtP=(n,d=2)=>Number.isFinite(num(n))?num(n).toLocaleString(uiLocale(),{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
+const fmtPct=n=>Number.isFinite(num(n))?(((num(n)>=0?"+":"")+Math.trunc(num(n)).toLocaleString(uiLocale(),{maximumFractionDigits:0}))+(uiIsAr()?"٪":"%")):"—";
 const fmtDur=ms=>{if(!ms||ms<0)return"—";const m=Math.floor(ms/60000),h=Math.floor(m/60),d=Math.floor(h/24);if(d>0)return d+"d "+(h%24)+"h";if(h>0)return h+"h "+(m%60)+"m";return m+"m";};
 const fmtDate=ts=>new Date(ts).toLocaleDateString();
 const isToday=ts=>ts>=startOfDay(Date.now());
 
 // ── STATE ──────────────────────────────────────────────────────
-const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",lang:"en",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
+const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
 let state=dflt(), derived={batches:[],tradeCalc:new Map(),health:{ok:true,issues:[]}};
 let charts={}, p2p={
   ts:0, buyAvg:null, sellAvg:null, buyOffers:[], sellOffers:[],
@@ -1821,37 +2225,6 @@ let charts={}, p2p={
 };
 let storageOk=true;
 
-// ── I18N ─────────────────────────────────────────────────────────
-const I18N={
-  en:{dashboard:"Dashboard",orders:"Trade",stock:"Stock",p2p:"P2P",calendar:"Cal",vault:"Vault",settings:"More",
-      loginTab:"Sign In",registerTab:"Register",loginAction:"Sign In →",registerAction:"Create Account →",
-      search:"Search...",sub:"FIFO · QAR",home:"Home",lang:"EN",signOut:"Sign out"},
-  ar:{dashboard:"لوحة التحكم",orders:"التداول",stock:"المخزون",p2p:"ند للند",calendar:"التقويم",vault:"النسخ",settings:"المزيد",
-      loginTab:"تسجيل الدخول",registerTab:"إنشاء حساب",loginAction:"دخول ←",registerAction:"إنشاء حساب ←",
-      search:"بحث...",sub:"FIFO · ريال",home:"الرئيسية",lang:"AR",signOut:"تسجيل الخروج"}
-};
-const t=(k)=>((I18N[state.lang]||I18N.en)[k]||I18N.en[k]||k);
-function applyI18nUI(){
-  try{ document.documentElement.lang = state.lang||"en"; document.documentElement.dir = state.lang==="ar"?"rtl":"ltr"; }catch(e){}
-  const pt=$("#pageTitle"); if(pt) pt.textContent=t(state.page);
-  const ps=$("#pageSub"); if(ps) ps.textContent=t("sub");
-  const q=$("#q"); if(q) q.placeholder=t("search");
-  const lb=$("#langBtn"); if(lb) lb.textContent=t("lang");
-  const lm=$("#authModeLoginBtn"); if(lm) lm.textContent=t("loginTab");
-  const rm=$("#authModeRegisterBtn"); if(rm) rm.textContent=t("registerTab");
-  const li=$("#loginBtn"); if(li) li.textContent=t("loginAction");
-  const rg=$("#registerBtn"); if(rg) rg.textContent=t("registerAction");
-  ["dashboard","orders","stock","p2p","calendar","vault","settings"].forEach(pg=>{
-    $$(`.navBtn[data-go="${pg}"]`).forEach(b=>{ const tt=b.querySelector("div > div"); if(tt) tt.textContent=t(pg); });
-    $$(`.mBtn[data-go="${pg}"]`).forEach(b=>{
-      const svg=b.querySelector("svg"); if(!svg) return;
-      let sp=b.querySelector(".mTxt"); if(!sp){ sp=document.createElement("span"); sp.className="mTxt"; b.appendChild(sp); }
-      sp.textContent = pg==="dashboard" ? t("home") : t(pg);
-      [...b.childNodes].forEach(n=>{ if(n.nodeType===3) n.remove(); });
-    });
-  });
-}
-
 // ── TOAST ────────────────────────────────────────────────────────
 let _tt;
 const toast=(msg,type="")=>{const el=$("#toast");if(!el)return;el.textContent=msg;el.className="toast"+(type?" "+type:"");el.classList.add("show");clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove("show"),2800);};
@@ -1863,14 +2236,13 @@ const closeModal=()=>$("#modalBg").classList.remove("open");
 // ── PERSIST ──────────────────────────────────────────────────────
 function sanitize(s){
   const d=dflt(),out={...d,...(s||{})};
-  const LAYOUTS=["flux","cipher","vector","aurora","carbon","prism","noir"];
+  const LAYOUTS=["flux","cipher","vector","aurora","carbon","prism","noir","pulse"];
   const THEMES=["t1","t2","t3","t4","t5"];
   out.layout=LAYOUTS.includes(out.layout)?out.layout:"flux";
   out.theme=["t1","t2","t3","t4","t5"].includes(out.theme)?out.theme:"t1";
   out.page=["dashboard","orders","stock","crm","p2p","analytics","calendar","vault","settings"].includes(out.page)?out.page:"dashboard";
   out.range=["today","7d","30d","all"].includes(out.range)?out.range:"7d";
-  out.currency="QAR";
-  out.lang=["en","ar"].includes(out.lang)?out.lang:"en";
+  out.currency=["QAR","USDT"].includes(out.currency)?out.currency:"QAR";
   out.q=String(out.q||"");
   out.cashQAR=num(out.cashQAR,0);
   out.prefs={...d.prefs,...(out.prefs||{})};
@@ -1908,141 +2280,14 @@ const rl=()=>({today:"Today","7d":"7 Days","30d":"30 Days",all:"All Time"}[state
 function dispAmt(qarAmount){
   const w=getWACOP();
   if(state.currency==="USDT"&&w&&w>0)return fmtU(num(qarAmount)/w)+" USDT";
-  return fmtQ(qarAmount)+" QAR";
+  return fmtQWithUnit(qarAmount);
 }
 function dispRate(qarRate){
   if(state.currency==="USDT")return"— USDT";
   return fmtP(qarRate)+" QAR";
 }
 function curLabel(){return state.currency==="USDT"?"USDT":"QAR";}
-function displayCurrency(){return state.currency==="USDT"?"USDT":"QAR";}
-function getDisplayFx(){const w=getWACOP();return w&&w>0?num(w):null;}
-function qarToDisplay(v){const n=num(v);if(!Number.isFinite(n))return NaN;if(state.currency==="USDT"){const fx=getDisplayFx();return fx?n/fx:n;}return n;}
-function displayToQar(v){const n=num(v);if(!Number.isFinite(n))return NaN;if(state.currency==="USDT"){const fx=getDisplayFx();return fx?n*fx:n;}return n;}
-function fmtMoneyQAR(qar){const d=qarToDisplay(qar);if(!Number.isFinite(d))return"—";return(state.currency==="USDT"?fmtU(d):fmtQRaw(d))+" "+displayCurrency();}
-function fmtRateQAR(qarRate,dQAR=2,dUSDT=4){const d=qarToDisplay(qarRate);if(!Number.isFinite(d))return"—";return fmtP(d,state.currency==="USDT"?dUSDT:dQAR)+" "+displayCurrency();}
-function inputMoneyQAR(qar,digits=2){const d=qarToDisplay(qar);return Number.isFinite(d)?d.toFixed(digits):"";}
-function inputRateQAR(qarRate,dQAR=4,dUSDT=4){const d=qarToDisplay(qarRate);return Number.isFinite(d)?d.toFixed(state.currency==="USDT"?dUSDT:dQAR):"";}
-function fmtRateQARFixed(qarRate,digits=4){const n=num(qarRate);return Number.isFinite(n)?fmtP(n,digits)+" QAR":"—";}
-function inputRateQARFixed(qarRate,digits=4){const n=num(qarRate);return Number.isFinite(n)?n.toFixed(digits):"";}
-function normalizeCurrency(cur){return cur==="USDT"?"USDT":"QAR";}
-function qarToCurrency(qar,cur){const n=num(qar);if(!Number.isFinite(n))return NaN;const currency=normalizeCurrency(cur);if(currency==="USDT"){const fx=getDisplayFx();return fx>0?n/fx:n;}return n;}
-function currencyToQar(val,cur){const n=num(val);if(!Number.isFinite(n))return NaN;const currency=normalizeCurrency(cur);if(currency==="USDT"){const fx=getDisplayFx();return fx>0?n*fx:n;}return n;}
-function fmtMoneyQARIn(qar,cur){const currency=normalizeCurrency(cur);const v=qarToCurrency(qar,currency);if(!Number.isFinite(v))return"—";return(currency==="USDT"?fmtU(v):fmtQRaw(v))+" "+currency;}
-function inputMoneyQARIn(qar,cur,digits=2){const currency=normalizeCurrency(cur);const v=qarToCurrency(qar,currency);return Number.isFinite(v)?v.toFixed(digits):"";}
 
-
-function getSaleDraft(){
-  if(!window._saleDraft){
-    window._saleDraft={ts:Date.now(),mode:"USDT",currency:"QAR",amountUSDT:NaN,amountQAR:NaN,sellPriceQAR:getWACOP()||NaN,customerId:"",usesStock:true};
-  }
-  const d=window._saleDraft;
-  if(!Number.isFinite(d.ts))d.ts=Date.now();
-  d.mode=d.mode==="QAR"?"QAR":"USDT";
-  d.currency=normalizeCurrency(d.currency);
-  if(typeof d.customerId!=="string")d.customerId="";
-  if(typeof d.usesStock!=="boolean")d.usesStock=true;
-  return d;
-}
-function resetSaleDraft(){
-  window._saleDraft={ts:Date.now(),mode:"USDT",currency:"QAR",amountUSDT:NaN,amountQAR:NaN,sellPriceQAR:getWACOP()||NaN,customerId:"",usesStock:true};
-}
-function syncSaleDraftFromInputs(){
-  if(!document.getElementById("t_dt")&&!document.getElementById("t_sell")&&!document.getElementById("t_amt"))return getSaleDraft();
-  const d=getSaleDraft();
-  const ts=inputToTs($("#t_dt")?.value);
-  if(Number.isFinite(ts))d.ts=ts;
-  d.mode=(($("#t_mode_val")?.value)||d.mode)==="QAR"?"QAR":"USDT";
-  d.currency=normalizeCurrency((($("#t_formcur")?.value)||d.currency));
-  const sellEl=$("#t_sell");
-  if(sellEl&&String(sellEl.value||"").trim()!=="")d.sellPriceQAR=num(sellEl.value);
-  const amtEl=$("#t_amt");
-  const rawAmt=amtEl&&String(amtEl.value||"").trim()!==""?num(amtEl.value):NaN;
-  if(d.mode==="USDT"){
-    d.amountUSDT=rawAmt;
-    d.amountQAR=(Number.isFinite(d.amountUSDT)&&Number.isFinite(d.sellPriceQAR)&&d.sellPriceQAR>0)?d.amountUSDT*d.sellPriceQAR:NaN;
-  }else if(d.currency==="USDT"){
-    d.amountUSDT=rawAmt;
-    d.amountQAR=(Number.isFinite(d.amountUSDT)&&Number.isFinite(d.sellPriceQAR)&&d.sellPriceQAR>0)?d.amountUSDT*d.sellPriceQAR:NaN;
-  }else{
-    d.amountQAR=rawAmt;
-    d.amountUSDT=(Number.isFinite(d.amountQAR)&&Number.isFinite(d.sellPriceQAR)&&d.sellPriceQAR>0)?d.amountQAR/d.sellPriceQAR:NaN;
-  }
-  const cust=$("#t_cust");if(cust)d.customerId=String(cust.value||"");
-  const uses=$("#t_stock");if(uses)d.usesStock=!!uses.checked;
-  return d;
-}
-
-
-function getBatchDraft(){
-  if(!window._batchDraft){
-    window._batchDraft={ts:Date.now(),currency:"QAR",amountUSDT:NaN,amountQAR:NaN,buyPriceQAR:NaN,source:"",note:""};
-  }
-  const d=window._batchDraft;
-  if(!Number.isFinite(d.ts))d.ts=Date.now();
-  d.currency=normalizeCurrency(d.currency);
-  if(typeof d.source!=="string")d.source="";
-  if(typeof d.note!=="string")d.note="";
-  return d;
-}
-function resetBatchDraft(){
-  window._batchDraft={ts:Date.now(),currency:"QAR",amountUSDT:NaN,amountQAR:NaN,buyPriceQAR:NaN,source:"",note:""};
-}
-function syncBatchDraftFromInputs(){
-  if(!document.getElementById("b_dt")&&!document.getElementById("b_amt")&&!document.getElementById("b_px"))return getBatchDraft();
-  const d=getBatchDraft();
-  const ts=inputToTs($("#b_dt")?.value);
-  if(Number.isFinite(ts))d.ts=ts;
-  d.currency=normalizeCurrency((($("#b_formcur")?.value)||d.currency));
-  const pxEl=$("#b_px");
-  d.buyPriceQAR=pxEl&&String(pxEl.value||"").trim()!==""?num(pxEl.value):NaN;
-  const amtEl=$("#b_amt");
-  const rawAmt=amtEl&&String(amtEl.value||"").trim()!==""?num(amtEl.value):NaN;
-  if(d.currency==="USDT"){
-    d.amountUSDT=rawAmt;
-    d.amountQAR=(Number.isFinite(d.amountUSDT)&&Number.isFinite(d.buyPriceQAR)&&d.buyPriceQAR>0)?d.amountUSDT*d.buyPriceQAR:NaN;
-  }else{
-    d.amountQAR=rawAmt;
-    d.amountUSDT=(Number.isFinite(d.amountQAR)&&Number.isFinite(d.buyPriceQAR)&&d.buyPriceQAR>0)?d.amountQAR/d.buyPriceQAR:NaN;
-  }
-  const src=$("#b_src");if(src)d.source=String(src.value||"");
-  const note=$("#b_note");if(note)d.note=String(note.value||"");
-  return d;
-}
-
-function syncActiveFormDrafts(){syncSaleDraftFromInputs();syncBatchDraftFromInputs();}
-function setCurrency(cur){
-  state.currency="QAR";
-  save();
-  render();
-}
-function setSaleCurrency(cur){
-  const d=syncSaleDraftFromInputs();
-  const next=normalizeCurrency(cur);
-  d.currency=next;
-  if($("#t_formcur"))$("#t_formcur").value=next;
-  $$("[data-salecur]").forEach(b=>b.classList.toggle("active",b.dataset.salecur===next));
-  const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=d.mode==="USDT"?"Quantity (USDT)":"Amount ("+next+")";
-  const input=$("#t_amt");
-  if(input&&d.mode==="QAR")input.value=next==="USDT"
-    ?(Number.isFinite(d.amountUSDT)?num(d.amountUSDT).toFixed(2):"")
-    :(Number.isFinite(d.amountQAR)?num(d.amountQAR).toFixed(2):"");
-  updateSalePreview();
-}
-
-function setBatchCurrency(cur){
-  const d=syncBatchDraftFromInputs();
-  const next=normalizeCurrency(cur);
-  d.currency=next;
-  if($("#b_formcur"))$("#b_formcur").value=next;
-  $$("[data-batchcur]").forEach(b=>b.classList.toggle("active",b.dataset.batchcur===next));
-  const lbl=$("#b_amt_lbl");if(lbl)lbl.textContent=next==="USDT"?"Total (USDT)":"Amount (QAR)";
-  const input=$("#b_amt");
-  if(input)input.value=next==="USDT"
-    ?(Number.isFinite(d.amountUSDT)?num(d.amountUSDT).toFixed(2):"")
-    :(Number.isFinite(d.amountQAR)?num(d.amountQAR).toFixed(2):"");
-  updateBatchPreview();
-}
 // ── FIFO ENGINE ──────────────────────────────────────────────────
 function recomputeFor(s){
   const batches=s.batches.map(b=>({...b,remainingUSDT:b.initialUSDT})).sort((a,b)=>a.ts-b.ts);
@@ -2267,25 +2512,23 @@ function chartOpts(extra={}){
 
 // ── ACTIONS ──────────────────────────────────────────────────────
 function addTrade(){
-  const d=syncSaleDraftFromInputs();
-  const ts=Number.isFinite(d.ts)?d.ts:inputToTs($("#t_dt")?.value),mode=d.mode||$("#t_mode_val")?.value||"USDT";
-  const sell=num(d.sellPriceQAR),rawText=String($("#t_amt")?.value||"").trim();const fee=0;
-  const usesStock=d.usesStock!==false;
-  const customerId=String(d.customerId||"").trim();
+  const ts=inputToTs($("#t_dt")?.value),mode=$("#t_mode_val")?.value||"USDT";
+  const sell=num($("#t_sell")?.value),raw=num($("#t_amt")?.value);const fee=0;
+  const usesStock=$("#t_stock")?.checked??true;
+  const customerId=$("#t_cust")?.value.trim()||"";
   const errs=[];
-  if(!Number.isFinite(ts))errs.push("date");if(!(sell>0))errs.push("sell price");if(rawText==="")errs.push(mode==="USDT"?"qty":"amount");
-  const amountUSDT=num(d.amountUSDT);
+  if(!Number.isFinite(ts))errs.push("date");if(!(sell>0))errs.push("sell price");if(!(raw>0))errs.push("qty");
+  let amountUSDT=mode==="USDT"?raw:(sell>0?raw/sell:0);
   if(!(amountUSDT>0))errs.push("qty");
   if(errs.length){const el=$("#t_msg");if(el){el.textContent="Fix: "+errs.join(", ");el.className="msg err";}return;}
   const id=uid(),trade={id,ts,inputMode:mode,amountUSDT,sellPriceQAR:sell,feeQAR:fee,note:"",voided:false,usesStock,revisions:[],customerId};
   if(!state.prefs.allowInvalidTrades&&usesStock){const tmp=sanitize({...state,trades:state.trades.concat([trade])});const calc=recomputeFor(tmp).tradeCalc.get(id);if(!calc?.ok){const el=$("#t_msg");if(el){el.textContent="No eligible stock";el.className="msg err";}return;}}
   state.trades.push(trade);if(!inRange(ts))state.range="all";
-  resetSaleDraft();
   saveRecompute("Trade logged ✓","good");
+  ["t_amt"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   const tm=$("#t_msg");if(tm){tm.textContent="";tm.className="msg";}
   updateSalePreview();
 }
-
 
 function openAddCustomerModal(prefillName=""){
   openModal("Add Customer",`
@@ -2319,92 +2562,37 @@ function openAddCustomerModal(prefillName=""){
 
 
 function addBatch(){
-  const d=syncBatchDraftFromInputs();
-  const ts=Number.isFinite(d.ts)?d.ts:inputToTs($("#b_dt")?.value),amt=num(d.amountUSDT),px=num(d.buyPriceQAR),src=$("#b_src")?.value.trim()||"",note=$("#b_note")?.value.trim()||"";
-  const errs=[];if(!Number.isFinite(ts))errs.push("date");if(!(amt>0))errs.push("total");if(!(px>0))errs.push("price");if(!src)errs.push("supplier");
+  const ts=inputToTs($("#b_dt")?.value),amt=num($("#b_amt")?.value),px=num($("#b_px")?.value),src=$("#b_src")?.value.trim()||"",note=$("#b_note")?.value.trim()||"";
+  const errs=[];if(!Number.isFinite(ts))errs.push("date");if(!(amt>0))errs.push("qty");if(!(px>0))errs.push("price");if(!src)errs.push("supplier");
   if(errs.length){const el=$("#b_msg");if(el){el.textContent="Fix: "+errs.join(", ");el.className="msg err";}return;}
   ensureSupplierRecord({name:src});
   state.batches.push({id:uid(),ts,initialUSDT:amt,buyPriceQAR:px,source:src,note});
   if(!inRange(ts))state.range="all";
-  resetBatchDraft();
   saveRecompute("Batch added ✓","good");
+  ["b_amt","b_px","b_src"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   const bm=$("#b_msg");if(bm){bm.textContent="";bm.className="msg";}
 }
-
 function setMode(m){
-  const d=syncSaleDraftFromInputs();
-  const next=m==="QAR"?"QAR":"USDT";
-  if(next==="QAR"){
-    if(Number.isFinite(d.amountUSDT)&&Number.isFinite(d.sellPriceQAR)&&d.sellPriceQAR>0)d.amountQAR=d.amountUSDT*d.sellPriceQAR;
-  }else{
-    if(Number.isFinite(d.amountQAR)&&Number.isFinite(d.sellPriceQAR)&&d.sellPriceQAR>0)d.amountUSDT=d.amountQAR/d.sellPriceQAR;
-  }
-  d.mode=next;
-  if($("#t_mode_val"))$("#t_mode_val").value=next;
-  $("#modeUSDT")?.classList.toggle("active",next==="USDT");
-  $("#modeQAR")?.classList.toggle("active",next==="QAR");
-  const saleCur=normalizeCurrency(d.currency);
-  const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=next==="USDT"?"Quantity (USDT)":"Amount ("+saleCur+")";
-  const input=$("#t_amt");
-  if(input){
-    input.value=next==="USDT"
-      ?(Number.isFinite(d.amountUSDT)?num(d.amountUSDT).toFixed(2):"")
-      :(saleCur==="USDT"
-        ?(Number.isFinite(d.amountUSDT)?num(d.amountUSDT).toFixed(2):"")
-        :(Number.isFinite(d.amountQAR)?num(d.amountQAR).toFixed(2):""));
-  }
+  if($("#t_mode_val"))$("#t_mode_val").value=m;
+  $("#modeUSDT")?.classList.toggle("active",m==="USDT");
+  $("#modeQAR")?.classList.toggle("active",m==="QAR");
+  const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=m==="USDT"?"Quantity":"Amount";
   updateSalePreview();
 }
-
 function updateSalePreview(){
-  const d=syncSaleDraftFromInputs();
-  const mode=d.mode||"USDT",sell=num(d.sellPriceQAR);const fee=0;
-  const usesStock=d.usesStock!==false;
-  let amt=mode==="USDT"?num(d.amountUSDT):(sell>0?num(d.amountQAR)/sell:0);
+  const mode=$("#t_mode_val")?.value||"USDT",sell=num($("#t_sell")?.value),raw=num($("#t_amt")?.value);const fee=0;
+  let amt=mode==="USDT"?raw:(sell>0?raw/sell:0);
   const box=$("#salePreview");if(!box)return;
-  if(!(amt>0)||!(sell>0)){
-    box.innerHTML=`<div class="pt">Live Preview</div><div class="muted" style="font-size:calc(11px * var(--ui-scale,1));">Enter quantity / amount and a QAR sell price above...</div>`;
-    return;
-  }
-  const rev=amt*sell;
-  if(!usesStock){
-    box.innerHTML=`<div class="pt">Live Preview</div>
-      <div class="pr"><span>Sell Price</span><strong>${fmtRateQARFixed(sell)}</strong></div>
-      <div class="pr"><span>Qty</span><strong>${fmtU(amt)} USDT</strong></div>
-      <div class="pr"><span>Volume</span><strong>${fmtQ(rev)} QAR</strong></div>
-      <div class="pr"><span>Cost (FIFO)</span><strong>Skipped</strong></div>
-      <div class="pr" style="border-top:1px solid color-mix(in srgb,var(--brand) 20%,transparent);padding-top:6px;margin-top:4px;"><span style="font-weight:900">Net</span><strong style="color:var(--good);">${fmtQ(rev)} QAR</strong></div>
-      <div class="muted" style="font-size:calc(10px * var(--ui-scale,1));margin-top:6px;">FIFO stock is off for this trade, preview shows gross proceeds only.</div>`;
-    return;
-  }
-  const tmp=sanitize({...state,trades:state.trades.concat([{id:"_tmp",ts:Number.isFinite(d.ts)?d.ts:Date.now(),inputMode:mode,amountUSDT:amt,sellPriceQAR:sell,feeQAR:fee,note:"",voided:false,usesStock:true}])});
+  if(!(amt>0)||!(sell>0)){box.innerHTML=`<div class="pt">Live Preview</div><div class="muted" style="font-size:calc(11px * var(--ui-scale,1));">Enter details above...</div>`;return;}
+  const rev=amt*sell,tmp=sanitize({...state,trades:state.trades.concat([{id:"_tmp",ts:inputToTs($("#t_dt")?.value)||Date.now(),inputMode:mode,amountUSDT:amt,sellPriceQAR:sell,feeQAR:fee,note:"",voided:false,usesStock:true}])});
   const calc=recomputeFor(tmp).tradeCalc.get("_tmp"),ok=!!calc?.ok,cost=ok?calc.costQAR:NaN,net=ok?rev-cost-fee:NaN;
   box.innerHTML=`<div class="pt">Live Preview</div>
-    <div class="pr"><span>Sell Price</span><strong>${fmtRateQARFixed(sell)}</strong></div>
-    ${Number.isFinite(calc?.avgBuyQAR)?`<div class="pr"><span>Avg Buy</span><strong style="color:var(--bad)">${fmtRateQARFixed(calc.avgBuyQAR)}</strong></div>`:""}
+    ${Number.isFinite(calc?.avgBuyQAR)?`<div class="pr"><span>Avg Buy</span><strong style="color:var(--bad)">${fmtP(calc.avgBuyQAR)} QAR</strong></div>`:""}
     <div class="pr"><span>Qty</span><strong>${fmtU(amt)} USDT</strong></div>
-    <div class="pr"><span>Volume</span><strong>${fmtQ(rev)} QAR</strong></div>
-    <div class="pr"><span>Cost (FIFO)</span><strong>${ok?fmtQ(cost)+" QAR":"—"}</strong></div>
-    <div class="pr" style="border-top:1px solid color-mix(in srgb,var(--brand) 20%,transparent);padding-top:6px;margin-top:4px;"><span style="font-weight:900">Net</span><strong style="color:${Number.isFinite(net)?(net>=0?"var(--good)":"var(--bad)"):"var(--muted)"};">${Number.isFinite(net)?((net>=0?"+":"")+fmtQ(net)+" QAR"):"—"}</strong></div>
-    ${ok?"":`<div class="muted" style="font-size:calc(10px * var(--ui-scale,1));margin-top:6px;">No FIFO preview available, ${esc(calc?.reason||"insufficient stock")}.</div>`}`;
+    <div class="pr"><span>Revenue</span><strong>${fmtQWithUnit(rev)}</strong></div>
+    <div class="pr"><span>Cost (FIFO)</span><strong>${ok?fmtQWithUnit(cost):"—"}</strong></div>
+    <div class="pr" style="border-top:1px solid color-mix(in srgb,var(--brand) 20%,transparent);padding-top:6px;margin-top:4px;"><span style="font-weight:900">Net</span><strong style="color:${Number.isFinite(net)?(net>=0?"var(--good)":"var(--bad)"):"var(--muted)"};">${Number.isFinite(net)?((net>=0?"+":"")+fmtQWithUnit(net)):"—"}</strong></div>`;
 }
-function updateBatchPreview(){
-  const d=syncBatchDraftFromInputs();
-  const box=$("#batchPreview");if(!box)return;
-  const qty=num(d.amountUSDT),buy=num(d.buyPriceQAR),volume=Number.isFinite(d.amountQAR)?num(d.amountQAR):((qty>0&&buy>0)?qty*buy:NaN);
-  const cur=normalizeCurrency(d.currency);
-  if(!(qty>0)||!(buy>0)){
-    box.innerHTML=`<div class="pt">Batch Preview</div><div class="muted" style="font-size:calc(11px * var(--ui-scale,1));">Enter either total in USDT or amount in QAR. The saved batch total stays in USDT, volume stays in QAR, buy price stays in QAR.</div>`;
-    return;
-  }
-  box.innerHTML=`<div class="pt">Batch Preview</div>
-    <div class="pr"><span>Total</span><strong>${fmtU(qty)} USDT</strong></div>
-    <div class="pr"><span>Buy Price</span><strong>${fmtRateQARFixed(buy)}</strong></div>
-    <div class="pr"><span>Volume</span><strong>${fmtQ(volume)} QAR</strong></div>
-    <div class="muted" style="font-size:calc(10px * var(--ui-scale,1));margin-top:6px;">${cur==="QAR"?"QAR amount converted into the saved USDT batch total using the buy price above.":"USDT total converted into QAR volume using the buy price above."}</div>`;
-}
-
-
 function toggleVoidTrade(id){const t=state.trades.find(x=>x.id===id);if(!t)return;t.voided=!t.voided;saveRecompute(t.voided?"Trade voided":"Trade restored",t.voided?"warn":"good");}
 function deleteTrade(id, skipConfirm){
   const t=state.trades.find(x=>x.id===id);if(!t)return;
@@ -2427,7 +2615,7 @@ function editTrade(id){
   const custName=cust?String(cust.name||"").trim():"";
   openModal(locked?"Trade (Locked)":"Edit Trade",`${locked?`<div class='msg warn' style="margin-bottom:10px;">Past trades are locked for direct edits. Use <strong>Correct</strong> (edit in place) or <strong>Delete</strong> below.</div>`:""}
     ${custName?`<div class="muted" style="margin-bottom:8px;font-size:calc(10px * var(--ui-scale,1));">Customer: <strong style="color:var(--text);">${esc(custName)}</strong></div>`:""}
-    ${c?.ok?`<div class="previewBox" style="margin-bottom:10px;"><div class="pt">Current</div><div class="pr"><span>Volume</span><strong>${fmtQ(t.amountUSDT*t.sellPriceQAR)} QAR</strong></div><div class="pr"><span>Net</span><strong style="color:${c.netQAR>=0?"var(--good)":"var(--bad)"};">${(c.netQAR>=0?"+":"")+fmtQ(c.netQAR)} QAR</strong></div></div>`:""}
+    ${c?.ok?`<div class="previewBox" style="margin-bottom:10px;"><div class="pt">Current</div><div class="pr"><span>Volume</span><strong>${fmtQWithUnit(t.amountUSDT*t.sellPriceQAR)}</strong></div><div class="pr"><span>Net</span><strong style="color:${c.netQAR>=0?"var(--good)":"var(--bad)"};">${(c.netQAR>=0?"+":"")+fmtQ(c.netQAR)} QAR</strong></div></div>`:""}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div class="field" style="grid-column:span 2"><div class="label">Date &amp; time</div><input id="m_dt" type="datetime-local" value="${dtToInput(t.ts)}" class="input" ${locked?"disabled":""}/></div>
       <div class="field"><div class="label">Qty USDT</div><input id="m_amt" class="input" value="${t.amountUSDT}" ${locked?"disabled":""}/></div>
@@ -2473,7 +2661,7 @@ function correctTrade(id){
       Editing the original record in place. FIFO and profit will be recomputed after save.
       ${!state.prefs.allowInvalidTrades?`<br><span style="color:var(--bad);font-weight:700;">Allow invalid trades is OFF — correction will be validated before saving.</span>`:""}
     </div>
-    ${c?.ok?`<div class="previewBox" style="margin-bottom:10px;"><div class="pt">Current</div><div class="pr"><span>Volume</span><strong>${fmtQ(t.amountUSDT*t.sellPriceQAR)} QAR</strong></div><div class="pr"><span>Net</span><strong style="color:${c.netQAR>=0?"var(--good)":"var(--bad)"};">${(c.netQAR>=0?"+":"")+fmtQ(c.netQAR)} QAR</strong></div></div>`:""}
+    ${c?.ok?`<div class="previewBox" style="margin-bottom:10px;"><div class="pt">Current</div><div class="pr"><span>Volume</span><strong>${fmtQWithUnit(t.amountUSDT*t.sellPriceQAR)}</strong></div><div class="pr"><span>Net</span><strong style="color:${c.netQAR>=0?"var(--good)":"var(--bad)"};">${(c.netQAR>=0?"+":"")+fmtQ(c.netQAR)} QAR</strong></div></div>`:""}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div class="field" style="grid-column:span 2"><div class="label">Date &amp; time</div><input id="cr_dt" type="datetime-local" value="${dtToInput(t.ts)}" class="input"/></div>
       <div class="field" style="grid-column:span 2"><div class="label">Customer</div><select id="cr_cust" class="input"><option value="">— No customer —</option>${custOpts}</select></div>
@@ -2598,7 +2786,7 @@ function editBatch(id){
       <span class="pill">Remaining <strong>${fmtU(rem)}</strong></span>
       <span class="pill">Used <strong>${fmtU(used)}</strong></span>
       <span class="pill ${batchProfit>=0?"good":"bad"}">Profit <strong>${(batchProfit>=0?"+":"")+fmtQ(batchProfit)}</strong></span>
-      <span class="pill">Invested <strong>${fmtQ(b.initialUSDT*b.buyPriceQAR)} QAR</strong></span>
+      <span class="pill">Invested <strong>${fmtQWithUnit(b.initialUSDT*b.buyPriceQAR)}</strong></span>
     </div>
     <div class="msg err" id="eb_err" style="margin-top:8px;"></div>`,
     `<div style="display:flex;justify-content:space-between;gap:8px;width:100%;flex-wrap:wrap;">
@@ -2681,10 +2869,10 @@ function exportExcel(){
   if(!window.XLSX){toast("XLSX library loading...","warn");return;}
   const wb=XLSX.utils.book_new();
   const tRows=[["Date","Qty USDT","Sell QAR","Avg Buy QAR","Revenue QAR","Cost QAR","Fee QAR","Net QAR","Margin %","FIFO Slices","Voided","Note"]];
-  for(const t of state.trades.slice().sort((a,b)=>b.ts-a.ts)){const c=derived.tradeCalc.get(t.id),ok=!!c?.ok,rev=t.amountUSDT*t.sellPriceQAR;tRows.push([new Date(t.ts).toLocaleString(),t.amountUSDT,t.sellPriceQAR,ok?c.avgBuyQAR:0,rev,ok?c.costQAR:0,t.feeQAR,ok?c.netQAR:0,ok?c.margin:0,ok?c.slices.map(s=>`${s.source}×${s.qty.toFixed(2)}@${s.priceQAR.toFixed(2)}`).join("; "):"",t.voided?"Y":"N",t.note||""]);}
+  for(const t of state.trades.slice().sort((a,b)=>b.ts-a.ts)){const c=derived.tradeCalc.get(t.id),ok=!!c?.ok,rev=t.amountUSDT*t.sellPriceQAR;tRows.push([new Date(t.ts).toLocaleString(uiLocale()),t.amountUSDT,t.sellPriceQAR,ok?c.avgBuyQAR:0,rev,ok?c.costQAR:0,t.feeQAR,ok?c.netQAR:0,ok?c.margin:0,ok?c.slices.map(s=>`${s.source}×${s.qty.toFixed(2)}@${s.priceQAR.toFixed(2)}`).join("; "):"",t.voided?"Y":"N",t.note||""]);}
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(tRows),"Trades");
   const bRows=[["Date","Source","Note","Total","Buy QAR","Remaining","Used","Invested QAR","Cycle Time"]];
-  for(const b of state.batches.slice().sort((a,b)=>b.ts-a.ts)){const db=derived.batches.find(x=>x.id===b.id),rem=db?Math.max(0,db.remainingUSDT):b.initialUSDT;bRows.push([new Date(b.ts).toLocaleString(),b.source,b.note,b.initialUSDT,b.buyPriceQAR,rem,b.initialUSDT-rem,b.initialUSDT*b.buyPriceQAR,fmtDur(batchCycleTime(b.id))]);}
+  for(const b of state.batches.slice().sort((a,b)=>b.ts-a.ts)){const db=derived.batches.find(x=>x.id===b.id),rem=db?Math.max(0,db.remainingUSDT):b.initialUSDT;bRows.push([new Date(b.ts).toLocaleString(uiLocale()),b.source,b.note,b.initialUSDT,b.buyPriceQAR,rem,b.initialUSDT-rem,b.initialUSDT*b.buyPriceQAR,fmtDur(batchCycleTime(b.id))]);}
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(bRows),"Batches");
   XLSX.writeFile(wb,"usdt-pro-"+new Date().toISOString().slice(0,10)+".xlsx");toast("Excel exported ✓","good");
 }
@@ -2842,7 +3030,7 @@ function setHeader(t,s){if($("#pageTitle"))$("#pageTitle").textContent=t;if($("#
 // ── DASHBOARD ────────────────────────────────────────────────────
 
 function renderDashboard(){
-  setHeader("Dashboard","FIFO · QAR · "+new Date().toLocaleDateString());
+  setHeader("Dashboard","FIFO · "+curUnit()+" · "+new Date().toLocaleDateString(uiLocale()));
   const d1=kpiFor("today"),d7=kpiFor("7d"),dR=kpiFor(state.range),stk=totalStock(),stCost=stockCostQAR(),wacop=getWACOP();
   const allTrades=state.trades.filter(t=>!t.voided);
   const allMargins=allTrades.map(t=>{const c=derived.tradeCalc.get(t.id);return c?.ok?c.margin:null;}).filter(x=>x!==null);
@@ -2859,22 +3047,22 @@ function renderDashboard(){
     <div class="kpi-band">
       <div class="kpi-band-title" data-tip="Total QAR volume of all USDT sold&#10;Shows 1-day and 7-day comparison">📦 TRADING VOLUME</div>
       <div class="kpi-band-cols">
-        <div><div class="kpi-period">1 DAY</div><div class="kpi-cell-val t1v">${fmtQ(d1.rev)} QAR</div><div class="kpi-cell-sub">${d1.count} trade${d1.count!==1?"s":""} · ${fmtU(d1.qty,0)} USDT</div></div>
-        <div><div class="kpi-period">7 DAYS</div><div class="kpi-cell-val t1v">${fmtQ(d7.rev)} QAR</div><div class="kpi-cell-sub">${d7.count} trade${d7.count!==1?"s":""} · ${fmtU(d7.qty,0)} USDT</div></div>
+        <div><div class="kpi-period">1 DAY</div><div class="kpi-cell-val t1v">${fmtQWithUnit(d1.rev)}</div><div class="kpi-cell-sub">${d1.count} trade${d1.count!==1?"s":""} · ${fmtU(d1.qty,0)} USDT</div></div>
+        <div><div class="kpi-period">7 DAYS</div><div class="kpi-cell-val t1v">${fmtQWithUnit(d7.rev)}</div><div class="kpi-cell-sub">${d7.count} trade${d7.count!==1?"s":""} · ${fmtU(d7.qty,0)} USDT</div></div>
       </div>
     </div>
     <div class="kpi-band">
       <div class="kpi-band-title">📈 NET PROFIT</div>
       <div class="kpi-band-cols">
-        <div><div class="kpi-period">1 DAY</div><div class="kpi-cell-val ${d1.net>=0?"good":"bad"}">${fmtQ(d1.net)} QAR</div><div class="kpi-cell-sub">Fees ${fmtQ(d1.fee)} QAR</div></div>
-        <div><div class="kpi-period">7 DAYS</div><div class="kpi-cell-val ${d7.net>=0?"good":"bad"}">${fmtQ(d7.net)} QAR</div><div class="kpi-cell-sub">Fees ${fmtQ(d7.fee)} QAR</div></div>
+        <div><div class="kpi-period">1 DAY</div><div class="kpi-cell-val ${d1.net>=0?"good":"bad"}">${fmtQWithUnit(d1.net)}</div><div class="kpi-cell-sub">Fees ${fmtQWithUnit(d1.fee)}</div></div>
+        <div><div class="kpi-period">7 DAYS</div><div class="kpi-cell-val ${d7.net>=0?"good":"bad"}">${fmtQWithUnit(d7.net)}</div><div class="kpi-cell-sub">Fees ${fmtQWithUnit(d7.fee)}</div></div>
       </div>
     </div>
   </div>
   <div class="kpis">
     <div class="kpi-card">
       <div class="kpi-head"><span class="kpi-badge ${dR.net>=0?"good":"bad"}" style="color:var(--${dR.net>=0?"good":"bad"});border-color:color-mix(in srgb,var(--${dR.net>=0?"good":"bad"}) 30%,transparent);background:color-mix(in srgb,var(--${dR.net>=0?"good":"bad"}) 10%,transparent)">${esc(rLabel)}</span></div>
-      <div class="kpi-lbl">NET PROFIT</div><div class="kpi-val ${dR.net>=0?"good":"bad"}">${fmtQ(dR.net)} QAR</div><div class="kpi-sub">${dR.count} trades · ${fmtQ(dR.rev)} rev</div>
+      <div class="kpi-lbl">NET PROFIT</div><div class="kpi-val ${dR.net>=0?"good":"bad"}">${fmtQWithUnit(dR.net)}</div><div class="kpi-sub">${dR.count} trades · ${fmtQ(dR.rev)} rev</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-head"><span class="kpi-badge ${avgM>=1?"good":avgM>=0?"warn":"bad"}" style="color:var(--${avgM>=1?"good":avgM>=0?"warn":"bad"});border-color:color-mix(in srgb,var(--${avgM>=1?"good":avgM>=0?"warn":"bad"}) 30%,transparent);background:color-mix(in srgb,var(--${avgM>=1?"good":avgM>=0?"warn":"bad"}) 10%,transparent)">${allTrades.length} trades</span></div>
@@ -2894,32 +3082,32 @@ function renderDashboard(){
   <div class="kpis" style="margin-top:0;">
     <div class="kpi-card" data-tip="Physical QAR cash you hold&#10;Click Update to set the amount&#10;Used to calculate Buying Power">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Cash</span></div>
-      <div class="kpi-lbl">CASH AVAILABLE</div><div class="kpi-val" style="color:var(--warn)">${fmtMoneyQAR(num(state.cashQAR,0))}</div>
+      <div class="kpi-lbl">CASH AVAILABLE</div><div class="kpi-val" style="color:var(--warn)">${fmtQ(num(state.cashQAR,0))} QAR</div>
       <div class="kpi-sub"><button class="rowBtn" id="setCashBtn" style="font-size:9px;padding:2px 6px;">Update ↗</button></div>
     </div>
     <div class="kpi-card" data-tip="How many USDT you could buy with cash&#10;Formula: Cash ÷ WACOP&#10;Assumes you buy at current avg cost">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--t5);border-color:color-mix(in srgb,var(--t5) 30%,transparent);background:color-mix(in srgb,var(--t5) 10%,transparent)">${wacop?"@WACOP":"—"}</span></div>
       <div class="kpi-lbl">BUYING POWER</div><div class="kpi-val" style="color:var(--t5)">${(wacop&&num(state.cashQAR,0)>0)?fmtU(num(state.cashQAR,0)/wacop,0)+" USDT":"Set cash →"}</div>
-      <div class="kpi-sub">${wacop?"@ "+fmtRateQAR(wacop):"Add batches first"}</div>
+      <div class="kpi-sub">${wacop?"@ "+fmtP(wacop)+" QAR":"Add batches first"}</div>
     </div>
     <div class="kpi-card" data-tip="Total deployable capital&#10;Formula: USDT stock cost + Cash&#10;Your full book position">
       <div class="kpi-head"><span class="kpi-badge good" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">Net</span></div>
-      <div class="kpi-lbl">NET POSITION</div><div class="kpi-val good">${fmtMoneyQAR(stCost+num(state.cashQAR,0))}</div>
-      <div class="kpi-sub">Stock ${fmtMoneyQAR(stCost)} + Cash ${fmtMoneyQAR(num(state.cashQAR,0))}</div>
+      <div class="kpi-lbl">NET POSITION</div><div class="kpi-val good">${fmtQ(stCost+num(state.cashQAR,0))} QAR</div>
+      <div class="kpi-sub">Stock ${fmtQ(stCost)} + Cash ${fmtQ(num(state.cashQAR,0))}</div>
     </div>
     <div class="kpi-card" data-tip="Estimated cost of remaining USDT stock&#10;WACOP × remaining quantity&#10;Not market value — cost basis only">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--muted);border-color:var(--line)">${state.batches.length} batch</span></div>
-      <div class="kpi-lbl">STOCK COST EST.</div><div class="kpi-val" style="font-size:17px;">${fmtMoneyQAR(stCost)}</div>
-      <div class="kpi-sub">WACOP ${wacop?fmtRateQAR(wacop):"—"}</div>
+      <div class="kpi-lbl">STOCK COST EST.</div><div class="kpi-val" style="font-size:17px;">${fmtQWithUnit(stCost)}</div>
+      <div class="kpi-sub">WACOP ${wacop?fmtP(wacop)+" QAR":"—"}</div>
     </div>
   </div>
   <div class="dash-bottom">
     <div class="panel"><div class="panel-head"><h2>Profit &amp; Revenue Trend</h2><span class="pill">Last 14 trades</span></div><div class="panel-body" style="height:190px;position:relative;"><canvas id="dashTrend"></canvas></div></div>
     <div class="panel"><div class="panel-head"><h2>Period Stats</h2><span class="pill">${esc(rLabel)}</span></div><div class="panel-body">
-      <div class="prev-row" data-tip="Total QAR volume of USDT sold in period"><span class="muted">Volume</span><strong class="mono t1v">${fmtQ(dR.rev)} QAR</strong></div>
-            <div class="prev-row"><span class="muted">Cost</span><strong class="mono">${fmtQ(dR.rev-dR.net-dR.fee)} QAR</strong></div>
-            <div class="prev-row"><span class="muted">Fees</span><strong class="mono">${fmtQ(dR.fee)} QAR</strong></div>
-            <div class="prev-row"><span class="muted">Net Profit</span><strong class="mono ${dR.net>=0?"good":"bad"}">${fmtQ(dR.net)} QAR</strong></div>
+      <div class="prev-row" data-tip="Total QAR volume of USDT sold in period"><span class="muted">Volume</span><strong class="mono t1v">${fmtQWithUnit(dR.rev)}</strong></div>
+            <div class="prev-row"><span class="muted">Cost</span><strong class="mono">${fmtQWithUnit(dR.rev-dR.net-dR.fee)}</strong></div>
+            <div class="prev-row"><span class="muted">Fees</span><strong class="mono">${fmtQWithUnit(dR.fee)}</strong></div>
+            <div class="prev-row"><span class="muted">Net Profit</span><strong class="mono ${dR.net>=0?"good":"bad"}">${fmtQWithUnit(dR.net)}</strong></div>
             <div class="prev-row"><span class="muted">Avg Margin</span><strong class="mono" style="color:var(--t3)">${fmtPct(dR.avgMgn)}</strong></div>
             <div class="prev-row"><span class="muted">Trades</span><strong class="mono">${dR.count}</strong></div>
     </div></div>
@@ -2931,50 +3119,11 @@ function renderDashboard(){
 
   // Cash update handler
   $("#setCashBtn")?.addEventListener("click",()=>{
-    openModal("Update Cash on Hand",`
-      <div class="form-field">
-        <label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Action</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button type="button" class="rowBtn m_cash_mode on" data-mode="set" style="flex:1;min-width:96px;">Set Total</button>
-          <button type="button" class="rowBtn m_cash_mode" data-mode="add" style="flex:1;min-width:96px;">Add Amount</button>
-        </div>
-      </div>
-      <div class="form-field">
-        <label class="form-label" id="m_cash_lbl" style="font-size:10px;font-weight:700;color:var(--muted);">Total cash (QAR)</label>
-        <input id="m_cash" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" placeholder="0.00"/>
-      </div>
-      <div id="m_cash_preview" style="margin-top:6px;color:var(--muted);font-size:10px;">Current ${fmtQ(num(state.cashQAR,0))} → New total ${fmtQ(num(state.cashQAR,0))}</div>
-      <div style="margin-top:6px;color:var(--muted);font-size:10px;">Used to calculate Buying Power and Net Position on the dashboard.</div>`,
+    openModal("Update Cash on Hand",`<div class="form-field"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Physical QAR cash ready to deploy</label><input id="m_cash" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" placeholder="0.00"/></div><div style="margin-top:6px;color:var(--muted);font-size:10px;">Used to calculate Buying Power and Net Position on the dashboard.</div>`,
       `<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_s">Save Cash</button>`);
     setTimeout(()=>{
-      let cashMode="set";
-      const curr=num(state.cashQAR,0);
-      const inp=$("#m_cash"), lbl=$("#m_cash_lbl"), prev=$("#m_cash_preview");
-      const redraw=()=>{
-        const v=num(inp?.value,0);
-        const total=(cashMode==="add")?(curr+v):v;
-        if(lbl) lbl.textContent = cashMode==="add" ? "Add cash amount (QAR)" : "Total cash (QAR)";
-        if(prev) prev.textContent = cashMode==="add"
-          ? `Current ${fmtQ(curr)} + Add ${fmtQ(v)} = New total ${fmtQ(total)}`
-          : `Current ${fmtQ(curr)} → New total ${fmtQ(total)}`;
-      };
-      $$(".m_cash_mode").forEach(b=>b.addEventListener("click",()=>{
-        cashMode=b.dataset.mode||"set";
-        $$(".m_cash_mode").forEach(x=>x.classList.remove("on"));
-        b.classList.add("on");
-        if(inp && cashMode==="add"){inp.value="";inp.placeholder="22000";}
-        if(inp && cashMode==="set"){inp.value=String(curr||0);inp.placeholder="0.00";}
-        redraw();
-      }));
-      inp?.addEventListener("input",redraw);
-      redraw();
       $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_s")?.addEventListener("click",()=>{
-        const v=num(inp?.value,0);
-        state.cashQAR=(cashMode==="add")?(curr+v):v;
-        saveRecompute(cashMode==="add"?"Cash added ✓":"Cash updated ✓","good");
-        closeModal();
-      });
+      $("#m_s")?.addEventListener("click",()=>{state.cashQAR=num($("#m_cash")?.value,0);saveRecompute("Cash updated ✓","good");closeModal();});
     },0);
   });
   destroyChart("dashTrend");
@@ -3031,29 +3180,9 @@ function openAddSupplierModal(prefillName=""){
 function renderLedger(){
   setHeader("Orders","FIFO cost basis · margin bar");
   const q=state.q.trim().toLowerCase(),wacop=getWACOP();
-  const saleDraft=getSaleDraft();
-  if(!Number.isFinite(saleDraft.sellPriceQAR)&&wacop)saleDraft.sellPriceQAR=wacop;
-  const saleMode=saleDraft.mode==="QAR"?"QAR":"USDT";
-  const saleCur=normalizeCurrency(saleDraft.currency);
-  const saleTs=Number.isFinite(saleDraft.ts)?saleDraft.ts:Date.now();
-  const saleAmtValue=saleMode==="USDT"
-    ?(Number.isFinite(saleDraft.amountUSDT)?num(saleDraft.amountUSDT).toFixed(2):"")
-    :(saleCur==="USDT"
-      ?(Number.isFinite(saleDraft.amountUSDT)?num(saleDraft.amountUSDT).toFixed(2):"")
-      :(Number.isFinite(saleDraft.amountQAR)?num(saleDraft.amountQAR).toFixed(2):""));
-  const saleSellValue=Number.isFinite(saleDraft.sellPriceQAR)?inputRateQARFixed(saleDraft.sellPriceQAR,4):(wacop?inputRateQARFixed(wacop,4):"");
-  const saleCustomerId=saleDraft.customerId||"";
-  const saleUsesStock=saleDraft.usesStock!==false;
   const all=state.trades.slice().sort((a,b)=>b.ts-a.ts);
   const list=all.filter(t=>inRange(t.ts));
   const filtered=!q?list:list.filter(t=>[fmtDate(t.ts),t.amountUSDT,t.sellPriceQAR].join(" ").toLowerCase().includes(q));
-  const okTrades=list.filter(t=>derived.tradeCalc.get(t.id)?.ok);
-  const bestSell=okTrades.length?Math.max(...okTrades.map(t=>t.sellPriceQAR)):null;
-  const avgSell=okTrades.length?okTrades.reduce((s,t)=>s+t.sellPriceQAR,0)/okTrades.length:null;
-  const bestNet=okTrades.length?Math.max(...okTrades.map(t=>num(derived.tradeCalc.get(t.id)?.netQAR,0))):null;
-  const totalVolQAR=list.reduce((s,t)=>s+t.amountUSDT*t.sellPriceQAR,0);
-  const todayOk=okTrades.filter(t=>inRange(t.ts,"today"));
-  const todayHigh=todayOk.length?Math.max(...todayOk.map(t=>t.sellPriceQAR)):null;
 
   const tableHtml=!filtered.length
     ?(!all.length?`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 4h10M7 8h10M7 12h10M7 16h10M7 20h10"/></svg><div class="empty-t">No trades yet</div><div class="empty-s">Add a batch, then log a sale →</div></div>`:
@@ -3067,39 +3196,31 @@ function renderLedger(){
           <div><div style="font-size:calc(13px * var(--ui-scale,1));font-weight:800;">Trades</div><div style="font-size:calc(10px * var(--ui-scale,1));color:var(--muted);">FIFO cost basis · margin bar</div></div>
           <div style="display:flex;gap:6px;"><span class="pill">${esc(rl())}</span><button class="btn secondary" id="t_csv">CSV</button></div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:8px;">
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">BEST SELL</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--good);">${bestSell!==null?fmtP(bestSell):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">SELL AVG</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--t1);">${avgSell!==null?fmtP(avgSell):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">BEST NET</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:${bestNet!==null&&bestNet>=0?"var(--good)":"var(--bad)"};">${bestNet!==null?((bestNet>=0?"+":"")+fmtQ(bestNet)):"—"} ${curLabel()}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">Top trade P/L</div></div>
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">VOLUME</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;">${fmtQ(totalVolQAR)} QAR</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">In ${esc(rl())}</div></div>
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">TODAY HIGH SELL</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--good);">${todayHigh!==null?fmtP(todayHigh):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
-        </div>
         ${tableHtml}
       </div>
       <div>
         <div class="formPanel salePanel"><div class="hdr">New Sale</div><div class="inner">
-          ${wacop?`<div class="bannerRow"><span class="bLbl">WACOP</span><span class="bVal">${fmtRateQARFixed(wacop)}</span><span class="bSpacer"></span><span class="bPill">QAR</span></div>`:""}
-          <div class="field2"><div class="lbl">Currency</div><div class="seg" data-tip="Form amount helper only, trade qty stays USDT and volume stays QAR"><button type="button" data-salecur="QAR" class="${saleCur==="QAR"?"active":""}">QAR</button><button type="button" data-salecur="USDT" class="${saleCur==="USDT"?"active":""}">USDT</button></div><input id="t_formcur" type="hidden" value="${saleCur}"/></div>
-          <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="t_dt" type="datetime-local" style="padding-right:0" value="${dtToInput(saleTs)}"/></div></div>
+          ${wacop?`<div class="bannerRow"><span class="bLbl">WACOP</span><span class="bVal">${fmtP(wacop)}</span><span class="bSpacer"></span><span class="bPill">FIFO</span></div>`:""}
+          <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="t_dt" type="datetime-local" style="padding-right:0"/></div></div>
           <div class="field2"><div class="lbl">Input Mode</div>
-            <div class="modeToggle"><button id="modeUSDT" class="${saleMode==="USDT"?"active":""}" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9 7h6M9 17h6M12 7v10" stroke-linecap="round"/></svg>Qty</button><button id="modeQAR" class="${saleMode==="QAR"?"active":""}" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>Amt</button></div>
-            <input type="hidden" id="t_mode_val" value="${saleMode}"/>
+            <div class="modeToggle"><button id="modeUSDT" class="active" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9 7h6M9 17h6M12 7v10" stroke-linecap="round"/></svg>Qty</button><button id="modeQAR" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>Amt</button></div>
+            <input type="hidden" id="t_mode_val" value="USDT"/>
           </div>
           <div class="g2tight">
-            <div class="field2"><div class="lbl" id="t_amt_lbl">${saleMode==="USDT"?"Quantity (USDT)":"Amount ("+saleCur+")"}</div><div class="inputBox"><input id="t_amt" inputmode="decimal" placeholder="0.00" value="${saleAmtValue}"/><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9h4.5a2.5 2.5 0 0 1 0 5H9" stroke-linecap="round"/></svg></div></div>
-            <div class="field2"><div class="lbl">Sell Price (QAR)</div><div class="inputBox" style="display:flex;gap:5px;padding-right:5px;"><input id="t_sell" inputmode="decimal" placeholder="${wacop?inputRateQARFixed(wacop,4):"0.00"}" value="${saleSellValue}"/><button class="sideAction" id="t_p2p" title="P2P rate" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 7h8M6 11h12M8 15h8" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0"/></svg></button></div></div>
+            <div class="field2"><div class="lbl" id="t_amt_lbl">Quantity</div><div class="inputBox"><input id="t_amt" inputmode="decimal" placeholder="0.00"/><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9h4.5a2.5 2.5 0 0 1 0 5H9" stroke-linecap="round"/></svg></div></div>
+            <div class="field2"><div class="lbl">Sell Price</div><div class="inputBox" style="display:flex;gap:5px;padding-right:5px;"><input id="t_sell" inputmode="decimal" placeholder="${wacop?fmtP(wacop):"0.00"}" value="${wacop?fmtP(wacop):""}"/><button class="sideAction" id="t_p2p" title="P2P rate" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 7h8M6 11h12M8 15h8" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0"/></svg></button></div></div>
           </div>
 <div class="field2" data-tip="Link this trade to a CRM customer&#10;Tracks volume and P&amp;L per customer">
             <div class="lbl">Customer</div>
             <div class="inputBox" style="display:flex;gap:6px;align-items:center;">
               <select id="t_cust" style="flex:1;background:transparent;border:none;color:var(--text);font-size:calc(11px * var(--ui-scale,1));">
                 <option value="">— No customer —</option>
-                ${state.customers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${esc(c.id)}" ${saleCustomerId===c.id?"selected":""}>${esc(c.name)} [${c.tier}]</option>`).join("")}
+                ${state.customers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${esc(c.id)}">${esc(c.name)} [${c.tier}]</option>`).join("")}
               </select>
               <button class="sideAction" id="t_cust_add" title="Add customer" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button>
             </div>
           </div>
-          <label style="display:flex;align-items:center;gap:7px;font-size:calc(10px * var(--ui-scale,1));cursor:pointer;color:var(--muted);" data-tip="When checked: uses FIFO stock batches&#10;When unchecked: records trade without cost basis"><input type="checkbox" id="t_stock" ${saleUsesStock?"checked":""} style="accent-color:var(--brand);"/>Use FIFO stock</label>
+          <label style="display:flex;align-items:center;gap:7px;font-size:calc(10px * var(--ui-scale,1));cursor:pointer;color:var(--muted);" data-tip="When checked: uses FIFO stock batches&#10;When unchecked: records trade without cost basis"><input type="checkbox" id="t_stock" checked style="accent-color:var(--brand);"/>Use FIFO stock</label>
           <div class="previewBox" id="salePreview" data-tip="Live profit preview&#10;Updates as you type the trade details"><div class="pt">Live Preview</div><div class="muted" style="font-size:calc(11px * var(--ui-scale,1));">Enter details...</div></div>
           <div class="formActions"><button class="btn" id="t_add" type="button" data-tip="Save trade to ledger&#10;FIFO cost applied automatically">Add Trade</button></div>
           <div class="msg" id="t_msg"></div>
@@ -3107,19 +3228,17 @@ function renderLedger(){
       </div>
     </div>`;
 
-  if(window._pendingSelectCustomerId&&$("#t_cust")){$("#t_cust").value=window._pendingSelectCustomerId;const d=getSaleDraft();d.customerId=window._pendingSelectCustomerId;window._pendingSelectCustomerId="";}
+  if($("#t_dt"))$("#t_dt").value=dtToInput(Date.now());
+  if(window._pendingSelectCustomerId&&$("#t_cust")){$("#t_cust").value=window._pendingSelectCustomerId;window._pendingSelectCustomerId="";}
   $("#t_cust_add")?.addEventListener("click",()=>openAddCustomerModal());
-  $$("[data-salecur]").forEach(b=>b.addEventListener("click",()=>setSaleCurrency(b.dataset.salecur)));
   $("#modeUSDT")?.addEventListener("click",()=>setMode("USDT"));
   $("#modeQAR")?.addEventListener("click",()=>setMode("QAR"));
   $("#t_add")?.addEventListener("click",addTrade);
   $("#t_csv")?.addEventListener("click",exportCsv);
   ["t_amt","t_sell","t_dt"].forEach(id=>document.getElementById(id)?.addEventListener("input",updateSalePreview));
-  document.getElementById("t_cust")?.addEventListener("change",syncSaleDraftFromInputs);
-  document.getElementById("t_stock")?.addEventListener("change",()=>{syncSaleDraftFromInputs();updateSalePreview();});
   updateSalePreview();
-  $("#t_p2p")?.addEventListener("click",async()=>{if(!p2p.ts)await refreshP2P();if(p2p.sellAvg&&$("#t_sell")){$("#t_sell").value=inputRateQARFixed(p2p.sellAvg,4);syncSaleDraftFromInputs();updateSalePreview();toast("P2P rate applied","good");}});
-  $("#showAll_t")?.addEventListener("click",()=>{state.range="all";render();});
+  $("#t_p2p")?.addEventListener("click",async()=>{if(!p2p.ts)await refreshP2P();if(p2p.sellAvg&&$("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();toast("P2P rate applied","good");}});
+  $("#showAll_t")?.addEventListener("click",()=>{state.range="all";saveRecompute();});
   const pb=$("#pageBody");
   if(pb)pb.addEventListener("click",e=>{const btn=e.target.closest("button[data-act]");if(!btn)return;const id=btn.dataset.id,act=btn.dataset.act;if(act==="edit")editTrade(id);if(act==="detail"){const safeId=id.replace(/[^a-zA-Z0-9_-]/g,"_");const r=document.getElementById("det-"+safeId);if(r){r.style.display=r.style.display==="none"?"table-row":"none";btn.textContent=r.style.display!=="none"?"▼ Hide":"▶ Details";}}});
 }
@@ -3166,7 +3285,7 @@ function renderTradeDetail(t,c){
   const cy=ok&&c.slices.length?t.ts-Math.min(...c.slices.map(s=>s.ts)):null;
   return`<div style="background:var(--panel2);border-radius:var(--lt-radius-sm);padding:10px;margin:4px;">
     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;">
-      <span class="pill">${esc(new Date(t.ts).toLocaleString())}</span>
+      <span class="pill">${esc(new Date(t.ts).toLocaleString(uiLocale()))}</span>
       ${ok?`<span class="pill">Avg Buy ${fmtP(c.avgBuyQAR)}</span>`:""}
       <span class="pill">Revenue ${fmtQ(rev)}</span>
       <span class="pill">Fee ${fmtQ(t.feeQAR)}</span>
@@ -3184,22 +3303,8 @@ function renderTradeDetail(t,c){
 function renderStock(){
   setHeader("Stock Batches","FIFO layers · progress = remaining");
   const q=state.q.trim().toLowerCase(),wacop=getWACOP();
-  const batchDraft=getBatchDraft();
-  const batchCur=normalizeCurrency(batchDraft.currency);
-  const batchTs=Number.isFinite(batchDraft.ts)?batchDraft.ts:Date.now();
-  const batchAmtValue=batchCur==="USDT"
-    ?(Number.isFinite(batchDraft.amountUSDT)?num(batchDraft.amountUSDT).toFixed(2):"")
-    :(Number.isFinite(batchDraft.amountQAR)?num(batchDraft.amountQAR).toFixed(2):"");
-  const batchPxValue=Number.isFinite(batchDraft.buyPriceQAR)?num(batchDraft.buyPriceQAR).toFixed(4):"";
   const perf=state.batches.map(b=>{const db=derived.batches.find(x=>x.id===b.id);const rem=db?Math.max(0,db.remainingUSDT):b.initialUSDT,used=b.initialUSDT-rem;let profit=0;for(const[,c]of derived.tradeCalc){if(!c.ok)continue;const s=c.slices.find(s=>s.batchId===b.id);if(s)profit+=s.qty*c.ppu;}return{...b,remaining:rem,used,profit};}).sort((a,b2)=>b2.ts-a.ts);
   const filtered=!q?perf:perf.filter(b=>[fmtDate(b.ts),b.source,b.note].join(" ").toLowerCase().includes(q));
-  const bWithBuy=perf.filter(b=>b.buyPriceQAR>0);
-  const bestRestock=bWithBuy.length?Math.min(...bWithBuy.map(b=>b.buyPriceQAR)):null;
-  const avgBuy=bWithBuy.length?bWithBuy.reduce((s,b)=>s+b.buyPriceQAR,0)/bWithBuy.length:null;
-  const totalVolQAR=perf.reduce((s,b)=>s+b.initialUSDT*b.buyPriceQAR,0);
-  const profitNow=(wacop&&p2p.sellAvg&&totalStock()>0)?totalStock()*(p2p.sellAvg-wacop):null;
-  const todayB=perf.filter(b=>inRange(b.ts,"today"));
-  const todayLow=todayB.length?Math.min(...todayB.map(b=>b.buyPriceQAR)):null;
 
   const tableHtml=!filtered.length
     ?`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><div class="empty-t">No batches</div><div class="empty-s">Add your first purchase →</div></div>`
@@ -3213,33 +3318,31 @@ function renderStock(){
       </div>
       <div>
         <div class="formPanel salePanel"><div class="hdr">Add Batch</div><div class="inner">
-          ${wacop?`<div class="bannerRow"><span class="bLbl">Current WACOP</span><span class="bVal">${fmtRateQARFixed(wacop)}</span><span class="bSpacer"></span><span class="bPill">QAR</span></div>`:""}
-          <div class="field2"><div class="lbl">Currency</div><div class="seg" data-tip="Local helper only, stock total stays USDT and volume stays QAR"><button type="button" data-batchcur="QAR" class="${batchCur==="QAR"?"active":""}">QAR</button><button type="button" data-batchcur="USDT" class="${batchCur==="USDT"?"active":""}">USDT</button></div><input id="b_formcur" type="hidden" value="${batchCur}"/></div>
-          <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="b_dt" type="datetime-local" style="padding-right:0" value="${dtToInput(batchTs)}"/></div></div>
+          ${wacop?`<div class="bannerRow"><span class="bLbl">Current WACOP</span><span class="bVal">${fmtP(wacop)}</span><span class="bSpacer"></span><span class="bPill">Avg</span></div>`:""}
+          <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="b_dt" type="datetime-local" style="padding-right:0"/></div></div>
           <div class="g2tight">
-            <div class="field2"><div class="lbl" id="b_amt_lbl">${batchCur==="USDT"?"Total (USDT)":"Amount (QAR)"}</div><div class="inputBox"><input id="b_amt" inputmode="decimal" placeholder="1000.00" value="${batchAmtValue}"/></div></div>
-            <div class="field2"><div class="lbl">Buy Price (QAR)</div><div class="inputBox"><input id="b_px" inputmode="decimal" placeholder="${wacop?num(wacop).toFixed(4):"3.5900"}" value="${batchPxValue}"/></div></div>
+            <div class="field2"><div class="lbl">Quantity</div><div class="inputBox"><input id="b_amt" inputmode="decimal" placeholder="1000.00"/></div></div>
+            <div class="field2"><div class="lbl">Buy Price</div><div class="inputBox"><input id="b_px" inputmode="decimal" placeholder="3.5900"/></div></div>
           </div>
           <div class="g2tight">
             <div class="field2"><div class="lbl">Supplier</div>
               <div class="inputBox" style="display:flex;gap:6px;align-items:center;">
-                <input id="b_src" list="sup_list" placeholder="Supplier / source" style="flex:1;padding-right:0" value="${esc(batchDraft.source||"")}"/>
+                <input id="b_src" list="sup_list" placeholder="Supplier / source" style="flex:1;padding-right:0"/>
                 <button class="sideAction" id="b_sup_add" title="Add supplier" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button>
               </div>
               <datalist id="sup_list">${[...new Set(((state.suppliers||[]).map(s=>s.name).concat(state.batches.map(b=>b.source))).filter(Boolean))].sort((a,b)=>a.localeCompare(b)).map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist>
             </div>
-            <div class="field2"><div class="lbl">Note</div><div class="inputBox"><input id="b_note" placeholder="optional" style="padding-right:0" value="${esc(batchDraft.note||"")}"/></div></div>
+            <div class="field2"><div class="lbl">Note</div><div class="inputBox"><input id="b_note" placeholder="optional" style="padding-right:0"/></div></div>
           </div>
-          <div class="previewBox" id="batchPreview" style="margin-top:8px;"></div>
           <div class="formActions"><button class="btn" id="b_add" type="button">Add Batch</button></div>
           <div class="msg" id="b_msg"></div>
         </div></div>
       </div>
     </div>`;
 
-  if(window._pendingSupplierName&&$("#b_src")){$("#b_src").value=window._pendingSupplierName;const d=getBatchDraft();d.source=window._pendingSupplierName;window._pendingSupplierName="";}
+  if($("#b_dt"))$("#b_dt").value=dtToInput(Date.now());
+  if(window._pendingSupplierName&&$("#b_src")){$("#b_src").value=window._pendingSupplierName;window._pendingSupplierName="";}
   $("#b_sup_add")?.addEventListener("click",()=>openAddSupplierModal($("#b_src")?.value||""));
-  $$("[data-batchcur]").forEach(b=>b.addEventListener("click",()=>setBatchCurrency(b.dataset.batchcur)));
   // Suppliers list
   const suppliers=[...new Set(state.batches.map(b=>b.source.trim()).filter(Boolean))];
   if(suppliers.length){
@@ -3247,8 +3350,6 @@ function renderStock(){
     const pb3=document.getElementById("pageBody");if(pb3)pb3.insertAdjacentHTML("beforeend",suppHtml);
   }
   $("#b_add")?.addEventListener("click",addBatch);
-  ["b_dt","b_amt","b_px","b_src","b_note"].forEach(id=>document.getElementById(id)?.addEventListener("input",()=>{syncBatchDraftFromInputs();updateBatchPreview();}));
-  updateBatchPreview();
   // Inject supplier datalist for autocomplete
   {const existing=document.getElementById("supplierSuggestions");if(existing)existing.remove();const dl=document.createElement("datalist");dl.id="supplierSuggestions";[...new Set(state.batches.map(b=>b.source.trim()).filter(Boolean))].forEach(s=>{const opt=document.createElement("option");opt.value=s;dl.appendChild(opt);});document.body.appendChild(dl);}
   const pb=$("#pageBody");if(pb)pb.addEventListener("click",e=>{const btn=e.target.closest("button[data-act]");if(!btn)return;if(btn.dataset.act==="editB")editBatch(btn.dataset.id);if(btn.dataset.act==="deleteB")deleteBatch(btn.dataset.id);});
@@ -3264,16 +3365,15 @@ function renderBatchTable(batches){
     return`<tr>
       <td class="mono">${esc(fmtDate(b.ts))}</td>
       <td>${esc(b.source||"—")}</td>
-      <td class="mono r">${fmtU(b.initialUSDT)} USDT</td>
-      <td class="mono r">${fmtP(b.buyPriceQAR)} QAR</td>
-      <td class="mono r">${fmtQ(b.initialUSDT*b.buyPriceQAR)} QAR</td>
-      <td class="mono r">${fmtU(rem)} USDT</td>
+      <td class="mono r">${fmtU(b.initialUSDT)}</td>
+      <td class="mono r">${fmtP(b.buyPriceQAR)}</td>
+      <td class="mono r">${fmtU(rem)}</td>
       <td><div class="prog"><span style="width:${prog.toFixed(0)}%"></span></div><div class="muted" style="font-size:calc(9px * var(--ui-scale,1));margin-top:2px;">${prog.toFixed(0)}% remaining</div></td>
       <td class="mono r" style="color:${(b.profit||0)>=0?"var(--good)":"var(--bad)"};font-weight:700;">${(b.profit||0)>=0?"+":""}${fmtQ(b.profit||0)}</td>
-      <td><div class="statusInline"><span class="pill ${stCls}">${st}</span>${ct!==null?`<span class="cycle-badge">${fmtDur(ct)}</span>`:""}<button class="rowBtn" data-act="editB" data-id="${esc(b.id)}">Edit</button></div></td>
+      <td><div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;"><span class="pill ${stCls}">${st}</span>${ct!==null?`<span class="cycle-badge">${fmtDur(ct)}</span>`:""}<button class="rowBtn" data-act="editB" data-id="${esc(b.id)}">Edit</button></div></td>
     </tr>`;
   }).join("");
-  return`<div class="tableWrap"><table><thead><tr><th>Date</th><th>Source</th><th class="r">Total</th><th class="r">Buy</th><th class="r">Volume</th><th class="r">Rem</th><th>Usage</th><th class="r">Profit</th><th>Status · Edit</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return`<div class="tableWrap"><table><thead><tr><th>Date</th><th>Source</th><th class="r">Total</th><th class="r">Buy</th><th class="r">Rem</th><th>Usage</th><th class="r">Profit</th><th>Status · Edit</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 // ── P2P ──────────────────────────────────────────────────────────
@@ -3365,7 +3465,7 @@ function renderP2P(){
     </div>
     <div class="card" style="padding:12px;">
       <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Profit if Sold Now</div>
-      <div style="font-size:18px;font-weight:900;color:var(--${profitNow!==null?(profitNow>=0?"good":"bad"):"muted"});">${profitNow!==null?(profitNow>=0?"+":"")+fmtQ(profitNow)+" QAR":"—"}</div>
+      <div style="font-size:18px;font-weight:900;color:var(--${profitNow!==null?(profitNow>=0?"good":"bad"):"muted"});">${profitNow!==null?(profitNow>=0?"+":"")+fmtQWithUnit(profitNow):"—"}</div>
       <div style="font-size:9px;color:var(--muted);">${stock>0?fmtU(stock)+" USDT @ market":"No stock"}</div>
     </div>
     ${day?`
@@ -3501,7 +3601,7 @@ function renderP2P(){
   if(calcMode==="sell"){
     if(p2p.sellAvg&&$("#c_rate"))$("#c_rate").value=p2p.sellAvg.toFixed(2);
     if(stock>0&&$("#c_usdt"))$("#c_usdt").value=stock.toFixed(2);
-    const upd=()=>{const u=num($("#c_usdt")?.value),r=num($("#c_rate")?.value);const out=$("#c_out");if(!out)return;if(u>0&&r>0){const gross=u*r,net=wacop?gross-(u*wacop):null,mgn=wacop?(r-wacop)/wacop*100:null;out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="pill">${fmtU(u)} × ${fmtP(r)} = <strong>${fmtQ(gross)} QAR</strong></span>${net!==null?`<span class="pill ${net>=0?"good":"bad"}">${net>=0?"+":""}${fmtQ(net)} profit</span>`:""} ${mgn!==null?`<span class="pill ${mgn>=0?"good":"bad"}">${mgn>=0?"+":""}${mgn.toFixed(2)}% margin</span>`:""}</div>`;}else{out.textContent="Enter amount and rate";}};
+    const upd=()=>{const u=num($("#c_usdt")?.value),r=num($("#c_rate")?.value);const out=$("#c_out");if(!out)return;if(u>0&&r>0){const gross=u*r,net=wacop?gross-(u*wacop):null,mgn=wacop?(r-wacop)/wacop*100:null;out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="pill">${fmtU(u)} × ${fmtP(r)} = <strong>${fmtQWithUnit(gross)}</strong></span>${net!==null?`<span class="pill ${net>=0?"good":"bad"}">${net>=0?"+":""}${fmtQ(net)} profit</span>`:""} ${mgn!==null?`<span class="pill ${mgn>=0?"good":"bad"}">${mgn>=0?"+":""}${mgn.toFixed(2)}% margin</span>`:""}</div>`;}else{out.textContent="Enter amount and rate";}};
     ["c_usdt","c_rate"].forEach(id=>document.getElementById(id)?.addEventListener("input",upd));
     $("#c_fill_sell")?.addEventListener("click",()=>{if(p2p.sellAvg&&$("#c_rate")){$("#c_rate").value=p2p.sellAvg.toFixed(2);upd();}});
     $("#c_use_sell")?.addEventListener("click",()=>{if(p2p.sellAvg){navTo("orders");setTimeout(()=>{if($("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();}},80);}});
@@ -3516,7 +3616,7 @@ function renderP2P(){
     upd();
   }
   if(calcMode==="margin"){
-    const upd=()=>{const bp=num($("#c_buy_px")?.value),mp=num($("#c_mpct")?.value),mu=num($("#c_musdt")?.value);const out=$("#c_out");if(!out)return;if(bp>0&&mp>0){const need=bp*(1+mp/100),vs=p2p.sellAvg?p2p.sellAvg-need:null,profit=mu>0?mu*(need-bp):null;out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="pill brand">Need ${fmtP(need)} QAR for ${mp}% margin</span>${vs!==null?`<span class="pill ${vs>=0?"good":"warn"}">${vs>=0?"✓ "+fmtP(Math.abs(vs))+" above target":"⚠ "+fmtP(Math.abs(vs))+" below"}</span>`:""} ${profit!==null?`<span class="pill good">+${fmtQ(profit)} QAR profit</span>`:""}</div>`;}else{out.textContent="Enter buy price and target margin";}};
+    const upd=()=>{const bp=num($("#c_buy_px")?.value),mp=num($("#c_mpct")?.value),mu=num($("#c_musdt")?.value);const out=$("#c_out");if(!out)return;if(bp>0&&mp>0){const need=bp*(1+mp/100),vs=p2p.sellAvg?p2p.sellAvg-need:null,profit=mu>0?mu*(need-bp):null;out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="pill brand">Need ${fmtP(need)} QAR for ${mp}% margin</span>${vs!==null?`<span class="pill ${vs>=0?"good":"warn"}">${vs>=0?"✓ "+fmtP(Math.abs(vs))+" above target":"⚠ "+fmtP(Math.abs(vs))+" below"}</span>`:""} ${profit!==null?`<span class="pill good">+${fmtQWithUnit(profit)} profit</span>`:""}</div>`;}else{out.textContent="Enter buy price and target margin";}};
     ["c_buy_px","c_mpct","c_musdt"].forEach(id=>document.getElementById(id)?.addEventListener("input",upd));
     upd();
   }
@@ -3582,7 +3682,7 @@ function renderCalendar(){
   let detailHtml="";
   if(selectedDay&&selData&&selData.trades>0){
     detailHtml=`<div class="cal-detail">
-      <div style="font-size:calc(12px * var(--ui-scale,1));font-weight:800;margin-bottom:8px;">📅 ${mn[month]} ${selectedDay}, ${year} — ${selData.trades} trade${selData.trades!==1?"s":""} · Vol ${fmtQ(selData.volumeQAR)} QAR · Net ${(selData.profit>=0?"+":"")+fmtQ(selData.profit)} QAR · Win ${(selData.trades?((selData.wins/selData.trades)*100).toFixed(0):"0")}%</div>
+      <div style="font-size:calc(12px * var(--ui-scale,1));font-weight:800;margin-bottom:8px;">📅 ${mn[month]} ${selectedDay}, ${year} — ${selData.trades} trade${selData.trades!==1?"s":""} · Vol ${fmtQWithUnit(selData.volumeQAR)} · Net ${(selData.profit>=0?"+":"")+fmtQ(selData.profit)} QAR · Win ${(selData.trades?((selData.wins/selData.trades)*100).toFixed(0):"0")}%</div>
       <div class="tableWrap"><table><thead><tr><th>Time</th><th class="r">Qty</th><th class="r">Avg Buy</th><th class="r">Sell</th><th class="r">Volume</th><th class="r">Net</th><th class="r">Margin</th></tr></thead>
       <tbody>${selData.tradeList.map(t=>`<tr><td class="mono">${new Date(t.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</td><td class="mono r">${fmtU(t.amountUSDT)}</td><td class="mono r" style="color:var(--bad)">${fmtP(t.avgBuy)}</td><td class="mono r" style="color:var(--good)">${fmtP(t.sellPriceQAR)}</td><td class="mono r">${fmtQ(t.rev)}</td><td class="mono r" style="color:${t.net>=0?"var(--good)":"var(--bad)"};font-weight:700;">${(t.net>=0?"+":"")+fmtQ(t.net)}</td><td class="mono r" style="color:${t.margin>=1?"var(--good)":t.margin<0?"var(--bad)":"var(--warn)"}">${fmtPct(t.margin)}</td></tr>`).join("")}</tbody></table></div>
     </div>`;
@@ -3595,7 +3695,7 @@ function renderCalendar(){
       <div class="cal-stat"><div class="kpi-lbl">Monthly Profit</div><div class="kpi-val ${totalP>=0?"good":"bad"}">${(totalP>=0?"+":"")+fmtQ(totalP)} QAR</div></div>
       <div class="cal-stat"><div class="kpi-lbl">Total Trades</div><div class="kpi-val">${totalT}</div></div>
       <div class="cal-stat"><div class="kpi-lbl">Trading Days</div><div class="kpi-val">${tradeDays}${bestDay?` <span class="cycle-badge">Best: ${mn[month].slice(0,3)} ${bestDay[0]}</span>`:""}${worstDay?` <span class="cycle-badge">Worst: ${mn[month].slice(0,3)} ${worstDay[0]}</span>`:""}</div></div>
-      <div class="cal-stat"><div class="kpi-lbl">Monthly Volume</div><div class="kpi-val">${fmtQ(totalV)} QAR</div></div>
+      <div class="cal-stat"><div class="kpi-lbl">Monthly Volume</div><div class="kpi-val">${fmtQWithUnit(totalV)}</div></div>
       <div class="cal-stat"><div class="kpi-lbl">Win Rate</div><div class="kpi-val">${(winRate*100).toFixed(0)}%</div></div>
       <div class="cal-stat"><div class="kpi-lbl">Avg Margin</div><div class="kpi-val">${fmtPct(avgMargin)}</div></div>
     </div>
@@ -4076,7 +4176,7 @@ function executeDailyChecklistAll(){
   const out=document.getElementById("chk_output");
   if(out){
     const k=kpiFor("today");
-    out.innerHTML=`<span style="font-weight:800;">Run output:</span> ${before} → ${checkIds.length} complete. Today net <span style="font-weight:800;color:${k.net>=0?"var(--good)":"var(--bad)"};">${(k.net>=0?"+":"")+fmtQ(k.net)} QAR</span>, trades ${k.count}, volume ${fmtQ(k.rev)} QAR.`;
+    out.innerHTML=`<span style="font-weight:800;">Run output:</span> ${before} → ${checkIds.length} complete. Today net <span style="font-weight:800;color:${k.net>=0?"var(--good)":"var(--bad)"};">${(k.net>=0?"+":"")+fmtQ(k.net)} QAR</span>, trades ${k.count}, volume ${fmtQWithUnit(k.rev)}.`;
   }
   console.log({checklist:"executed",date:todayKey,before,after:checkIds.length});
   toast("Checklist executed ✓","good");
@@ -4097,6 +4197,7 @@ function renderSettings(){
     {id:"aurora",name:"Aurora",desc:"AI gradient · ultra-rounded",font:"Plus Jakarta",swatches:["#5b21b6","#059669","#e84226","#9333ea","#0284c7","#f43f5e","#3730c8","#16a34a"]},
     {id:"carbon",name:"Carbon",desc:"Dark precision · mono",font:"JetBrains",swatches:["#f59e0b","#22d3ee","#84cc16","#ec4899","#f97316","#a855f7","#0d9488","#6366f1"]},
     {id:"prism",name:"Prism",desc:"Bold fintech · geometric",font:"Space Grotesk",swatches:["#1c2a8c","#991b1b","#14532d","#a16207","#0f172a","#182a64","#7e22ce","#7c4614"]},
+    {id:"pulse",name:"Pulse",desc:"CoinPulse-inspired · dark glass",font:"DM Sans",swatches:["#071018","#27e0a3","#2bb8ff","#8b7bff","#ff627e","#ffb84d","#0b1d2d","#12283d"]},
     ];
   const TNAMES={t1:"Theme 1",t2:"Theme 2",t3:"Theme 3",t4:"Theme 4",t5:"Theme 5"};
   const issues=derived.health?.issues||[];
@@ -4117,7 +4218,8 @@ function renderSettings(){
     bloom:{t1:["#e36b38","#f0976a","#fcc7a8","#2d7a50","#2d7080","#8b4fac","#c8a820","#8c7060"],t2:["#8b5cf6","#a78bfa","#c4b5fd","#2d7a50","#e36b38","#ec4899","#c8a820","#8c7060"],t3:["#4a8c3a","#6ab854","#a0d88a","#2d6a80","#e36b38","#8b5cf6","#c8a820","#8c7060"],t4:["#b24622","#d4683c","#e8a48c","#2d7a50","#4a5568","#8b5cf6","#c8a820","#8c7060"],t5:["#1e7ab0","#38a6d4","#7dd3f4","#2d7a50","#e36b38","#8b5cf6","#c8a820","#8c7060"],t6:["#c83c78","#e46898","#f4a8c8","#2d7a50","#2d7080","#8b5cf6","#c8a820","#8c7060"],t7:["#7c7a0a","#a8a41a","#d4d050","#2d7a50","#2d7080","#8b5cf6","#e36b38","#8c7060"],t8:["#dc3c3c","#f47474","#fca8a8","#2d7a50","#2d7080","#8b5cf6","#c8a820","#8c7060"]},
     prism:{t1:["#1c2a8c","#3b4ec8","#6b7dff","#166534","#0284c7","#7c2d12","#78350f","#374151"],t2:["#991b1b","#dc2626","#ef4444","#166534","#1c2a8c","#92400e","#6d28d9","#374151"],t3:["#14532d","#166534","#16a34a","#1c2a8c","#0284c7","#991b1b","#92400e","#374151"],t4:["#a16207","#ca8a04","#eab308","#166534","#1c2a8c","#991b1b","#6d28d9","#374151"],t5:["#0f172a","#1e293b","#334155","#166534","#1c2a8c","#991b1b","#92400e","#374151"],t6:["#182a64","#1e3a8a","#2563eb","#166534","#7c1d8c","#991b1b","#92400e","#374151"],t7:["#7e22ce","#9333ea","#a855f7","#166534","#1c2a8c","#991b1b","#92400e","#374151"],t8:["#7c4614","#a06018","#c8882c","#166534","#1c2a8c","#991b1b","#6d28d9","#374151"]},
     noir:{t1:["#d4af37","#f0cc55","#fce588","#4ade80","#60a5fa","#f87171","#c084fc","#94a3b8"],t2:["#90adc4","#b8d0e4","#d0e4f4","#4ade80","#f0cc55","#f87171","#c084fc","#94a3b8"],t3:["#e04040","#f06060","#f89090","#4ade80","#60a5fa","#fbbf24","#c084fc","#94a3b8"],t4:["#2563eb","#3b82f6","#93c5fd","#4ade80","#d4af37","#f87171","#c084fc","#94a3b8"],t5:["#16a34a","#22c55e","#4ade80","#2563eb","#d4af37","#f87171","#c084fc","#94a3b8"],t6:["#c27316","#d97706","#f59e0b","#4ade80","#2563eb","#f87171","#c084fc","#94a3b8"],t7:["#1a1a1a","#333333","#666666","#15803d","#1d4ed8","#dc2626","#d97706","#64748b"],t8:["#8888c0","#a0a0d8","#c0c0ec","#4ade80","#f0cc55","#f87171","#fb923c","#94a3b8"]},
-    canvas:{t1:["#2563eb","#0ea5e9","#16a34a","#dc2626","#9333ea","#d97706","#0d9488","#475569"],t2:["#4f8ef7","#22d3ee","#22c55e","#f87171","#c084fc","#fbbf24","#2dd4bf","#94a3b8"],t3:["#334155","#0284c7","#16a34a","#dc2626","#7c3aed","#d97706","#0d9488","#64748b"],t4:["#7c3aed","#2563eb","#16a34a","#dc2626","#ec4899","#d97706","#0d9488","#64748b"],t5:["#22c55e","#0d9488","#22d3ee","#f87171","#c084fc","#fbbf24","#a3e635","#94a3b8"],t6:["#dc2626","#2563eb","#16a34a","#9333ea","#d97706","#0d9488","#ec4899","#475569"],t7:["#d97706","#f59e0b","#4ade80","#f87171","#22d3ee","#c084fc","#84cc16","#94a3b8"],t8:["#111827","#2563eb","#16a34a","#dc2626","#7c3aed","#d97706","#0d9488","#6b7280"]}
+    canvas:{t1:["#2563eb","#0ea5e9","#16a34a","#dc2626","#9333ea","#d97706","#0d9488","#475569"],t2:["#4f8ef7","#22d3ee","#22c55e","#f87171","#c084fc","#fbbf24","#2dd4bf","#94a3b8"],t3:["#334155","#0284c7","#16a34a","#dc2626","#7c3aed","#d97706","#0d9488","#64748b"],t4:["#7c3aed","#2563eb","#16a34a","#dc2626","#ec4899","#d97706","#0d9488","#64748b"],t5:["#22c55e","#0d9488","#22d3ee","#f87171","#c084fc","#fbbf24","#a3e635","#94a3b8"],t6:["#dc2626","#2563eb","#16a34a","#9333ea","#d97706","#0d9488","#ec4899","#475569"],t7:["#d97706","#f59e0b","#4ade80","#f87171","#22d3ee","#c084fc","#84cc16","#94a3b8"],t8:["#111827","#2563eb","#16a34a","#dc2626","#7c3aed","#d97706","#0d9488","#6b7280"]},
+    pulse:{t1:["#27e0a3","#2bb8ff","#8b7bff","#ff627e","#ffb84d","#12283d","#071018","#0d1f2f"],t2:["#8b7bff","#6e5cff","#2bb8ff","#3fe0a5","#ff7ecf","#141628","#090b16","#1c1e36"],t3:["#2bb8ff","#0e90ff","#27e0a3","#8b7bff","#ffc857","#0f263d","#061220","#10263f"],t4:["#27e0a3","#06b676","#2bb8ff","#ffd166","#8b7bff","#11241c","#07150f","#173126"],t5:["#ffb84d","#ff8a3d","#2bb8ff","#42e1a7","#8b7bff","#241b10","#15110a","#362917"]}
   };  const curTC=TCFG[effLayout]||TCFG.flux;
 
   $("#pageBody").innerHTML=`
@@ -4965,7 +5067,7 @@ function renderVault(){
       if (!versions.length){ el.innerHTML=`<div class="muted" style="font-size:10px;">No cloud versions found. Click Backup Now to create one.</div>`; return; }
       var _compareA = null;
       el.innerHTML = versions.slice(0,20).map(function(v,i){
-        var d = v.exportedAt ? new Date(v.exportedAt).toLocaleString() : "Unknown date";
+        var d = v.exportedAt ? new Date(v.exportedAt).toLocaleString(uiLocale()) : "Unknown date";
         var chkOk = v.checksum ? "✓" : "";
         var label = v.label || ("Version "+(versions.length-i));
         return `<div style="padding:7px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;">
@@ -5083,7 +5185,7 @@ function renderVault(){
         return {
           versionId: fname,
           exportedAt: ts ? new Date(ts).toISOString() : null,
-          label: fname === "latest.json" ? "⭐ latest.json" : (ts ? new Date(ts).toLocaleString() : fname),
+          label: fname === "latest.json" ? "⭐ latest.json" : (ts ? new Date(ts).toLocaleString(uiLocale()) : fname),
           bytes: null,
           pinned: fname==="latest.json",
           note: "Scanned from file list",
@@ -5109,7 +5211,7 @@ function renderVault(){
     el.innerHTML = `
       <div style="font-size:10px;color:var(--good);margin-bottom:8px;">✓ Found ${versions.length} backup${versions.length!==1?"s":""}${versions[0].note?" ("+esc(versions[0].note)+")":""}</div>
       `+versions.slice(0,30).map(function(v,i){
-      var d = v.exportedAt ? new Date(v.exportedAt).toLocaleString() : (v.label||v.versionId);
+      var d = v.exportedAt ? new Date(v.exportedAt).toLocaleString(uiLocale()) : (v.label||v.versionId);
       var label = v.label || ("Version "+(versions.length-i));
       var vid = esc(v.versionId||"");
       return `<div style="padding:7px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;">
@@ -5404,11 +5506,17 @@ function renderVault(){
 
 // ── RENDER ────────────────────────────────────────────────────────
 function render(){
-  state.currency="QAR";
   applyLayout();
+  try{ applyLangToDoc_(); }catch(e){}
   try{ if (typeof applyLayoutPreview_ === "function" && typeof _settingsDraft !== "undefined" && _settingsDraft) applyLayoutPreview_(); }catch(e){}
   $$("[data-go]").forEach(b=>b.classList.toggle("active",b.dataset.go===state.page));
   $$("#rangeSeg button[data-range]").forEach(b=>b.classList.toggle("active",b.dataset.range===state.range));
+  $$("button[data-cur]").forEach(b=>b.classList.toggle("active",b.dataset.cur===state.currency));
+  $$("button[data-lang]").forEach(b=>b.classList.toggle("active",b.dataset.lang===uiLang));
+  try{ syncLangSegLabels_(); }catch(e){}
+  const bc=document.getElementById("brandCur"); if(bc) bc.textContent = curUnit();
+  const pc=document.getElementById("pageCur"); if(pc) pc.textContent = curUnit();
+
   const tai=document.getElementById("topAlertPct");if(tai&&!document.activeElement?.isSameNode(tai))tai.value=num(state.settings?.priceAlertThreshold,2);
   // Low stock banner
   const lb=$("#lowStockBanner");
@@ -5424,10 +5532,10 @@ function render(){
   else if(p==="calendar")renderCalendar();
   else if(p==="vault")renderVault();
   else renderSettings();
+  try{ applyI18n_(document.body); }catch(e){}
   const sc=$("#pageScroll");if(sc)sc.scrollTop=0;
 
   try{ wireSystemHealth_(); }catch(e){}
-  applyI18nUI();
 }
 
 function navTo(page){state.page=page;if(page==="settings")settingsDraftEnsure_();render();updateSaveSettingsBtn_();}
@@ -5497,9 +5605,8 @@ function gasBackup() {
     renderGasStatus();
     updateSyncBadge("saved");
   }).catch(function(e) {
-    var msg = String((e && e.message) ? e.message : e || "");
-    if (/\b429\b|limit|quota/i.test(msg)) { _enterQuotaLocalMode_(); }
-    else { toast("Backup failed: " + msg, "warn"); updateSyncBadge("error"); }
+    toast("Backup failed: " + e.message, "warn");
+    updateSyncBadge("error");
   }).finally(function() {
     if (btn) { btn.disabled = false; btn.textContent = "☁ Backup Now"; }
   });
@@ -5517,7 +5624,7 @@ function gasRestore() {
     .then(function(backup) {
       if (!backup || backup.ok === false) throw new Error((backup && backup.error) || "Restore rejected");
       if (!backup.state) { toast("No backup found", "warn"); return; }
-      var dt = backup.exportedAt ? new Date(backup.exportedAt).toLocaleString() : "unknown date";
+      var dt = backup.exportedAt ? new Date(backup.exportedAt).toLocaleString(uiLocale()) : "unknown date";
       openModal("Restore from Cloud",
         "<div class='msg warn' style='margin-bottom:8px;'>⚠ This replaces ALL local data with the cloud backup.</div>" +
         "<div style='font-size:11px;color:var(--muted);'>Backup saved: " + dt + "</div>",
@@ -5614,7 +5721,7 @@ function gasBkpRenderList(){
   var vs = _gasBkp.versions || [];
   if (!vs.length) { list.innerHTML = "<div class='muted' style='font-size:11px;padding:10px;'>No backups found yet. Click ☁ Backup Now first.</div>"; return; }
   var html = vs.map(function(v,idx){
-    var dt = v.exportedAt ? new Date(v.exportedAt).toLocaleString() : "unknown";
+    var dt = v.exportedAt ? new Date(v.exportedAt).toLocaleString(uiLocale()) : "unknown";
     var bytes = (v.bytes!=null)?(" · "+fmtBytes(v.bytes)):"";
     var vidShort = String(v.versionId||"").slice(0,8);
     var sel = (_gasBkp.selectedId===v.versionId);
@@ -5642,7 +5749,7 @@ function gasBkpPreview(vid){
       if (!res || res.ok === false) throw new Error((res && res.error) || "Preview rejected");
       var st = res.state || {};
       var stats = gasBkpStats(st);
-      var dt = res.exportedAt ? new Date(res.exportedAt).toLocaleString() : "unknown";
+      var dt = res.exportedAt ? new Date(res.exportedAt).toLocaleString(uiLocale()) : "unknown";
       if (box) {
         box.style.display="block";
         box.innerHTML =
@@ -5663,7 +5770,7 @@ function gasBkpPreview(vid){
 function gasBkpRestore(vid){
   gasBkpSelect(vid);
   var v = (_gasBkp.versions||[]).find(function(x){return x && x.versionId===vid;});
-  var dt = v && v.exportedAt ? new Date(v.exportedAt).toLocaleString() : "unknown";
+  var dt = v && v.exportedAt ? new Date(v.exportedAt).toLocaleString(uiLocale()) : "unknown";
   if (!confirm("Restore this backup?\n\n"+dt+"\n\nThis will overwrite ALL local data.")) return;
   gasPost({ action:"restoreVersion", email:_authUser.email, token:_authToken, versionId:vid })
     .then(function(res){
@@ -5705,7 +5812,7 @@ function renderGasStatus() {
   if (!el) return;
   el.innerHTML = _gasUrl
     ? "<span class='pill good'>✓ Connected</span><span style='font-size:9px;color:var(--muted);margin-left:6px;'>Last: " +
-      (_gasLastSync ? new Date(_gasLastSync).toLocaleString() : "Never") + "</span>"
+      (_gasLastSync ? new Date(_gasLastSync).toLocaleString(uiLocale()) : "Never") + "</span>"
     : "<span class='pill warn'>⚠ No URL set</span>";
 }
 
@@ -5930,7 +6037,6 @@ function showLoginScreen() {
     }
   } catch(e) {}
 
-  applyI18nUI();
 }
 function hideLoginScreen() {
   var s = document.getElementById("loginScreen");
@@ -6081,31 +6187,22 @@ function gasRestoreSilent() {
 
 // ── Cloud sync dedup (ignore UI-only keys to avoid backups on navigation/search/range) ──
 var _cloudLastHash = "";
-var _syncDebounceMs = 15000;
-var _syncMinIntervalMs = 60000;
-var _syncPendingHash = "";
-
 function cloudStateForCloud_(){
   var s = {};
   try { s = JSON.parse(localStorage.getItem(SK) || "{}"); } catch(e) { s = {}; }
   try {
     // remove UI-only noise
     delete s.page; delete s.q; delete s.range; delete s.currency;
-    delete s.ui; delete s.modal; delete s._tmp; delete s._ui;
     if (s.cal && typeof s.cal === "object") { delete s.cal.selectedDay; delete s.cal.view; delete s.cal.month; delete s.cal.year; }
-    if (s.prefs && typeof s.prefs === "object") { delete s.prefs.uiAutoSave; delete s.prefs.uiLogsEnabled; delete s.prefs.uiLogLevel; }
   } catch(e){}
   return s;
 }
 
 function gasAutoSaveEnabled_(){
   try{
-    var prefs = (typeof getUiPrefs === "function") ? getUiPrefs() : { autoSave:true, localOnlyUntil:0 };
-    var lockTs = Number((prefs && prefs.localOnlyUntil) || 0) || 0;
-    if (lockTs > Date.now()) return false;
-    if (lockTs && lockTs <= Date.now() && typeof setUiPrefs === "function") { prefs.localOnlyUntil = 0; setUiPrefs(prefs); }
     var cb = document.getElementById("gasAutoSave");
     if (cb) return !!cb.checked;
+    var prefs = (typeof getUiPrefs === "function") ? getUiPrefs() : { autoSave:true };
     return (prefs && prefs.autoSave === false) ? false : true;
   } catch(e){ return true; }
 }
@@ -6117,23 +6214,6 @@ function cloudHash_(){
   for (var i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h>>>0).toString(16);
 }
-function _nextUtcResetTs_(){
-  var n = new Date();
-  return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()+1, 0, 0, 0, 0);
-}
-function _enterQuotaLocalMode_(){
-  try{
-    var p = (typeof getUiPrefs === "function") ? getUiPrefs() : { autoSave:true, localOnlyUntil:0 };
-    p.autoSave = false;
-    p.localOnlyUntil = _nextUtcResetTs_();
-    if (typeof setUiPrefs === "function") setUiPrefs(p);
-    var cb = document.getElementById("gasAutoSave");
-    if (cb) cb.checked = false;
-    updateSyncBadge("paused");
-    toast("Cloud write limit hit (429). Auto-backup OFF until UTC reset; local mode active.","warn");
-  }catch(e){}
-}
-
 function syncSchedule() {
   gasLoadConfig();
   if (!gasAutoSaveEnabled_()) { updateSyncBadge("paused"); return; }
@@ -6142,26 +6222,15 @@ function syncSchedule() {
   var h = cloudHash_();
   if (h && h === _cloudLastHash) { updateSyncBadge("saved"); return; }
 
-  _syncPendingHash = h || _syncPendingHash;
   if (_syncTimer) clearTimeout(_syncTimer);
   updateSyncBadge("syncing");
-  var sinceLast = Date.now() - (Number(_gasLastSync)||0);
-  var waitMin = Math.max(0, _syncMinIntervalMs - sinceLast);
-  var waitMs = Math.max(_syncDebounceMs, waitMin);
-  _syncTimer = setTimeout(function() { drivePush(_syncPendingHash); }, waitMs);
+  _syncTimer = setTimeout(function() { drivePush(h); }, 1800);
 }
 
 function drivePush(expectedHash) {
   gasLoadConfig();
   if (!gasAutoSaveEnabled_()) { updateSyncBadge("paused"); return Promise.resolve(); }
   if (!_gasUrl || _syncBusy || !_authUser || !_authToken) return Promise.resolve();
-
-  var sinceLast = Date.now() - (Number(_gasLastSync)||0);
-  if (sinceLast < _syncMinIntervalMs) {
-    if (_syncTimer) clearTimeout(_syncTimer);
-    _syncTimer = setTimeout(function(){ drivePush(expectedHash); }, _syncMinIntervalMs - sinceLast);
-    return Promise.resolve();
-  }
 
   // if something changed since schedule, let next schedule handle it
   var nowH = cloudHash_();
@@ -6184,10 +6253,8 @@ function drivePush(expectedHash) {
     gasSaveConfig();
     updateSyncBadge("saved");
     renderGasStatus();
-  }).catch(function(e) {
-    var msg = String((e && e.message) ? e.message : e || "");
-    if (/\b429\b|limit|quota/i.test(msg)) _enterQuotaLocalMode_();
-    else updateSyncBadge("error");
+  }).catch(function() {
+    updateSyncBadge("error");
   }).finally(function() { _syncBusy = false; });
 }
 
@@ -6230,7 +6297,7 @@ function profileTouchLogin(){
 }
 function _fmtTs(ts){
   var n = +ts || 0;
-  return n ? new Date(n).toLocaleString() : "—";
+  return n ? new Date(n).toLocaleString(uiLocale()) : "—";
 }
 function openUserProfileModal(){
   try{ gasLoadConfig && gasLoadConfig(); }catch(e){}
@@ -6310,7 +6377,7 @@ function renderTopbarUser() {
       "<span style='font-size:10px;font-weight:700;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>" +
         esc(_authUser.name || _authUser.email) + "</span>" +
     "</button>" +
-    "<button id='signOutBtn' class='rowBtn' style='font-size:9px;padding:2px 7px;margin-left:8px;'>" + t("signOut") + "</button>";
+    "<button id='signOutBtn' class='rowBtn' style='font-size:9px;padding:2px 7px;margin-left:8px;'>Sign out</button>";
   var pb = document.getElementById("userProfileBtn");
   if (pb) pb.addEventListener("click", function(){ try{ openUserProfileModal(); }catch(e){} });
   var sob = document.getElementById("signOutBtn");
@@ -6353,16 +6420,17 @@ function authBootstrap() {
 function init(){
   load();recompute();applyLayout();initGasBackup();renderTopbarUser();updateSyncBadge("saved");
   $$("[data-go]").forEach(b=>b.addEventListener("click",()=>navTo(b.dataset.go)));
-  $("#langBtn")?.addEventListener("click",()=>{state.lang=state.lang==="ar"?"en":"ar";save();render();});
+  $$("button[data-cur]").forEach(b=>b.addEventListener("click",()=>{state.currency=b.dataset.cur;save();render();}));
+  $$("button[data-lang]").forEach(b=>b.addEventListener("click",()=>setUiLang_(b.dataset.lang)));
   // Topbar alert input
   const syncAlertInput=()=>{const el=document.getElementById("topAlertPct");if(el)el.value=num(state.settings?.priceAlertThreshold,2);};
   syncAlertInput();
   document.addEventListener("input",e=>{if(e.target.id==="topAlertPct"){settingsDraftSet_("settings.priceAlertThreshold", num(e.target.value,2)); updateSaveSettingsBtn_();}});
-  $$("#rangeSeg button[data-range]").forEach(b=>b.addEventListener("click",()=>{state.range=b.dataset.range;render();}));
+  $$("#rangeSeg button[data-range]").forEach(b=>b.addEventListener("click",()=>{state.range=b.dataset.range;save();render();}));
   $("#q")?.addEventListener("input",e=>{state.q=String(e.target.value||"");save();render();});
   if($("#q"))$("#q").value=state.q;
   $("#themeToggleBtn")?.addEventListener("click",()=>{
-    const ltDark=["cipher","lumina","vivid"];
+    const ltDark=["cipher","lumina","vivid","pulse"];
     state.layout=ltDark.includes(state.layout)?"flux":ltDark.includes(state.layout)||state.layout==="vector"?"vivid":"cipher";
     applyLayout();save();render();toast("Layout: "+state.layout,"good");
   });
@@ -6376,7 +6444,7 @@ function init(){
   $("#addBtn")?.addEventListener("click",()=>navTo("orders"));
   $("#modalClose")?.addEventListener("click",closeModal);
   $("#modalBg")?.addEventListener("click",e=>{if(e.target.id==="modalBg")closeModal();});
-  const LAYOUTS_LIST=["flux","cipher","lumina","vector","vivid","aurora","carbon","bloom","prism","noir","canvas"];
+  const LAYOUTS_LIST=["flux","cipher","lumina","vector","vivid","aurora","carbon","bloom","prism","noir","canvas","pulse"];
   const THEMES_LIST=["t1","t2","t3","t4","t5","t6","t7","t8"];
   document.addEventListener("keydown",e=>{
     const tag=(e.target?.tagName||"").toUpperCase(),typing=["INPUT","TEXTAREA","SELECT"].includes(tag);
@@ -6505,15 +6573,14 @@ window.addEventListener("DOMContentLoaded", function(){
   // ---------- UI prefs ----------
   var _UI_PREF_KEY = "taheito_ui_prefs_v1";
   function getUiPrefs(){
-    var d = { autoSave: true, logsEnabled: true, logLevel: "info", localOnlyUntil: 0 };
+    var d = { autoSave: true, logsEnabled: true, logLevel: "info" };
     try {
       var raw = localStorage.getItem(_UI_PREF_KEY) || "";
       var o = _safeParse(raw, null) || {};
       return {
         autoSave: (o.autoSave === false) ? false : true,
         logsEnabled: (o.logsEnabled === false) ? false : true,
-        logLevel: (o.logLevel === "error" || o.logLevel === "warn" || o.logLevel === "info") ? o.logLevel : "info",
-        localOnlyUntil: Number(o.localOnlyUntil || 0) || 0
+        logLevel: (o.logLevel === "error" || o.logLevel === "warn" || o.logLevel === "info") ? o.logLevel : "info"
       };
     } catch(e) { return d; }
   }
@@ -6526,7 +6593,6 @@ window.addEventListener("DOMContentLoaded", function(){
       state.prefs.uiAutoSave = (pp.autoSave === false) ? false : true;
       state.prefs.uiLogsEnabled = (pp.logsEnabled === false) ? false : true;
       state.prefs.uiLogLevel = (pp.logLevel === "error" || pp.logLevel === "warn" || pp.logLevel === "info") ? pp.logLevel : "info";
-      state.prefs.uiLocalOnlyUntil = Number(pp.localOnlyUntil||0) || 0;
       if (typeof save === "function") save();
     }catch(e){}
   }
@@ -6751,7 +6817,7 @@ window.addEventListener("DOMContentLoaded", function(){
 
         function row(v){
           var vid = v.versionId || "";
-          var dt = v.exportedAt ? new Date(v.exportedAt).toLocaleString() : "—";
+          var dt = v.exportedAt ? new Date(v.exportedAt).toLocaleString(uiLocale()) : "—";
           var bytes = _fmtBytes(v.bytes || 0);
           var canRestore = !!vid;
           return "<tr>" +
@@ -6765,7 +6831,7 @@ window.addEventListener("DOMContentLoaded", function(){
 
         var table = "<div style='display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;'>" +
           "<span class='pill good'>Connected</span>" +
-          (latestAt ? ("<span class='pill'>Latest: " + esc(new Date(latestAt).toLocaleString()) + "</span>") : "<span class='pill warn'>No backup yet</span>") +
+          (latestAt ? ("<span class='pill'>Latest: " + esc(new Date(latestAt).toLocaleString(uiLocale())) + "</span>") : "<span class='pill warn'>No backup yet</span>") +
           "<span class='pill'>Versions: " + esc(String(versions.length)) + "</span>" +
           "<span style='flex:1'></span>" +
           "<button class='btn secondary' id='bk_refresh'>Refresh</button>" +
@@ -6804,7 +6870,7 @@ window.addEventListener("DOMContentLoaded", function(){
             "<div class='pill'>Customers " + esc(String(s.customers)) + "</div>" +
             "<div class='pill'>Suppliers " + esc(String(s.suppliers)) + "</div>" +
           "</div>" +
-          "<div class='muted' style='font-size:10px;margin-top:8px;'>Exported: " + esc(exportedAt ? new Date(exportedAt).toLocaleString() : "—") + (versionId ? (" · VersionId: " + esc(versionId)) : "") + "</div>";
+          "<div class='muted' style='font-size:10px;margin-top:8px;'>Exported: " + esc(exportedAt ? new Date(exportedAt).toLocaleString(uiLocale()) : "—") + (versionId ? (" · VersionId: " + esc(versionId)) : "") + "</div>";
           var el = document.getElementById("bk_preview");
           if (el) el.innerHTML = html;
         }
@@ -6828,7 +6894,7 @@ window.addEventListener("DOMContentLoaded", function(){
         async function doRestoreState(stateObj, exportedAt){
           openModal("Confirm Restore",
             "<div class='msg warn' style='margin-bottom:8px;'>⚠ This replaces ALL local data with the selected cloud backup.</div>" +
-            "<div class='muted' style='font-size:11px;'>Backup saved: " + esc(exportedAt ? new Date(exportedAt).toLocaleString() : "—") + "</div>",
+            "<div class='muted' style='font-size:11px;'>Backup saved: " + esc(exportedAt ? new Date(exportedAt).toLocaleString(uiLocale()) : "—") + "</div>",
             "<button class='btn secondary' id='m_c'>Cancel</button><button class='btn' style='background:var(--bad);' id='m_r'>Restore</button>"
           );
           setTimeout(function(){
@@ -8037,7 +8103,6 @@ function jsonOut_(obj) {
     if (window.state && state.page === "crm") setTimeout(function(){ renderCRM_v3(); }, 0);
   } catch(e) {}
 
-  applyI18nUI();
 })();
 
 })();
@@ -8298,7 +8363,6 @@ function runSettingsTest() {
     }
   } catch(e) {}
 
-  applyI18nUI();
 })();
 
 function runSettingsTest() {
