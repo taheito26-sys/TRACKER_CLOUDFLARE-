@@ -1882,8 +1882,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
       <button class="navBtn" data-go="stock" data-tip="Manage USDT batches&#10;FIFO layers · suppliers auto-tracked"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.5"/></svg><div><div>Stock</div><small>Batches</small></div></button>
 <button class="navBtn" data-go="calendar" data-tip="Trade calendar&#10;Visual daily activity · click a day for detail"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="1.5"/></svg><div><div>Calendar</div><small>Trade view</small></div></button>
       <button class="navBtn" data-go="crm" data-tip="Customer CRM&#10;Trust tiers A/B/C/D · limits · history"><svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div><div>CRM</div><small>Customers</small></div></button>
-      <button class="navBtn" data-go="merchants" data-tip="Merchant partnerships&#10;Lending · arbitrage · profit sharing · capital"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2Z" stroke="currentColor" stroke-width="1.5"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div><div>Merchants</div><small>Partnerships</small></div></button>
-      <button class="navBtn" data-go="shared_merchants" data-tip="Shared partnerships&#10;Real-time collaboration"><svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M1 20c0-3.9 3.6-7 8-7s7 3.1 7 7M16 11h6M19 8v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div><div>Shared</div><small>Collab</small></div></button>
+      <button class="navBtn" data-go="merchants" data-tip="Merchants &amp; Collaboration&#10;Lending · Arbitrage · Partnerships · Collaboration"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2Z" stroke="currentColor" stroke-width="1.5"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div><div>Merchants</div><small>Deals · Collab</small></div></button>
       <button class="navBtn" data-go="p2p" data-tip="Live P2P rates&#10;Binance QAR buy &amp; sell offers"><svg viewBox="0 0 24 24" fill="none"><path d="M8 7h8M6 11h12M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0" stroke="currentColor" stroke-width="1.5"/></svg><div><div>P2P</div><small>Live rates</small></div></button>
       
             
@@ -2219,7 +2218,7 @@ const fmtDate=ts=>new Date(ts).toLocaleDateString();
 const isToday=ts=>ts>=startOfDay(Date.now());
 
 // ── STATE ──────────────────────────────────────────────────────
-const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],shared_merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
+const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
 let state=dflt(), derived={batches:[],tradeCalc:new Map(),health:{ok:true,issues:[]}};
 let charts={}, p2p={
   ts:0, buyAvg:null, sellAvg:null, buyOffers:[], sellOffers:[],
@@ -2248,7 +2247,7 @@ function sanitize(s){
   const THEMES=["t1","t2","t3","t4","t5"];
   out.layout=LAYOUTS.includes(out.layout)?out.layout:"flux";
   out.theme=["t1","t2","t3","t4","t5"].includes(out.theme)?out.theme:"t1";
-  out.page=["dashboard","orders","stock","crm","merchants","shared_merchants","p2p","analytics","calendar","vault","settings"].includes(out.page)?out.page:"dashboard";
+  out.page=["dashboard","orders","stock","crm","merchants","p2p","analytics","calendar","vault","settings"].includes(out.page)?out.page:(out.page==="shared_merchants"?"merchants":"dashboard");
   out.range=["today","7d","30d","all"].includes(out.range)?out.range:"7d";
   out.currency=["QAR","USDT"].includes(out.currency)?out.currency:"QAR";
   out.q=String(out.q||"");
@@ -2279,7 +2278,8 @@ function sanitize(s){
     capital_placement:(m.capital_placement&&typeof m.capital_placement==="object")?{active:!!m.capital_placement.active,usdt_capital:num(m.capital_placement.usdt_capital,0),date_placed:num(m.capital_placement.date_placed,Date.now()),monthly_profit_rate:num(m.capital_placement.monthly_profit_rate,0),profit_type:m.capital_placement.profit_type||"percentage",fixed_amount_if_applicable:num(m.capital_placement.fixed_amount_if_applicable,0),payment_schedule:m.capital_placement.payment_schedule||"monthly_28th",monthly_profits:Array.isArray(m.capital_placement.monthly_profits)?m.capital_placement.monthly_profits.map(p=>({month:String(p.month||""),profit_qar:num(p.profit_qar,0),profit_usdt:num(p.profit_usdt,0),conversion_rate:num(p.conversion_rate,3.7),paid_date:num(p.paid_date,Date.now())})):[],cumulative_profit_usdt:num(m.capital_placement.cumulative_profit_usdt,0),suspended:!!m.capital_placement.suspended}:{active:false},
     created_date:num(m.created_date,Date.now()),last_activity_date:num(m.last_activity_date,Date.now()),risk_level:m.risk_level||"low"
   })).filter(m=>m.name.trim().length>0):[];
-  out.shared_merchants=Array.isArray(out.shared_merchants)?out.shared_merchants:[];
+  out.merchants=out.merchants.map(m=>({...m,collaboration:m.collaboration||{enabled:false,shared_token:"",role:"owner",shared_fields:["lending","arbitrage","partnership","capital"],activity_log:[],messages:[],pending_approvals:[]}}));
+  if(out.shared_merchants){delete out.shared_merchants;}
   return out;
 }
 function load(){
@@ -4890,75 +4890,409 @@ function requireSession_(db, email, token) {
 
 })();
 
-// ─── MERCHANTS ────────────────────────────────────────────────────────────────
-function renderMerchants(){
-  setHeader("Merchants","Business partnerships · Lending · Arbitrage · Profit sharing · Capital placement");
-  state.merchants=Array.isArray(state.merchants)?state.merchants:[];
-  const q=state.q.trim().toLowerCase();
-  const merchants=!q?state.merchants:state.merchants.filter(m=>[m.name,m.phone||"",m.email||""].join(" ").toLowerCase().includes(q));
-  
-  const kpis=(()=>{
-    let totalUsdt=0,totalProfit=0,pendingReturn=0,lendingActive=0,arbitrageActive=0,partnershipActive=0,capitalActive=0;
-    state.merchants.forEach(m=>{
-      const lending=m.lending||[];const arb=m.arbitrage||[];const part=m.partnership||{};const cap=m.capital_placement||{};
-      lending.forEach(l=>{if(l.status==="active")pendingReturn+=l.amount_usdt;});
-      arb.forEach(a=>{if(a.status==="active")totalUsdt+=a.usdt_sent;});
-      if(part.active)totalUsdt+=part.usdt_sent;if(cap.active)totalUsdt+=cap.usdt_capital;
-      lendingActive+=lending.filter(l=>l.status==="active").length;arbitrageActive+=arb.filter(a=>a.status==="active").length;
-      partnershipActive+=(part.active?1:0);capitalActive+=(cap.active?1:0);
-      totalProfit+=(cap.monthly_profits||[]).reduce((s,p)=>s+num(p.profit_usdt,0),0);
-      totalProfit+=(part.settlements||[]).reduce((s,p)=>s+num(p.your_share_usdt,0),0);
-    });
-    return{totalUsdt,totalProfit,pendingReturn,lendingActive,arbitrageActive,partnershipActive,capitalActive};
-  })();
-  
-  const html=`
-    <div class="kpis" style="margin-bottom:12px;">
-      <div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--brand);border-color:color-mix(in srgb,var(--brand) 30%,transparent);background:color-mix(in srgb,var(--brand) 10%,transparent)">Active</span></div><div class="kpi-lbl">TOTAL ACTIVE USDT</div><div class="kpi-val">${fmtU(kpis.totalUsdt,0)}</div><div class="kpi-sub">${state.merchants.length} merchant${state.merchants.length!==1?"s":""}</div></div>
-      <div class="kpi-card"><div class="kpi-head"><span class="kpi-badge good" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">YTD</span></div><div class="kpi-lbl">PROFIT RECEIVED</div><div class="kpi-val good">${fmtQ(kpis.totalProfit)}</div><div class="kpi-sub">From partnerships & capital</div></div>
-      <div class="kpi-card"><div class="kpi-head"><span class="kpi-badge warn" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Pending</span></div><div class="kpi-lbl">LENDING RETURNS DUE</div><div class="kpi-val warn">${fmtU(kpis.pendingReturn,0)}</div><div class="kpi-sub">${kpis.lendingActive} active lending${kpis.lendingActive!==1?"s":""}</div></div>
-      <div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--muted);border-color:var(--line)">${kpis.lendingActive+kpis.arbitrageActive+kpis.partnershipActive+kpis.capitalActive}</span></div><div class="kpi-lbl">ACTIVE DEALS</div><div class="kpi-val">${kpis.lendingActive+kpis.arbitrageActive}${kpis.partnershipActive+kpis.capitalActive>0?" + "+(kpis.partnershipActive+kpis.capitalActive):""}</div><div class="kpi-sub">Lending+Arb + Partnership+Capital</div></div>
-    </div>
-    
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-      <div class="panel"><div class="panel-head"><h2>Merchants Directory</h2><button class="rowBtn" id="addMerchantBtn" style="font-size:9px;padding:3px 8px;">+ Add Merchant</button></div><div class="panel-body">
-        ${merchants.length===0?`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No merchants yet</div><div class="empty-s">Add your first merchant partnership →</div></div>`:`<div class="tableWrap"><table><thead><tr><th>Name</th><th>Active USDT</th><th>YTD Profit</th><th>Deals</th><th>Status</th><th></th></tr></thead><tbody>
-        ${merchants.map(m=>{const allLending=(m.lending||[]).reduce((s,l)=>s+(l.status==="active"?l.amount_usdt:0),0);const allArb=(m.arbitrage||[]).reduce((s,a)=>s+(a.status==="active"?a.usdt_sent:0),0);const part=m.partnership||{};const cap=m.capital_placement||{};const activeUsdt=allLending+allArb+(part.active?part.usdt_sent:0)+(cap.active?cap.usdt_capital:0);const profit=(cap.monthly_profits||[]).reduce((s,p)=>s+num(p.profit_usdt,0),0)+(part.settlements||[]).reduce((s,p)=>s+num(p.your_share_usdt,0),0);const deals=(m.lending||[]).filter(l=>l.status==="active").length+(m.arbitrage||[]).filter(a=>a.status==="active").length+(part.active?1:0)+(cap.active?1:0);return`<tr style="cursor:pointer;" onclick="window._selectedMerchantId='${esc(m.id)}';render();"><td><strong>${esc(m.name)}</strong></td><td class="mono r">${fmtU(activeUsdt,0)}</td><td class="mono r good">${fmtQ(profit)}</td><td class="r">${deals}</td><td><span class="pill" style="font-size:8px;">${m.status||"active"}</span></td><td style="padding-right:0;"><button class="rowBtn" style="font-size:8px;padding:2px 4px;" onclick="event.stopPropagation();deleteM('${esc(m.id)}');">×</button></td></tr>`;}).join("")}
-        </tbody></table></div>`}
-      </div></div>
-      
-      ${window._selectedMerchantId?(()=>{const m=state.merchants.find(x=>x.id===window._selectedMerchantId);if(!m)return"";const part=m.partnership||{};const cap=m.capital_placement||{};return`<div class="panel"><div class="panel-head"><h2>${esc(m.name)}</h2><button class="rowBtn" id="editMerchantBtn" style="font-size:9px;padding:3px 8px;">Edit</button></div><div class="panel-body" style="font-size:10px;display:flex;flex-direction:column;gap:8px;"><div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">Phone</div><div style="font-weight:600;margin-top:2px;">${esc(m.phone||"—")}</div></div><div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">LENDING TRANSACTIONS</div><div style="margin-top:6px;display:flex;justify-content:space-between;"><span>Active: ${(m.lending||[]).filter(l=>l.status==="active").length}</span><span>Pending: ${fmtU((m.lending||[]).filter(l=>l.status==="active").reduce((s,l)=>s+l.amount_usdt,0),0)}</span></div><button class="rowBtn" id="addLendingBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Add Lending</button></div><div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">ARBITRAGE DEALS</div><div style="margin-top:6px;display:flex;justify-content:space-between;"><span>Active: ${(m.arbitrage||[]).filter(a=>a.status==="active").length}</span><span>USDT: ${fmtU((m.arbitrage||[]).filter(a=>a.status==="active").reduce((s,a)=>s+a.usdt_sent,0),0)}</span></div><button class="rowBtn" id="addArbitrageBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Add Arbitrage</button></div><div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">PARTNERSHIP${part.active?" (ACTIVE)":""}</div>${part.active?`<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:9px;"><span>Capital: ${fmtU(part.usdt_sent,0)}</span><span>Your %: ${part.profit_ratio?.you_percentage||0}%</span><span>YTD: ${fmtQ((part.settlements||[]).reduce((s,p)=>s+num(p.your_share_usdt,0),0))}</span></div><button class="rowBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;" id="settlementBtn">📊 New Settlement</button>`:`<button class="rowBtn" id="addPartnershipBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Add Partnership</button>`}</div><div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">CAPITAL PLACEMENT${cap.active?" (ACTIVE)":""}</div>${cap.active?`<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:9px;"><span>Capital: ${fmtU(cap.usdt_capital,0)}</span><span>Rate: ${(cap.monthly_profit_rate*100).toFixed(0)}%/mo</span><span>YTD: ${fmtQ((cap.monthly_profits||[]).reduce((s,p)=>s+num(p.profit_usdt,0),0))}</span></div><button class="rowBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;" id="recordProfitBtn">💰 Record Monthly Profit</button>`:`<button class="rowBtn" id="addCapitalBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Place Capital</button>`}</div></div></div>`;})():""}
-    </div>
-  `;
-  
-  $("#pageBody").innerHTML=html;
-  $("#addMerchantBtn")?.addEventListener("click",()=>addMerchantModal());
-  $("#editMerchantBtn")?.addEventListener("click",()=>editMerchantModal(window._selectedMerchantId));
-  $("#addLendingBtn")?.addEventListener("click",()=>addLendingModal(window._selectedMerchantId));
-  $("#addArbitrageBtn")?.addEventListener("click",()=>addArbitrageModal(window._selectedMerchantId));
-  $("#addPartnershipBtn")?.addEventListener("click",()=>addPartnershipModal(window._selectedMerchantId));
-  $("#addCapitalBtn")?.addEventListener("click",()=>addCapitalModal(window._selectedMerchantId));
-  $("#settlementBtn")?.addEventListener("click",()=>addSettlementModal(window._selectedMerchantId));
-  $("#recordProfitBtn")?.addEventListener("click",()=>recordProfitModal(window._selectedMerchantId));
+// ─── MERCHANTS & COLLABORATION (Enterprise Unified System) ───────────────────
+// Sub-tab state
+window._mchTab = window._mchTab || "overview";
+window._selectedMerchantId = window._selectedMerchantId || null;
+window._collabMsgDraft = "";
+
+// ── Helper: compute all merchant KPIs ──
+function _mchKpis(){
+  let totalUsdt=0,totalProfit=0,pendingReturn=0,lendingActive=0,arbitrageActive=0,partnershipActive=0,capitalActive=0,collabEnabled=0,pendingApprovals=0,totalMessages=0;
+  (state.merchants||[]).forEach(m=>{
+    const lending=m.lending||[];const arb=m.arbitrage||[];const part=m.partnership||{};const cap=m.capital_placement||{};const col=m.collaboration||{};
+    lending.forEach(l=>{if(l.status==="active"){pendingReturn+=l.amount_usdt;lendingActive++;}});
+    arb.forEach(a=>{if(a.status==="active"){totalUsdt+=a.usdt_sent;arbitrageActive++;}});
+    if(part.active)totalUsdt+=part.usdt_sent;if(cap.active)totalUsdt+=cap.usdt_capital;
+    partnershipActive+=(part.active?1:0);capitalActive+=(cap.active?1:0);
+    totalProfit+=(cap.monthly_profits||[]).reduce((s,p)=>s+num(p.profit_usdt,0),0);
+    totalProfit+=(part.settlements||[]).reduce((s,p)=>s+num(p.your_share_usdt,0),0);
+    if(col.enabled)collabEnabled++;
+    pendingApprovals+=(col.pending_approvals||[]).filter(a=>a.status==="pending").length;
+    totalMessages+=(col.messages||[]).length;
+  });
+  return{totalUsdt,totalProfit,pendingReturn,lendingActive,arbitrageActive,partnershipActive,capitalActive,collabEnabled,pendingApprovals,totalMessages,totalDeals:lendingActive+arbitrageActive+partnershipActive+capitalActive};
 }
 
-function addMerchantModal(){openModal("Add Merchant",`<div class="form-field"><label class="form-label">Merchant Name *</label><input id="mn" class="inp-field" placeholder="e.g. Ahmed Trading"/></div><div class="form-field"><label class="form-label">Phone</label><input id="mp" class="inp-field" placeholder="+974 5XXXXX"/></div><div class="form-field"><label class="form-label">Email</label><input id="me" class="inp-field" placeholder="contact@merchant.com"/></div><div class="msg" id="mm"></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Add Merchant</button>`);setTimeout(()=>{$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",()=>{const name=($("#mn")?.value||"").trim();if(!name){const msg=$("#mm");if(msg){msg.textContent="Name is required";msg.className="msg err";}return;}state.merchants=state.merchants||[];state.merchants.push({id:uid(),name,phone:($("#mp")?.value||"").trim()||"",email:($("#me")?.value||"").trim()||"",status:"active",notes:"",lending:[],arbitrage:[],partnership:{active:false},capital_placement:{active:false},created_date:Date.now(),last_activity_date:Date.now(),risk_level:"low"});saveRecompute("Merchant added","good");window._selectedMerchantId=state.merchants[state.merchants.length-1].id;closeModal();});},0);}
+function _collabLog(m,action,detail,dealType,dealId){
+  if(!m.collaboration)m.collaboration={enabled:false,shared_token:"",role:"owner",shared_fields:["lending","arbitrage","partnership","capital"],activity_log:[],messages:[],pending_approvals:[]};
+  m.collaboration.activity_log=m.collaboration.activity_log||[];
+  m.collaboration.activity_log.push({id:uid(),ts:Date.now(),actor:"you",action:action,detail:detail,deal_type:dealType||"general",deal_id:dealId||null});
+  if(m.collaboration.activity_log.length>200)m.collaboration.activity_log=m.collaboration.activity_log.slice(-200);
+}
 
-function editMerchantModal(id){const m=state.merchants.find(x=>x.id===id);if(!m)return;openModal("Edit Merchant",`<div class="form-field"><label class="form-label">Name</label><input id="mn" class="inp-field" value="${esc(m.name)}"/></div><div class="form-field"><label class="form-label">Phone</label><input id="mp" class="inp-field" value="${esc(m.phone||"")}"/></div><div class="form-field"><label class="form-label">Email</label><input id="me" class="inp-field" value="${esc(m.email||"")}"/></div><div class="form-field"><label class="form-label">Notes</label><textarea id="mn2" class="inp-field" style="min-height:60px;">${esc(m.notes||"")}</textarea></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_s">Save</button>`);setTimeout(()=>{$("#m_c")?.addEventListener("click",closeModal);$("#m_s")?.addEventListener("click",()=>{m.name=($("#mn")?.value||"").trim()||m.name;m.phone=($("#mp")?.value||"").trim();m.email=($("#me")?.value||"").trim();m.notes=($("#mn2")?.value||"").trim();m.last_activity_date=Date.now();saveRecompute("Merchant updated","good");closeModal();});},0);}
+function _genToken(){var a=[];for(var i=0;i<16;i++)a.push(Math.floor(Math.random()*256));return a.map(function(b){return("0"+b.toString(16)).slice(-2);}).join("");}
 
-function addLendingModal(id){const m=state.merchants.find(x=>x.id===id);if(!m)return;openModal("Add Lending",`<div class="form-field"><label class="form-label">USDT Amount *</label><input id="la" class="inp-field" inputmode="decimal" placeholder="50000"/></div><div class="form-field"><label class="form-label">Date Sent *</label><input id="ls" type="date" class="inp-field" value="${new Date().toISOString().slice(0,10)}"/></div><div class="form-field"><label class="form-label">Expected Return Date</label><input id="lr" type="date" class="inp-field"/></div><div class="form-field"><label class="form-label">Fee (QAR, optional)</label><input id="lf" class="inp-field" inputmode="decimal" placeholder="0"/></div><div class="msg" id="lm"></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Add Lending</button>`);setTimeout(()=>{$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",()=>{const amt=num($("#la")?.value,0);if(!(amt>0)){const msg=$("#lm");if(msg){msg.textContent="Amount required";msg.className="msg err";}return;}const sent=new Date($("#ls")?.value).getTime();m.lending=m.lending||[];m.lending.push({id:uid(),amount_usdt:amt,sent_date:sent,expected_return_date:($("#lr")?.value?new Date($("#lr")?.value).getTime():sent+86400000*5),actual_return_date:null,fee_usdt:0,fee_qar:num($("#lf")?.value,0),status:"active",notes:""});m.last_activity_date=Date.now();saveRecompute("Lending added","good");closeModal();});},0);}
+function _relTime(ts){var d=Date.now()-ts;if(d<60000)return"just now";if(d<3600000)return Math.floor(d/60000)+"m ago";if(d<86400000)return Math.floor(d/3600000)+"h ago";return Math.floor(d/86400000)+"d ago";}
 
-function addArbitrageModal(id){const m=state.merchants.find(x=>x.id===id);if(!m)return;openModal("Add Arbitrage",`<div class="form-field"><label class="form-label">USDT Amount *</label><input id="aa" class="inp-field" inputmode="decimal" placeholder="100000"/></div><div class="form-field"><label class="form-label">Price (QAR/USDT) *</label><input id="ap" class="inp-field" inputmode="decimal" placeholder="3.65"/></div><div class="form-field"><label class="form-label">Date Sent *</label><input id="as" type="date" class="inp-field" value="${new Date().toISOString().slice(0,10)}"/></div><div class="form-field"><label class="form-label">Expected Return Date</label><input id="ar" type="date" class="inp-field"/></div><div class="msg" id="am"></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Add Arbitrage</button>`);setTimeout(()=>{$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",()=>{const amt=num($("#aa")?.value,0),px=num($("#ap")?.value,0);if(!(amt>0&&px>0)){const msg=$("#am");if(msg){msg.textContent="Amount & price required";msg.className="msg err";}return;}const sent=new Date($("#as")?.value).getTime();m.arbitrage=m.arbitrage||[];m.arbitrage.push({id:uid(),usdt_sent:amt,price_qar_per_usdt:px,sent_date:sent,expected_return_date:($("#ar")?.value?new Date($("#ar")?.value).getTime():sent+86400000*10),actual_return_date:null,market_reference_price:0,status:"active",notes:""});m.last_activity_date=Date.now();saveRecompute("Arbitrage added","good");closeModal();});},0);}
+function _riskBadge(level){var c={low:"good",medium:"warn",high:"bad",critical:"bad"};return'<span class="pill" style="font-size:8px;color:var(--'+(c[level]||"muted")+');border-color:color-mix(in srgb,var(--'+(c[level]||"muted")+') 30%,transparent);background:color-mix(in srgb,var(--'+(c[level]||"muted")+') 8%,transparent);">'+esc((level||"low").toUpperCase())+'</span>';}
 
-function addPartnershipModal(id){const m=state.merchants.find(x=>x.id===id);if(!m)return;openModal("Add Partnership",`<div class="form-field"><label class="form-label">USDT Capital *</label><input id="pc" class="inp-field" inputmode="decimal" placeholder="200000"/></div><div class="form-field"><label class="form-label">Your Profit Share % *</label><input id="py" class="inp-field" inputmode="decimal" placeholder="35" value="35"/></div><div class="form-field"><label class="form-label">Settlement Frequency</label><select id="pf" class="inp-field"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="per_transaction">Per Transaction</option></select></div><div class="msg" id="pm"></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Add Partnership</button>`);setTimeout(()=>{$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",()=>{const amt=num($("#pc")?.value,0),your=num($("#py")?.value,0);if(!(amt>0&&your>0&&your<100)){const msg=$("#pm");if(msg){msg.textContent="Valid amounts required";msg.className="msg err";}return;}m.partnership={active:true,usdt_sent:amt,sent_date:Date.now(),profit_ratio:{merchant_percentage:100-your,you_percentage:your},settlements:[]};m.last_activity_date=Date.now();saveRecompute("Partnership added","good");closeModal();});},0);}
+function renderMerchants(){
+  setHeader("Merchants & Collaboration","Partnerships \u00b7 Lending \u00b7 Arbitrage \u00b7 Capital \u00b7 Collaboration");
+  state.merchants=Array.isArray(state.merchants)?state.merchants:[];
+  var tab=window._mchTab||"overview";
+  var kpis=_mchKpis();
 
-function addCapitalModal(id){const m=state.merchants.find(x=>x.id===id);if(!m)return;openModal("Place Capital",`<div class="form-field"><label class="form-label">USDT Capital *</label><input id="cc" class="inp-field" inputmode="decimal" placeholder="500000"/></div><div class="form-field"><label class="form-label">Monthly Profit Rate % *</label><input id="cr" class="inp-field" inputmode="decimal" placeholder="10" value="10"/></div><div class="form-field"><label class="form-label">Payment Schedule</label><select id="cs" class="inp-field"><option value="monthly_28th">Monthly on 28th</option><option value="monthly_last">Monthly on last day</option><option value="weekly">Weekly</option></select></div><div class="msg" id="cm"></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Place Capital</button>`);setTimeout(()=>{$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",()=>{const amt=num($("#cc")?.value,0),rate=num($("#cr")?.value,0);if(!(amt>0&&rate>0)){const msg=$("#cm");if(msg){msg.textContent="Valid amounts required";msg.className="msg err";}return;}m.capital_placement={active:true,usdt_capital:amt,date_placed:Date.now(),monthly_profit_rate:rate/100,profit_type:"percentage",fixed_amount_if_applicable:0,payment_schedule:$("#cs")?.value||"monthly_28th",monthly_profits:[],cumulative_profit_usdt:0,suspended:false};m.last_activity_date=Date.now();saveRecompute("Capital placed","good");closeModal();});},0);}
+  var tabs=[
+    {id:"overview",icon:"\ud83d\udcca",label:"Overview"},
+    {id:"directory",icon:"\ud83d\udc65",label:"Directory"},
+    {id:"collaboration",icon:"\ud83e\udd1d",label:"Collaboration",badge:kpis.pendingApprovals},
+    {id:"dealboard",icon:"\ud83d\udccb",label:"Deal Board",badge:kpis.totalDeals},
+    {id:"analytics",icon:"\ud83d\udcc8",label:"Analytics"}
+  ];
+  var tabBar='<div style="display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;">'+tabs.map(function(t){return'<button class="rowBtn mch-tab-btn" data-mchtab="'+t.id+'" style="font-size:calc(10px * var(--ui-scale,1));padding:5px 10px;display:flex;align-items:center;gap:4px;'+(tab===t.id?"background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;":"")+'">'+t.icon+" "+t.label+(t.badge?' <span style="background:var(--bad);color:#fff;font-size:8px;padding:1px 5px;border-radius:999px;margin-left:2px;">'+t.badge+"</span>":"")+"</button>";}).join("")+"</div>";
 
-function addSettlementModal(id){const m=state.merchants.find(x=>x.id===id);if(!m)return;const part=m.partnership||{};if(!part.active)return;openModal("Add Settlement",`<div class="form-field"><label class="form-label">Settlement Date *</label><input id="sd" type="date" class="inp-field" value="${new Date().toISOString().slice(0,10)}"/></div><div class="form-field"><label class="form-label">Total Revenue (QAR) *</label><input id="sr" class="inp-field" inputmode="decimal" placeholder="750000"/></div><div class="form-field"><label class="form-label">Total Cost (QAR) *</label><input id="sc" class="inp-field" inputmode="decimal" placeholder="680000"/></div><div class="form-field"><label class="form-label">Transactions Count</label><input id="st" class="inp-field" inputmode="decimal" placeholder="3" value="0"/></div><div class="msg" id="sm"></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Record Settlement</button>`);setTimeout(()=>{$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",()=>{const rev=num($("#sr")?.value,0),cost=num($("#sc")?.value,0);if(!(rev>0&&cost>=0&&cost<=rev)){const msg=$("#sm");if(msg){msg.textContent="Valid amounts required";msg.className="msg err";}return;}const netQar=rev-cost;const yourShare=netQar*(part.profit_ratio?.you_percentage||0)/100;const wacop=getWACOP()||3.7;const yourShareUsdt=yourShare/wacop;part.settlements=part.settlements||[];part.settlements.push({id:uid(),settlement_date:new Date($("#sd")?.value).getTime(),revenue_qar:rev,cost_qar:cost,net_profit_qar:netQar,your_share_qar:yourShare,your_share_usdt:yourShareUsdt,conversion_rate_qar_per_usdt:wacop,transactions_count:num($("#st")?.value,0)});m.last_activity_date=Date.now();saveRecompute("Settlement recorded","good");closeModal();});},0);}
+  var kpiRow='<div class="kpis" style="margin-bottom:12px;">'+
+    '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--brand);border-color:color-mix(in srgb,var(--brand) 30%,transparent);background:color-mix(in srgb,var(--brand) 10%,transparent)">Active</span></div><div class="kpi-lbl">TOTAL ACTIVE USDT</div><div class="kpi-val">'+fmtU(kpis.totalUsdt,0)+'</div><div class="kpi-sub">'+state.merchants.length+" merchant"+(state.merchants.length!==1?"s":"")+"</div></div>"+
+    '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge good" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">YTD</span></div><div class="kpi-lbl">PROFIT RECEIVED</div><div class="kpi-val good">'+fmtQ(kpis.totalProfit)+'</div><div class="kpi-sub">Partnerships &amp; capital</div></div>'+
+    '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge warn" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Pending</span></div><div class="kpi-lbl">LENDING RETURNS DUE</div><div class="kpi-val warn">'+fmtU(kpis.pendingReturn,0)+'</div><div class="kpi-sub">'+kpis.lendingActive+" active lending"+(kpis.lendingActive!==1?"s":"")+"</div></div>"+
+    '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--t5,#0ea5e9);border-color:color-mix(in srgb,var(--t5,#0ea5e9) 30%,transparent);background:color-mix(in srgb,var(--t5,#0ea5e9) 10%,transparent)">'+kpis.collabEnabled+'</span></div><div class="kpi-lbl">COLLAB ACTIVE</div><div class="kpi-val">'+(kpis.pendingApprovals>0?'<span style="color:var(--bad);">'+kpis.pendingApprovals+" pending</span>":"\u2713 clear")+'</div><div class="kpi-sub">'+kpis.totalMessages+" messages \u00b7 "+kpis.collabEnabled+" shared</div></div>"+
+  "</div>";
 
-function recordProfitModal(id){const m=state.merchants.find(x=>x.id===id);if(!m)return;const cap=m.capital_placement||{};if(!cap.active)return;openModal("Record Monthly Profit",`<div class="form-field"><label class="form-label">Month (YYYY-MM) *</label><input id="pm" type="month" class="inp-field" value="${new Date().toISOString().slice(0,7)}"/></div><div class="form-field"><label class="form-label">Profit (QAR) *</label><input id="pq" class="inp-field" inputmode="decimal" placeholder="50000"/></div><div class="form-field"><label class="form-label">Payment Date *</label><input id="pp" type="date" class="inp-field" value="${new Date().toISOString().slice(0,10)}"/></div><div class="msg" id="pm2"></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Record Payment</button>`);setTimeout(()=>{$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",()=>{const profitQar=num($("#pq")?.value,0);if(!(profitQar>0)){const msg=$("#pm2");if(msg){msg.textContent="Profit amount required";msg.className="msg err";}return;}const wacop=getWACOP()||3.7;const profitUsdt=profitQar/wacop;cap.monthly_profits=cap.monthly_profits||[];cap.monthly_profits.push({month:$("#pm")?.value||"",profit_qar:profitQar,profit_usdt:profitUsdt,conversion_rate:wacop,paid_date:new Date($("#pp")?.value).getTime()});cap.cumulative_profit_usdt=(cap.cumulative_profit_usdt||0)+profitUsdt;m.last_activity_date=Date.now();saveRecompute("Profit recorded","good");closeModal();});},0);}
+  var content="";
+  if(tab==="overview") content=_mchOverview(kpis);
+  else if(tab==="directory") content=_mchDirectory();
+  else if(tab==="collaboration") content=_mchCollaboration(kpis);
+  else if(tab==="dealboard") content=_mchDealBoard();
+  else if(tab==="analytics") content=_mchAnalytics(kpis);
 
-function deleteM(id){if(!confirm("Delete this merchant? History will be lost."))return;state.merchants=(state.merchants||[]).filter(x=>x.id!==id);window._selectedMerchantId=null;saveRecompute("Merchant deleted","warn");}
+  $("#pageBody").innerHTML=tabBar+kpiRow+content;
+
+  $$(".mch-tab-btn").forEach(function(b){b.addEventListener("click",function(){window._mchTab=b.dataset.mchtab;render();});});
+  _wireMchEvents(tab);
+}
+
+// ── OVERVIEW ──
+function _mchOverview(kpis){
+  var merchants=state.merchants||[];
+  var allActivity=[];
+  merchants.forEach(function(m){
+    (m.collaboration&&m.collaboration.activity_log||[]).forEach(function(a){allActivity.push(Object.assign({},a,{merchantName:m.name,merchantId:m.id}));});
+    (m.lending||[]).forEach(function(l){if(l.sent_date>Date.now()-86400000*30)allActivity.push({id:l.id,ts:l.sent_date,actor:"you",action:"lending_created",detail:"Lending "+fmtU(l.amount_usdt,0)+" USDT",deal_type:"lending",merchantName:m.name,merchantId:m.id});});
+    (m.partnership&&m.partnership.settlements||[]).forEach(function(s){allActivity.push({id:s.id,ts:s.settlement_date,actor:"you",action:"settlement_recorded",detail:"Settlement: "+fmtQ(s.net_profit_qar)+" net",deal_type:"partnership",merchantName:m.name,merchantId:m.id});});
+    (m.capital_placement&&m.capital_placement.monthly_profits||[]).forEach(function(p){allActivity.push({id:p.month,ts:p.paid_date,actor:"you",action:"profit_recorded",detail:"Profit: "+fmtQ(p.profit_qar),deal_type:"capital",merchantName:m.name,merchantId:m.id});});
+  });
+  allActivity.sort(function(a,b){return b.ts-a.ts;});
+  var recent=allActivity.slice(0,15);
+  var actIcons={lending_created:"\ud83d\udcb0",settlement_recorded:"\ud83d\udcca",profit_recorded:"\ud83d\udcb5",sent_message:"\ud83d\udcac",enabled_collab:"\ud83d\udd17",approved:"\u2705",rejected:"\u274c",deal_closed:"\ud83c\udfc1"};
+  var activityHtml=recent.length===0?'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No recent activity</div><div class="empty-s">Add merchants and create deals to see activity here</div></div>':recent.map(function(a){return'<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:calc(10px * var(--ui-scale,1));align-items:flex-start;"><span style="font-size:12px;flex-shrink:0;">'+(actIcons[a.action]||"\ud83d\udccc")+'</span><div style="flex:1;min-width:0;"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(a.detail)+'</div><div class="muted" style="font-size:9px;">'+esc(a.merchantName)+" \u00b7 "+_relTime(a.ts)+"</div></div></div>";}).join("");
+
+  var topMerchants=merchants.map(function(m){
+    var lending=(m.lending||[]).filter(function(l){return l.status==="active";}).reduce(function(s,l){return s+l.amount_usdt;},0);
+    var arb=(m.arbitrage||[]).filter(function(a){return a.status==="active";}).reduce(function(s,a){return s+a.usdt_sent;},0);
+    var part=(m.partnership&&m.partnership.active?m.partnership.usdt_sent:0);
+    var cap=(m.capital_placement&&m.capital_placement.active?m.capital_placement.usdt_capital:0);
+    return{name:m.name,id:m.id,total:lending+arb+part+cap,risk:m.risk_level||"low",collab:m.collaboration&&m.collaboration.enabled||false};
+  }).sort(function(a,b){return b.total-a.total;}).slice(0,5);
+  var topHtml=topMerchants.length===0?"":('<div class="tableWrap"><table><thead><tr><th>Merchant</th><th class="r">Exposure</th><th>Risk</th><th>Collab</th></tr></thead><tbody>'+topMerchants.map(function(m){return'<tr style="cursor:pointer;" onclick="window._selectedMerchantId=\''+esc(m.id)+'\';window._mchTab=\'directory\';render();"><td><strong>'+esc(m.name)+'</strong></td><td class="mono r">'+fmtU(m.total,0)+"</td><td>"+_riskBadge(m.risk)+"</td><td>"+(m.collab?'<span style="color:var(--good);font-size:10px;">\u25cf Active</span>':'<span class="muted" style="font-size:10px;">\u2014</span>')+"</td></tr>";}).join("")+"</tbody></table></div>");
+
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+
+    '<div class="panel"><div class="panel-head"><h2>Quick Actions</h2></div><div class="panel-body"><div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+      '<button class="rowBtn" id="qaAddMerchant" style="font-size:9px;padding:4px 10px;">+ Add Merchant</button>'+
+      '<button class="rowBtn" id="qaGotoDirectory" style="font-size:9px;padding:4px 10px;">\ud83d\udc65 Directory</button>'+
+      '<button class="rowBtn" id="qaGotoCollab" style="font-size:9px;padding:4px 10px;">\ud83e\udd1d Collaboration</button>'+
+      '<button class="rowBtn" id="qaGotoDealBoard" style="font-size:9px;padding:4px 10px;">\ud83d\udccb Deal Board</button>'+
+    '</div></div></div>'+
+    '<div class="panel"><div class="panel-head"><h2>Portfolio Summary</h2></div><div class="panel-body" style="font-size:calc(10px * var(--ui-scale,1));">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+
+        '<div style="padding:6px 8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:9px;">Lending</div><div style="font-weight:700;">'+kpis.lendingActive+' active</div></div>'+
+        '<div style="padding:6px 8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:9px;">Arbitrage</div><div style="font-weight:700;">'+kpis.arbitrageActive+' active</div></div>'+
+        '<div style="padding:6px 8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:9px;">Partnerships</div><div style="font-weight:700;">'+kpis.partnershipActive+' active</div></div>'+
+        '<div style="padding:6px 8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:9px;">Capital</div><div style="font-weight:700;">'+kpis.capitalActive+' placed</div></div>'+
+      '</div></div></div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">'+
+      '<div class="panel"><div class="panel-head"><h2>Top Merchants by Exposure</h2></div><div class="panel-body">'+(topHtml||'<div class="muted" style="font-size:10px;">No merchants yet</div>')+'</div></div>'+
+      '<div class="panel"><div class="panel-head"><h2>Recent Activity</h2><span class="pill">'+recent.length+' events</span></div><div class="panel-body" style="max-height:260px;overflow-y:auto;">'+activityHtml+'</div></div></div>';
+}
+
+// ── DIRECTORY ──
+function _mchDirectory(){
+  var q=state.q.trim().toLowerCase();
+  var merchants=!q?state.merchants:state.merchants.filter(function(m){return[m.name,m.phone||"",m.email||""].join(" ").toLowerCase().indexOf(q)>=0;});
+
+  var tableHtml=merchants.length===0
+    ?'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No merchants yet</div><div class="empty-s">Add your first merchant partnership \u2192</div></div>'
+    :'<div class="tableWrap"><table><thead><tr><th>Name</th><th>Active USDT</th><th>YTD Profit</th><th>Deals</th><th>Risk</th><th>Collab</th><th></th></tr></thead><tbody>'+
+    merchants.map(function(m){
+      var allLending=(m.lending||[]).reduce(function(s,l){return s+(l.status==="active"?l.amount_usdt:0);},0);
+      var allArb=(m.arbitrage||[]).reduce(function(s,a){return s+(a.status==="active"?a.usdt_sent:0);},0);
+      var part=m.partnership||{};var cap=m.capital_placement||{};
+      var activeUsdt=allLending+allArb+(part.active?part.usdt_sent:0)+(cap.active?cap.usdt_capital:0);
+      var profit=(cap.monthly_profits||[]).reduce(function(s,p){return s+num(p.profit_usdt,0);},0)+(part.settlements||[]).reduce(function(s,p){return s+num(p.your_share_usdt,0);},0);
+      var deals=(m.lending||[]).filter(function(l){return l.status==="active";}).length+(m.arbitrage||[]).filter(function(a){return a.status==="active";}).length+(part.active?1:0)+(cap.active?1:0);
+      var collab=m.collaboration&&m.collaboration.enabled;
+      return'<tr style="cursor:pointer;'+(window._selectedMerchantId===m.id?"background:var(--brand3);":"")+'" onclick="window._selectedMerchantId=\''+esc(m.id)+'\';render();"><td><strong>'+esc(m.name)+"</strong>"+(m.phone?'<div class="muted" style="font-size:9px;">'+esc(m.phone)+"</div>":"")+'</td><td class="mono r">'+fmtU(activeUsdt,0)+'</td><td class="mono r good">'+fmtQ(profit)+'</td><td class="r">'+deals+"</td><td>"+_riskBadge(m.risk_level||"low")+"</td><td>"+(collab?'<span style="color:var(--good);font-size:10px;" title="Collaboration enabled">\u25cf</span>':'<span class="muted" style="font-size:10px;">\u2014</span>')+'</td><td style="padding-right:0;"><button class="rowBtn" style="font-size:8px;padding:2px 4px;" onclick="event.stopPropagation();deleteM(\''+esc(m.id)+'\');">\u00d7</button></td></tr>';
+    }).join("")+'</tbody></table></div>';
+
+  var detailHtml="";
+  if(window._selectedMerchantId){
+    var m=state.merchants.find(function(x){return x.id===window._selectedMerchantId;});
+    if(m){
+      var part=m.partnership||{};var cap=m.capital_placement||{};var col=m.collaboration||{};
+      var lendingList=(m.lending||[]).filter(function(l){return l.status==="active";});
+      var arbList=(m.arbitrage||[]).filter(function(a){return a.status==="active";});
+      detailHtml='<div class="panel"><div class="panel-head"><h2>'+esc(m.name)+'</h2><div style="display:flex;gap:4px;"><button class="rowBtn" id="editMerchantBtn" style="font-size:9px;padding:3px 8px;">Edit</button><button class="rowBtn" id="toggleCollabBtn" style="font-size:9px;padding:3px 8px;'+(col.enabled?"color:var(--good);":"")+'">'+(col.enabled?"\ud83d\udd17 Collab ON":"\ud83d\udd17 Enable Collab")+'</button></div></div>'+
+      '<div class="panel-body" style="font-size:10px;display:flex;flex-direction:column;gap:8px;">'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+
+          '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">Phone</div><div style="font-weight:600;margin-top:2px;">'+esc(m.phone||"\u2014")+'</div></div>'+
+          '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">Email</div><div style="font-weight:600;margin-top:2px;">'+esc(m.email||"\u2014")+'</div></div>'+
+        '</div>'+
+        (col.enabled?'<div style="padding:8px;background:color-mix(in srgb,var(--good) 6%,transparent);border:1px solid color-mix(in srgb,var(--good) 20%,transparent);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:9px;">SHARE TOKEN</div><div style="font-family:var(--lt-font-mono,monospace);font-size:10px;margin-top:3px;word-break:break-all;user-select:all;">'+esc(col.shared_token||"\u2014")+'</div><div class="muted" style="font-size:8px;margin-top:3px;">Share this token with your partner for collaboration access</div></div>':"")+
+        '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">LENDING TRANSACTIONS</div><div style="margin-top:6px;display:flex;justify-content:space-between;"><span>Active: '+lendingList.length+'</span><span>Pending: '+fmtU(lendingList.reduce(function(s,l){return s+l.amount_usdt;},0),0)+'</span></div><button class="rowBtn" id="addLendingBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Add Lending</button>'+
+          (lendingList.length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:6px;">'+lendingList.map(function(l){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:9px;"><span>'+fmtU(l.amount_usdt,0)+' USDT</span><span class="muted">'+new Date(l.sent_date).toLocaleDateString()+'</span><button class="rowBtn" style="font-size:8px;padding:1px 4px;" onclick="event.stopPropagation();window._closeLending(\''+esc(m.id)+'\',\''+esc(l.id)+'\');">Close</button></div>';}).join("")+"</div>":"")+"</div>"+
+        '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">ARBITRAGE DEALS</div><div style="margin-top:6px;display:flex;justify-content:space-between;"><span>Active: '+arbList.length+'</span><span>USDT: '+fmtU(arbList.reduce(function(s,a){return s+a.usdt_sent;},0),0)+'</span></div><button class="rowBtn" id="addArbitrageBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Add Arbitrage</button>'+
+          (arbList.length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:6px;">'+arbList.map(function(a){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:9px;"><span>'+fmtU(a.usdt_sent,0)+' USDT @ '+a.price_qar_per_usdt+'</span><span class="muted">'+new Date(a.sent_date).toLocaleDateString()+'</span><button class="rowBtn" style="font-size:8px;padding:1px 4px;" onclick="event.stopPropagation();window._closeArbitrage(\''+esc(m.id)+'\',\''+esc(a.id)+'\');">Close</button></div>';}).join("")+"</div>":"")+"</div>"+
+        '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">PARTNERSHIP'+(part.active?" (ACTIVE)":"")+'</div>'+(part.active?'<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:9px;"><span>Capital: '+fmtU(part.usdt_sent,0)+'</span><span>Your %: '+(part.profit_ratio&&part.profit_ratio.you_percentage||0)+'%</span><span>YTD: '+fmtQ((part.settlements||[]).reduce(function(s,p){return s+num(p.your_share_usdt,0);},0))+'</span></div>'+(part.settlements&&part.settlements.length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:4px;font-size:9px;">'+part.settlements.slice(-5).reverse().map(function(s){return'<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>'+new Date(s.settlement_date).toLocaleDateString()+'</span><span>Rev: '+fmtQ(s.revenue_qar)+'</span><span class="good">Your: '+fmtQ(s.your_share_qar)+'</span></div>';}).join("")+"</div>":"")+'<button class="rowBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;" id="settlementBtn">\ud83d\udcca New Settlement</button>':'<button class="rowBtn" id="addPartnershipBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Add Partnership</button>')+"</div>"+
+        '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">CAPITAL PLACEMENT'+(cap.active?" (ACTIVE)":"")+'</div>'+(cap.active?'<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:9px;"><span>Capital: '+fmtU(cap.usdt_capital,0)+'</span><span>Rate: '+((cap.monthly_profit_rate||0)*100).toFixed(0)+'%/mo</span><span>YTD: '+fmtQ((cap.monthly_profits||[]).reduce(function(s,p){return s+num(p.profit_usdt,0);},0))+'</span></div>'+(cap.monthly_profits&&cap.monthly_profits.length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:4px;font-size:9px;">'+cap.monthly_profits.slice(-5).reverse().map(function(p){return'<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>'+esc(p.month)+'</span><span class="good">'+fmtQ(p.profit_qar)+'</span></div>';}).join("")+"</div>":"")+'<button class="rowBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;" id="recordProfitBtn">\ud83d\udcb0 Record Monthly Profit</button>':'<button class="rowBtn" id="addCapitalBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Place Capital</button>')+"</div>"+
+      "</div></div>";
+    }
+  }
+  return '<div class="panel"><div class="panel-head"><h2>Merchants Directory</h2><button class="rowBtn" id="addMerchantBtn" style="font-size:9px;padding:3px 8px;">+ Add Merchant</button></div><div class="panel-body">'+tableHtml+'</div></div>'+detailHtml;
+}
+
+// ── COLLABORATION ──
+function _mchCollaboration(kpis){
+  var merchants=state.merchants||[];
+  var collabMerchants=merchants.filter(function(m){return m.collaboration&&m.collaboration.enabled;});
+  var allApprovals=[];
+  merchants.forEach(function(m){(m.collaboration&&m.collaboration.pending_approvals||[]).forEach(function(a){if(a.status==="pending")allApprovals.push(Object.assign({},a,{merchantName:m.name,merchantId:m.id}));});});
+  allApprovals.sort(function(a,b){return b.ts-a.ts;});
+
+  var allActivity=[];
+  collabMerchants.forEach(function(m){(m.collaboration.activity_log||[]).forEach(function(a){allActivity.push(Object.assign({},a,{merchantName:m.name,merchantId:m.id}));});});
+  allActivity.sort(function(a,b){return b.ts-a.ts;});
+  var recentActivity=allActivity.slice(0,20);
+
+  var approvalHtml=allApprovals.length===0
+    ?'<div class="muted" style="font-size:10px;padding:10px;">No pending approvals \u2014 all clear \u2713</div>'
+    :allApprovals.map(function(a){return'<div style="display:flex;gap:8px;padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;align-items:center;"><div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:10px;">'+esc(a.type.replace(/_/g," ").toUpperCase())+'</div><div class="muted" style="font-size:9px;">'+esc(a.merchantName)+" \u00b7 "+_relTime(a.ts)+" \u00b7 by "+esc(a.requested_by)+'</div></div><button class="rowBtn" style="font-size:8px;padding:2px 6px;color:var(--good);" onclick="window._approveApproval(\''+esc(a.merchantId)+'\',\''+esc(a.id)+"')\">✓ Approve</button>"+'<button class="rowBtn" style="font-size:8px;padding:2px 6px;color:var(--bad);" onclick="window._rejectApproval(\''+esc(a.merchantId)+'\',\''+esc(a.id)+"')\">✗ Reject</button></div>";}).join("");
+
+  var collabCardsHtml=collabMerchants.length===0
+    ?'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No collaborative merchants</div><div class="empty-s">Enable collaboration on a merchant from the Directory tab</div></div>'
+    :collabMerchants.map(function(m){
+      var col=m.collaboration||{};var msgs=(col.messages||[]).length;var pending=(col.pending_approvals||[]).filter(function(a){return a.status==="pending";}).length;var logs=(col.activity_log||[]).length;
+      return'<div style="padding:10px;background:var(--panel2);border-radius:var(--lt-radius-sm);border:1px solid var(--line);margin-bottom:6px;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><strong>'+esc(m.name)+'</strong> <span class="pill" style="font-size:8px;color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);">\u25cf Shared</span></div><div style="display:flex;gap:4px;"><button class="rowBtn" style="font-size:8px;padding:2px 6px;" onclick="window._sendCollabMessage(\''+esc(m.id)+'\')">\ud83d\udcac Message</button><button class="rowBtn" style="font-size:8px;padding:2px 6px;" onclick="window._requestApproval(\''+esc(m.id)+'\')">\ud83d\udccb Request</button></div></div><div style="display:flex;gap:12px;margin-top:6px;font-size:9px;" class="muted"><span>\ud83d\udce8 '+msgs+" messages</span><span>"+(pending>0?'<span style="color:var(--bad);">\u26a0 '+pending+" pending</span>":"\u2713 clear")+"</span><span>\ud83d\udcdd "+logs+" log entries</span><span>\ud83d\udd11 "+(col.shared_token?col.shared_token.slice(0,8)+"\u2026":"no token")+"</span></div>"+
+      ((col.messages||[]).length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:6px;max-height:100px;overflow-y:auto;">'+(col.messages||[]).slice(-3).reverse().map(function(msg){return'<div style="font-size:9px;padding:2px 0;"><span style="font-weight:600;">'+esc(msg.sender==="you"?"You":"Partner")+":</span> "+esc(msg.text)+' <span class="muted" style="font-size:8px;">'+_relTime(msg.ts)+"</span></div>";}).join("")+"</div>":"")+"</div>";
+    }).join("");
+
+  var timelineHtml=recentActivity.length===0?'<div class="muted" style="font-size:10px;padding:10px;">No collaboration activity yet</div>':recentActivity.map(function(a){return'<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--line2);font-size:9px;"><span class="muted" style="flex-shrink:0;min-width:50px;">'+_relTime(a.ts)+"</span><span style=\"flex-shrink:0;\">"+(a.actor==="you"?"\ud83d\udc64":"\ud83e\udd1d")+'</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong>'+esc(a.merchantName)+"</strong> \u2014 "+esc(a.detail||a.action)+"</span></div>";}).join("");
+
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+
+    '<div class="panel"><div class="panel-head"><h2>Pending Approvals</h2><span class="pill">'+allApprovals.length+'</span></div><div class="panel-body" style="max-height:260px;overflow-y:auto;">'+approvalHtml+'</div></div>'+
+    '<div class="panel"><div class="panel-head"><h2>Activity Timeline</h2><span class="pill">'+recentActivity.length+' events</span></div><div class="panel-body" style="max-height:260px;overflow-y:auto;">'+timelineHtml+'</div></div></div>'+
+    '<div class="panel" style="margin-top:10px;"><div class="panel-head"><h2>Collaborative Merchants</h2><span class="pill">'+collabMerchants.length+' active</span></div><div class="panel-body">'+collabCardsHtml+'</div></div>';
+}
+
+// ── DEAL BOARD ──
+function _mchDealBoard(){
+  var merchants=state.merchants||[];
+  var deals={lending:[],arbitrage:[],partnership:[],capital:[]};
+  merchants.forEach(function(m){
+    (m.lending||[]).forEach(function(l){deals.lending.push(Object.assign({},l,{merchantName:m.name,merchantId:m.id}));});
+    (m.arbitrage||[]).forEach(function(a){deals.arbitrage.push(Object.assign({},a,{merchantName:m.name,merchantId:m.id}));});
+    if(m.partnership&&m.partnership.active)deals.partnership.push(Object.assign({},m.partnership,{merchantName:m.name,merchantId:m.id,id:m.id+"_part"}));
+    if(m.capital_placement&&m.capital_placement.active)deals.capital.push(Object.assign({},m.capital_placement,{merchantName:m.name,merchantId:m.id,id:m.id+"_cap"}));
+  });
+  var columns=[
+    {key:"lending",label:"\ud83d\udcb0 Lending",color:"var(--brand)",items:deals.lending},
+    {key:"arbitrage",label:"\ud83d\udcca Arbitrage",color:"var(--warn)",items:deals.arbitrage},
+    {key:"partnership",label:"\ud83e\udd1d Partnership",color:"var(--good)",items:deals.partnership},
+    {key:"capital",label:"\ud83c\udfe6 Capital",color:"var(--t5,#0ea5e9)",items:deals.capital}
+  ];
+  var boardHtml='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'+columns.map(function(col){
+    var active=col.items.filter(function(i){return i.status==="active"||!i.status||i.active;});
+    var closed=col.items.filter(function(i){return i.status==="closed"||i.status==="returned";});
+    return'<div style="min-width:0;"><div style="padding:6px 8px;background:var(--panel2);border-radius:var(--lt-radius-sm) var(--lt-radius-sm) 0 0;border-bottom:2px solid '+col.color+';font-size:calc(10px * var(--ui-scale,1));font-weight:700;display:flex;justify-content:space-between;">'+col.label+'<span style="font-weight:400;color:var(--muted);">'+active.length+'</span></div><div style="padding:6px;background:var(--panel2);border-radius:0 0 var(--lt-radius-sm) var(--lt-radius-sm);min-height:100px;max-height:320px;overflow-y:auto;">'+
+      (active.length===0?'<div class="muted" style="font-size:9px;text-align:center;padding:20px 4px;">No active '+col.key+' deals</div>':active.map(function(d){
+        var valLine="",dateLine="";
+        if(col.key==="lending"){valLine=fmtU(d.amount_usdt,0)+" USDT";dateLine=d.expected_return_date?"Due: "+new Date(d.expected_return_date).toLocaleDateString():"No due date";}
+        else if(col.key==="arbitrage"){valLine=fmtU(d.usdt_sent,0)+" USDT @ "+d.price_qar_per_usdt;dateLine=d.expected_return_date?"Due: "+new Date(d.expected_return_date).toLocaleDateString():"No due date";}
+        else if(col.key==="partnership"){valLine=fmtU(d.usdt_sent,0)+" USDT";dateLine=(d.profit_ratio&&d.profit_ratio.you_percentage||0)+"% share \u00b7 "+(d.settlements||[]).length+" settlements";}
+        else if(col.key==="capital"){valLine=fmtU(d.usdt_capital,0)+" USDT";dateLine=((d.monthly_profit_rate||0)*100).toFixed(0)+"%/mo \u00b7 "+(d.monthly_profits||[]).length+" payouts";}
+        var overdue=d.expected_return_date&&d.expected_return_date<Date.now()&&d.status==="active";
+        return'<div style="padding:6px 8px;background:var(--panel);border:1px solid '+(overdue?"color-mix(in srgb,var(--bad) 40%,transparent)":"var(--line)")+';border-radius:var(--lt-radius-sm);margin-bottom:4px;font-size:9px;cursor:pointer;" onclick="window._selectedMerchantId=\''+esc(d.merchantId)+'\';window._mchTab=\'directory\';render();"><div style="font-weight:700;font-size:10px;">'+esc(d.merchantName)+'</div><div style="margin-top:2px;">'+valLine+'</div><div class="muted" style="margin-top:1px;">'+dateLine+(overdue?' <span style="color:var(--bad);font-weight:700;">OVERDUE</span>':"")+"</div></div>";
+      }).join(""))+
+      (closed.length>0?'<div style="margin-top:6px;padding-top:4px;border-top:1px dashed var(--line);"><div class="muted" style="font-size:8px;margin-bottom:4px;">'+closed.length+" closed</div></div>":"")+"</div></div>";
+  }).join("")+"</div>";
+  return'<div class="panel"><div class="panel-head"><h2>Deal Board</h2><span class="pill">'+(deals.lending.length+deals.arbitrage.length+deals.partnership.length+deals.capital.length)+' total deals</span></div><div class="panel-body">'+boardHtml+'</div></div>';
+}
+
+// ── ANALYTICS ──
+function _mchAnalytics(kpis){
+  var merchants=state.merchants||[];
+  if(merchants.length===0)return'<div class="panel"><div class="panel-head"><h2>Analytics</h2></div><div class="panel-body"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No data yet</div><div class="empty-s">Add merchants and create deals to see analytics</div></div></div></div>';
+
+  var exposureData=merchants.map(function(m){
+    var lending=(m.lending||[]).filter(function(l){return l.status==="active";}).reduce(function(s,l){return s+l.amount_usdt;},0);
+    var arb=(m.arbitrage||[]).filter(function(a){return a.status==="active";}).reduce(function(s,a){return s+a.usdt_sent;},0);
+    var part=(m.partnership&&m.partnership.active?m.partnership.usdt_sent:0);
+    var cap=(m.capital_placement&&m.capital_placement.active?m.capital_placement.usdt_capital:0);
+    return{name:m.name,lending:lending,arb:arb,part:part,cap:cap,total:lending+arb+part+cap,risk:m.risk_level||"low"};
+  }).filter(function(d){return d.total>0;}).sort(function(a,b){return b.total-a.total;});
+
+  var profitByMonth={};
+  merchants.forEach(function(m){
+    (m.partnership&&m.partnership.settlements||[]).forEach(function(s){var mo=new Date(s.settlement_date).toISOString().slice(0,7);profitByMonth[mo]=(profitByMonth[mo]||0)+num(s.your_share_usdt,0);});
+    (m.capital_placement&&m.capital_placement.monthly_profits||[]).forEach(function(p){var mo=p.month||"unknown";profitByMonth[mo]=(profitByMonth[mo]||0)+num(p.profit_usdt,0);});
+  });
+  var profitMonths=Object.keys(profitByMonth).sort();
+
+  var riskDist={low:0,medium:0,high:0,critical:0};
+  merchants.forEach(function(m){riskDist[m.risk_level||"low"]=(riskDist[m.risk_level||"low"]||0)+1;});
+
+  var exposureHtml=exposureData.length===0?'<div class="muted" style="font-size:10px;">No active exposure</div>':exposureData.map(function(d){
+    var pct=kpis.totalUsdt>0?Math.round(d.total/kpis.totalUsdt*100):0;
+    return'<div style="margin-bottom:6px;"><div style="display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px;"><span style="font-weight:600;">'+esc(d.name)+'</span><span class="mono">'+fmtU(d.total,0)+" ("+pct+'%)</span></div><div style="height:14px;background:var(--panel3);border-radius:var(--lt-radius-sm);overflow:hidden;display:flex;">'+
+      (d.lending>0?'<div style="width:'+(d.total>0?d.lending/d.total*100:0)+'%;background:var(--brand);height:100%;" title="Lending: '+fmtU(d.lending,0)+'"></div>':"")+
+      (d.arb>0?'<div style="width:'+(d.total>0?d.arb/d.total*100:0)+'%;background:var(--warn);height:100%;" title="Arbitrage: '+fmtU(d.arb,0)+'"></div>':"")+
+      (d.part>0?'<div style="width:'+(d.total>0?d.part/d.total*100:0)+'%;background:var(--good);height:100%;" title="Partnership: '+fmtU(d.part,0)+'"></div>':"")+
+      (d.cap>0?'<div style="width:'+(d.total>0?d.cap/d.total*100:0)+'%;background:var(--t5,#0ea5e9);height:100%;" title="Capital: '+fmtU(d.cap,0)+'"></div>':"")+
+    "</div></div>";
+  }).join("")+'<div style="display:flex;gap:12px;font-size:8px;margin-top:8px;" class="muted"><span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--brand);"></span>Lending</span><span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--warn);"></span>Arbitrage</span><span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--good);"></span>Partnership</span><span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--t5,#0ea5e9);"></span>Capital</span></div>';
+
+  var profitTimelineHtml=profitMonths.length===0?'<div class="muted" style="font-size:10px;">No profit data yet</div>':'<div style="height:140px;position:relative;"><canvas id="mchProfitChart"></canvas></div>';
+
+  var riskHtml='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'+["low","medium","high","critical"].map(function(r){return'<div style="text-align:center;padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div style="font-size:16px;font-weight:800;color:var(--'+(r==="low"?"good":r==="medium"?"warn":"bad")+');">'+(riskDist[r]||0)+'</div><div class="muted" style="font-size:9px;">'+r.charAt(0).toUpperCase()+r.slice(1)+"</div></div>";}).join("")+"</div>";
+
+  var maturingDeals=[];
+  merchants.forEach(function(m){
+    (m.lending||[]).filter(function(l){return l.status==="active"&&l.expected_return_date;}).forEach(function(l){maturingDeals.push({type:"Lending",merchantName:m.name,amount:l.amount_usdt,due:l.expected_return_date});});
+    (m.arbitrage||[]).filter(function(a){return a.status==="active"&&a.expected_return_date;}).forEach(function(a){maturingDeals.push({type:"Arbitrage",merchantName:m.name,amount:a.usdt_sent,due:a.expected_return_date});});
+  });
+  maturingDeals.sort(function(a,b){return a.due-b.due;});
+  var maturityHtml=maturingDeals.length===0?'<div class="muted" style="font-size:10px;">No deals with due dates</div>':maturingDeals.slice(0,8).map(function(d){
+    var overdue=d.due<Date.now();var daysLeft=Math.ceil((d.due-Date.now())/86400000);
+    return'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line2);font-size:9px;"><span>'+esc(d.merchantName)+" \u2014 "+d.type+'</span><span class="mono">'+fmtU(d.amount,0)+'</span><span style="color:'+(overdue?"var(--bad)":daysLeft<7?"var(--warn)":"var(--muted)")+';">'+(overdue?Math.abs(daysLeft)+"d overdue":daysLeft+"d left")+"</span></div>";
+  }).join("");
+
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+
+    '<div class="panel"><div class="panel-head"><h2>Exposure Breakdown</h2></div><div class="panel-body">'+exposureHtml+'</div></div>'+
+    '<div class="panel"><div class="panel-head"><h2>Profit Timeline</h2><span class="pill">'+profitMonths.length+' months</span></div><div class="panel-body">'+profitTimelineHtml+'</div></div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">'+
+      '<div class="panel"><div class="panel-head"><h2>Risk Distribution</h2></div><div class="panel-body">'+riskHtml+'</div></div>'+
+      '<div class="panel"><div class="panel-head"><h2>Deal Maturity</h2><span class="pill">'+maturingDeals.length+' upcoming</span></div><div class="panel-body" style="max-height:220px;overflow-y:auto;">'+maturityHtml+'</div></div></div>';
+}
+
+// ── EVENT WIRING ──
+function _wireMchEvents(tab){
+  $("#qaAddMerchant")?.addEventListener("click",function(){addMerchantModal();});
+  $("#qaGotoDirectory")?.addEventListener("click",function(){window._mchTab="directory";render();});
+  $("#qaGotoCollab")?.addEventListener("click",function(){window._mchTab="collaboration";render();});
+  $("#qaGotoDealBoard")?.addEventListener("click",function(){window._mchTab="dealboard";render();});
+  $("#addMerchantBtn")?.addEventListener("click",function(){addMerchantModal();});
+  $("#editMerchantBtn")?.addEventListener("click",function(){editMerchantModal(window._selectedMerchantId);});
+  $("#addLendingBtn")?.addEventListener("click",function(){addLendingModal(window._selectedMerchantId);});
+  $("#addArbitrageBtn")?.addEventListener("click",function(){addArbitrageModal(window._selectedMerchantId);});
+  $("#addPartnershipBtn")?.addEventListener("click",function(){addPartnershipModal(window._selectedMerchantId);});
+  $("#addCapitalBtn")?.addEventListener("click",function(){addCapitalModal(window._selectedMerchantId);});
+  $("#settlementBtn")?.addEventListener("click",function(){addSettlementModal(window._selectedMerchantId);});
+  $("#recordProfitBtn")?.addEventListener("click",function(){recordProfitModal(window._selectedMerchantId);});
+  $("#toggleCollabBtn")?.addEventListener("click",function(){_toggleCollab(window._selectedMerchantId);});
+  if(tab==="analytics")_renderMchProfitChart();
+}
+
+function _renderMchProfitChart(){
+  var canvas=document.getElementById("mchProfitChart");
+  if(!canvas||typeof Chart==="undefined")return;
+  var merchants=state.merchants||[];var profitByMonth={};
+  merchants.forEach(function(m){
+    (m.partnership&&m.partnership.settlements||[]).forEach(function(s){var mo=new Date(s.settlement_date).toISOString().slice(0,7);profitByMonth[mo]=(profitByMonth[mo]||0)+num(s.your_share_usdt,0);});
+    (m.capital_placement&&m.capital_placement.monthly_profits||[]).forEach(function(p){var mo=p.month||"unknown";profitByMonth[mo]=(profitByMonth[mo]||0)+num(p.profit_usdt,0);});
+  });
+  var months=Object.keys(profitByMonth).sort();if(months.length===0)return;
+  var cs=getComputedStyle(document.body);
+  try{new Chart(canvas,{type:"bar",data:{labels:months,datasets:[{label:"Profit (USDT)",data:months.map(function(m){return profitByMonth[m]||0;}),backgroundColor:(cs.getPropertyValue("--brand").trim()||"#4f46e5")+"44",borderColor:cs.getPropertyValue("--brand").trim()||"#4f46e5",borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:cs.getPropertyValue("--line2").trim()},ticks:{font:{size:9},color:cs.getPropertyValue("--muted").trim()}},y:{grid:{color:cs.getPropertyValue("--line2").trim()},ticks:{font:{size:9},color:cs.getPropertyValue("--muted").trim()}}}}});}catch(e){}
+}
+
+// ── COLLABORATION ACTIONS ──
+function _toggleCollab(id){
+  var m=(state.merchants||[]).find(function(x){return x.id===id;});if(!m)return;
+  if(!m.collaboration)m.collaboration={enabled:false,shared_token:"",role:"owner",shared_fields:["lending","arbitrage","partnership","capital"],activity_log:[],messages:[],pending_approvals:[]};
+  if(m.collaboration.enabled){
+    if(!confirm("Disable collaboration for "+m.name+"? The share token will be revoked."))return;
+    m.collaboration.enabled=false;m.collaboration.shared_token="";
+    _collabLog(m,"disabled_collab","Collaboration disabled");
+    saveRecompute("Collaboration disabled","warn");
+  } else {
+    m.collaboration.enabled=true;m.collaboration.shared_token=_genToken();
+    _collabLog(m,"enabled_collab","Collaboration enabled \u2014 token generated");
+    saveRecompute("Collaboration enabled \u2014 token generated","good");
+  }
+}
+window._sendCollabMessage=function(id){
+  var m=(state.merchants||[]).find(function(x){return x.id===id;});if(!m)return;
+  openModal("Send Message to "+esc(m.name),'<div class="form-field"><label class="form-label">Message *</label><textarea id="collabMsg" class="inp-field" style="min-height:80px;" placeholder="Type your message\u2026"></textarea></div><div class="msg" id="collabMsgErr"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">Send Message</button>');
+  setTimeout(function(){
+    $("#m_c")?.addEventListener("click",closeModal);
+    $("#m_send")?.addEventListener("click",function(){
+      var text=($("#collabMsg")?.value||"").trim();if(!text){var e=$("#collabMsgErr");if(e){e.textContent="Message is required";e.className="msg err";}return;}
+      if(!m.collaboration)m.collaboration={enabled:false,shared_token:"",role:"owner",shared_fields:["lending","arbitrage","partnership","capital"],activity_log:[],messages:[],pending_approvals:[]};
+      m.collaboration.messages=m.collaboration.messages||[];
+      m.collaboration.messages.push({id:uid(),ts:Date.now(),sender:"you",text:text,read:true});
+      _collabLog(m,"sent_message","Message sent: "+text.slice(0,60));
+      m.last_activity_date=Date.now();saveRecompute("Message sent","good");closeModal();
+    });
+  },0);
+};
+window._requestApproval=function(id){
+  var m=(state.merchants||[]).find(function(x){return x.id===id;});if(!m)return;
+  openModal("Request Approval \u2014 "+esc(m.name),'<div class="form-field"><label class="form-label">Request Type *</label><select id="reqType" class="inp-field"><option value="settlement">Settlement Review</option><option value="profit_record">Profit Record Verification</option><option value="deal_close">Deal Closure</option><option value="capital_change">Capital Change</option></select></div><div class="form-field"><label class="form-label">Description *</label><textarea id="reqDesc" class="inp-field" style="min-height:60px;" placeholder="Describe what needs approval\u2026"></textarea></div><div class="msg" id="reqErr"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_req">Submit Request</button>');
+  setTimeout(function(){
+    $("#m_c")?.addEventListener("click",closeModal);
+    $("#m_req")?.addEventListener("click",function(){
+      var type=$("#reqType")?.value||"settlement";var desc=($("#reqDesc")?.value||"").trim();
+      if(!desc){var e=$("#reqErr");if(e){e.textContent="Description is required";e.className="msg err";}return;}
+      if(!m.collaboration)m.collaboration={enabled:false,shared_token:"",role:"owner",shared_fields:["lending","arbitrage","partnership","capital"],activity_log:[],messages:[],pending_approvals:[]};
+      m.collaboration.pending_approvals=m.collaboration.pending_approvals||[];
+      m.collaboration.pending_approvals.push({id:uid(),ts:Date.now(),type:type,status:"pending",requested_by:"partner",data:{description:desc},resolved_ts:null,notes:""});
+      _collabLog(m,"approval_requested","Approval requested: "+type+" \u2014 "+desc.slice(0,60));
+      m.last_activity_date=Date.now();saveRecompute("Approval request submitted","good");closeModal();
+    });
+  },0);
+};
+window._approveApproval=function(merchantId,approvalId){
+  var m=(state.merchants||[]).find(function(x){return x.id===merchantId;});if(!m)return;
+  var a=(m.collaboration&&m.collaboration.pending_approvals||[]).find(function(x){return x.id===approvalId;});if(!a)return;
+  a.status="approved";a.resolved_ts=Date.now();_collabLog(m,"approved","Approved: "+a.type);saveRecompute("Approval granted","good");
+};
+window._rejectApproval=function(merchantId,approvalId){
+  var m=(state.merchants||[]).find(function(x){return x.id===merchantId;});if(!m)return;
+  var a=(m.collaboration&&m.collaboration.pending_approvals||[]).find(function(x){return x.id===approvalId;});if(!a)return;
+  a.status="rejected";a.resolved_ts=Date.now();_collabLog(m,"rejected","Rejected: "+a.type);saveRecompute("Approval rejected","warn");
+};
+window._closeLending=function(merchantId,lendingId){
+  var m=(state.merchants||[]).find(function(x){return x.id===merchantId;});if(!m)return;
+  var l=(m.lending||[]).find(function(x){return x.id===lendingId;});if(!l)return;
+  if(!confirm("Close this lending deal? ("+fmtU(l.amount_usdt,0)+" USDT)"))return;
+  l.status="closed";l.actual_return_date=Date.now();_collabLog(m,"deal_closed","Lending closed: "+fmtU(l.amount_usdt,0)+" USDT","lending",l.id);
+  m.last_activity_date=Date.now();saveRecompute("Lending deal closed","good");
+};
+window._closeArbitrage=function(merchantId,arbId){
+  var m=(state.merchants||[]).find(function(x){return x.id===merchantId;});if(!m)return;
+  var a=(m.arbitrage||[]).find(function(x){return x.id===arbId;});if(!a)return;
+  if(!confirm("Close this arbitrage deal? ("+fmtU(a.usdt_sent,0)+" USDT)"))return;
+  a.status="closed";a.actual_return_date=Date.now();_collabLog(m,"deal_closed","Arbitrage closed: "+fmtU(a.usdt_sent,0)+" USDT","arbitrage",a.id);
+  m.last_activity_date=Date.now();saveRecompute("Arbitrage deal closed","good");
+};
+
+// ── MERCHANT CRUD MODALS ──
+function addMerchantModal(){openModal("Add Merchant",'<div class="form-field"><label class="form-label">Merchant Name *</label><input id="mn" class="inp-field" placeholder="e.g. Ahmed Trading"/></div><div class="form-field"><label class="form-label">Phone</label><input id="mp" class="inp-field" placeholder="+974 5XXXXX"/></div><div class="form-field"><label class="form-label">Email</label><input id="me" class="inp-field" placeholder="contact@merchant.com"/></div><div class="form-field"><label class="form-label">Risk Level</label><select id="mrl" class="inp-field"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div><div class="msg" id="mm"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Add Merchant</button>');setTimeout(function(){$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",function(){var name=($("#mn")?.value||"").trim();if(!name){var msg=$("#mm");if(msg){msg.textContent="Name is required";msg.className="msg err";}return;}state.merchants=state.merchants||[];var newM={id:uid(),name:name,phone:($("#mp")?.value||"").trim()||"",email:($("#me")?.value||"").trim()||"",status:"active",notes:"",lending:[],arbitrage:[],partnership:{active:false},capital_placement:{active:false},created_date:Date.now(),last_activity_date:Date.now(),risk_level:$("#mrl")?.value||"low",collaboration:{enabled:false,shared_token:"",role:"owner",shared_fields:["lending","arbitrage","partnership","capital"],activity_log:[],messages:[],pending_approvals:[]}};state.merchants.push(newM);saveRecompute("Merchant added","good");window._selectedMerchantId=newM.id;window._mchTab="directory";closeModal();});},0);}
+
+function editMerchantModal(id){var m=state.merchants.find(function(x){return x.id===id;});if(!m)return;openModal("Edit Merchant",'<div class="form-field"><label class="form-label">Name</label><input id="mn" class="inp-field" value="'+esc(m.name)+'"/></div><div class="form-field"><label class="form-label">Phone</label><input id="mp" class="inp-field" value="'+esc(m.phone||"")+'"/></div><div class="form-field"><label class="form-label">Email</label><input id="me" class="inp-field" value="'+esc(m.email||"")+'"/></div><div class="form-field"><label class="form-label">Risk Level</label><select id="mrl" class="inp-field"><option value="low"'+(m.risk_level==="low"?" selected":"")+'>Low</option><option value="medium"'+(m.risk_level==="medium"?" selected":"")+'>Medium</option><option value="high"'+(m.risk_level==="high"?" selected":"")+'>High</option><option value="critical"'+(m.risk_level==="critical"?" selected":"")+'>Critical</option></select></div><div class="form-field"><label class="form-label">Notes</label><textarea id="mn2" class="inp-field" style="min-height:60px;">'+esc(m.notes||"")+'</textarea></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_s">Save</button>');setTimeout(function(){$("#m_c")?.addEventListener("click",closeModal);$("#m_s")?.addEventListener("click",function(){m.name=($("#mn")?.value||"").trim()||m.name;m.phone=($("#mp")?.value||"").trim();m.email=($("#me")?.value||"").trim();m.notes=($("#mn2")?.value||"").trim();m.risk_level=$("#mrl")?.value||m.risk_level;m.last_activity_date=Date.now();_collabLog(m,"merchant_updated","Profile updated");saveRecompute("Merchant updated","good");closeModal();});},0);}
+
+function addLendingModal(id){var m=state.merchants.find(function(x){return x.id===id;});if(!m)return;openModal("Add Lending",'<div class="form-field"><label class="form-label">USDT Amount *</label><input id="la" class="inp-field" inputmode="decimal" placeholder="50000"/></div><div class="form-field"><label class="form-label">Date Sent *</label><input id="ls" type="date" class="inp-field" value="'+new Date().toISOString().slice(0,10)+'"/></div><div class="form-field"><label class="form-label">Expected Return Date</label><input id="lr" type="date" class="inp-field"/></div><div class="form-field"><label class="form-label">Fee (QAR, optional)</label><input id="lf" class="inp-field" inputmode="decimal" placeholder="0"/></div><div class="msg" id="lm"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Add Lending</button>');setTimeout(function(){$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",function(){var amt=num($("#la")?.value,0);if(!(amt>0)){var msg=$("#lm");if(msg){msg.textContent="Amount required";msg.className="msg err";}return;}var sent=new Date($("#ls")?.value).getTime();m.lending=m.lending||[];var lId=uid();m.lending.push({id:lId,amount_usdt:amt,sent_date:sent,expected_return_date:($("#lr")?.value?new Date($("#lr")?.value).getTime():sent+86400000*5),actual_return_date:null,fee_usdt:0,fee_qar:num($("#lf")?.value,0),status:"active",notes:""});_collabLog(m,"lending_created","Lending added: "+fmtU(amt,0)+" USDT","lending",lId);m.last_activity_date=Date.now();saveRecompute("Lending added","good");closeModal();});},0);}
+
+function addArbitrageModal(id){var m=state.merchants.find(function(x){return x.id===id;});if(!m)return;openModal("Add Arbitrage",'<div class="form-field"><label class="form-label">USDT Amount *</label><input id="aa" class="inp-field" inputmode="decimal" placeholder="100000"/></div><div class="form-field"><label class="form-label">Price (QAR/USDT) *</label><input id="ap" class="inp-field" inputmode="decimal" placeholder="3.65"/></div><div class="form-field"><label class="form-label">Date Sent *</label><input id="as" type="date" class="inp-field" value="'+new Date().toISOString().slice(0,10)+'"/></div><div class="form-field"><label class="form-label">Expected Return Date</label><input id="ar" type="date" class="inp-field"/></div><div class="msg" id="am"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Add Arbitrage</button>');setTimeout(function(){$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",function(){var amt=num($("#aa")?.value,0),px=num($("#ap")?.value,0);if(!(amt>0&&px>0)){var msg=$("#am");if(msg){msg.textContent="Amount & price required";msg.className="msg err";}return;}var sent=new Date($("#as")?.value).getTime();m.arbitrage=m.arbitrage||[];var aId=uid();m.arbitrage.push({id:aId,usdt_sent:amt,price_qar_per_usdt:px,sent_date:sent,expected_return_date:($("#ar")?.value?new Date($("#ar")?.value).getTime():sent+86400000*10),actual_return_date:null,market_reference_price:0,status:"active",notes:""});_collabLog(m,"arbitrage_created","Arbitrage added: "+fmtU(amt,0)+" USDT @ "+px,"arbitrage",aId);m.last_activity_date=Date.now();saveRecompute("Arbitrage added","good");closeModal();});},0);}
+
+function addPartnershipModal(id){var m=state.merchants.find(function(x){return x.id===id;});if(!m)return;openModal("Add Partnership",'<div class="form-field"><label class="form-label">USDT Capital *</label><input id="pc" class="inp-field" inputmode="decimal" placeholder="200000"/></div><div class="form-field"><label class="form-label">Your Profit Share % *</label><input id="py" class="inp-field" inputmode="decimal" placeholder="35" value="35"/></div><div class="form-field"><label class="form-label">Settlement Frequency</label><select id="pf" class="inp-field"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="per_transaction">Per Transaction</option></select></div><div class="msg" id="pm"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Add Partnership</button>');setTimeout(function(){$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",function(){var amt=num($("#pc")?.value,0),your=num($("#py")?.value,0);if(!(amt>0&&your>0&&your<100)){var msg=$("#pm");if(msg){msg.textContent="Valid amounts required";msg.className="msg err";}return;}m.partnership={active:true,usdt_sent:amt,sent_date:Date.now(),profit_ratio:{merchant_percentage:100-your,you_percentage:your},settlements:[]};_collabLog(m,"partnership_created","Partnership added: "+fmtU(amt,0)+" USDT at "+your+"%","partnership");m.last_activity_date=Date.now();saveRecompute("Partnership added","good");closeModal();});},0);}
+
+function addCapitalModal(id){var m=state.merchants.find(function(x){return x.id===id;});if(!m)return;openModal("Place Capital",'<div class="form-field"><label class="form-label">USDT Capital *</label><input id="cc" class="inp-field" inputmode="decimal" placeholder="500000"/></div><div class="form-field"><label class="form-label">Monthly Profit Rate % *</label><input id="cr" class="inp-field" inputmode="decimal" placeholder="10" value="10"/></div><div class="form-field"><label class="form-label">Payment Schedule</label><select id="cs" class="inp-field"><option value="monthly_28th">Monthly on 28th</option><option value="monthly_last">Monthly on last day</option><option value="weekly">Weekly</option></select></div><div class="msg" id="cm"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Place Capital</button>');setTimeout(function(){$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",function(){var amt=num($("#cc")?.value,0),rate=num($("#cr")?.value,0);if(!(amt>0&&rate>0)){var msg=$("#cm");if(msg){msg.textContent="Valid amounts required";msg.className="msg err";}return;}m.capital_placement={active:true,usdt_capital:amt,date_placed:Date.now(),monthly_profit_rate:rate/100,profit_type:"percentage",fixed_amount_if_applicable:0,payment_schedule:$("#cs")?.value||"monthly_28th",monthly_profits:[],cumulative_profit_usdt:0,suspended:false};_collabLog(m,"capital_placed","Capital placed: "+fmtU(amt,0)+" USDT at "+rate+"%/mo","capital");m.last_activity_date=Date.now();saveRecompute("Capital placed","good");closeModal();});},0);}
+
+function addSettlementModal(id){var m=state.merchants.find(function(x){return x.id===id;});if(!m)return;var part=m.partnership||{};if(!part.active)return;openModal("Add Settlement",'<div class="form-field"><label class="form-label">Settlement Date *</label><input id="sd" type="date" class="inp-field" value="'+new Date().toISOString().slice(0,10)+'"/></div><div class="form-field"><label class="form-label">Total Revenue (QAR) *</label><input id="sr" class="inp-field" inputmode="decimal" placeholder="750000"/></div><div class="form-field"><label class="form-label">Total Cost (QAR) *</label><input id="sc" class="inp-field" inputmode="decimal" placeholder="680000"/></div><div class="form-field"><label class="form-label">Transactions Count</label><input id="st" class="inp-field" inputmode="decimal" placeholder="3" value="0"/></div><div class="msg" id="sm"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Record Settlement</button>');setTimeout(function(){$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",function(){var rev=num($("#sr")?.value,0),cost=num($("#sc")?.value,0);if(!(rev>0&&cost>=0&&cost<=rev)){var msg=$("#sm");if(msg){msg.textContent="Valid amounts required";msg.className="msg err";}return;}var netQar=rev-cost;var yourShare=netQar*(part.profit_ratio&&part.profit_ratio.you_percentage||0)/100;var wacop=getWACOP()||3.7;var yourShareUsdt=yourShare/wacop;var sId=uid();part.settlements=part.settlements||[];part.settlements.push({id:sId,settlement_date:new Date($("#sd")?.value).getTime(),revenue_qar:rev,cost_qar:cost,net_profit_qar:netQar,your_share_qar:yourShare,your_share_usdt:yourShareUsdt,conversion_rate_qar_per_usdt:wacop,transactions_count:num($("#st")?.value,0)});_collabLog(m,"settlement_recorded","Settlement: rev "+fmtQ(rev)+", your share "+fmtQ(yourShare),"partnership",sId);m.last_activity_date=Date.now();saveRecompute("Settlement recorded","good");closeModal();});},0);}
+
+function recordProfitModal(id){var m=state.merchants.find(function(x){return x.id===id;});if(!m)return;var cap=m.capital_placement||{};if(!cap.active)return;openModal("Record Monthly Profit",'<div class="form-field"><label class="form-label">Month (YYYY-MM) *</label><input id="pm" type="month" class="inp-field" value="'+new Date().toISOString().slice(0,7)+'"/></div><div class="form-field"><label class="form-label">Profit (QAR) *</label><input id="pq" class="inp-field" inputmode="decimal" placeholder="50000"/></div><div class="form-field"><label class="form-label">Payment Date *</label><input id="pp" type="date" class="inp-field" value="'+new Date().toISOString().slice(0,10)+'"/></div><div class="msg" id="pm2"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_a">Record Payment</button>');setTimeout(function(){$("#m_c")?.addEventListener("click",closeModal);$("#m_a")?.addEventListener("click",function(){var profitQar=num($("#pq")?.value,0);if(!(profitQar>0)){var msg=$("#pm2");if(msg){msg.textContent="Profit amount required";msg.className="msg err";}return;}var wacop=getWACOP()||3.7;var profitUsdt=profitQar/wacop;cap.monthly_profits=cap.monthly_profits||[];cap.monthly_profits.push({month:$("#pm")?.value||"",profit_qar:profitQar,profit_usdt:profitUsdt,conversion_rate:wacop,paid_date:new Date($("#pp")?.value).getTime()});cap.cumulative_profit_usdt=(cap.cumulative_profit_usdt||0)+profitUsdt;_collabLog(m,"profit_recorded","Profit: "+fmtQ(profitQar)+" for "+($("#pm")?.value||""),"capital");m.last_activity_date=Date.now();saveRecompute("Profit recorded","good");closeModal();});},0);}
+
+function deleteM(id){if(!confirm("Delete this merchant? All deals, collaboration data, and history will be permanently lost."))return;state.merchants=(state.merchants||[]).filter(function(x){return x.id!==id;});window._selectedMerchantId=null;saveRecompute("Merchant deleted","warn");}
 
 // ─── renderVault ──────────────────────────────────────────────────────────────
 function renderVault(){
@@ -5716,7 +6050,6 @@ function render(){
   else if(p==="p2p")renderP2P();
   else if(p==="crm")renderCRM();
   else if(p==="merchants")renderMerchants();
-  else if(p==="shared_merchants"){setHeader("Shared Merchants","Coming Soon");$("#pageBody").innerHTML=`<div style="padding:20px;text-align:center;"><h3>Shared Merchants</h3><p>Collaborative partnership features - enable real-time collaboration with partners.</p><div class="kpis"><div class="kpi-card"><div class="kpi-lbl">Status</div><div class="kpi-val">✓</div><div class="kpi-sub">System Ready</div></div></div></div>`;}
   else if(p==="calendar")renderCalendar();
   else if(p==="vault")renderVault();
   else renderSettings();
@@ -9427,5 +9760,333 @@ function runSettingsTest() {
 })();
 
 </script>
+
+<script>
+(function(){
+  window._partnerTokenDraft = window._partnerTokenDraft || "";
+  function ensureCollab(m){
+    if(!m.collaboration || typeof m.collaboration !== "object"){
+      m.collaboration = {enabled:false,shared_token:"",role:"owner",access_mode:"comment",shared_fields:["lending","arbitrage","partnership","capital","settlements","messages"],activity_log:[],messages:[],pending_approvals:[]};
+    }
+    var c=m.collaboration;
+    c.enabled=!!c.enabled;
+    if(typeof c.shared_token!=="string") c.shared_token="";
+    if(!["owner","partner","viewer"].includes(c.role)) c.role="owner";
+    if(!["comment","read_only"].includes(c.access_mode)) c.access_mode="comment";
+    if(!Array.isArray(c.shared_fields) || !c.shared_fields.length) c.shared_fields=["lending","arbitrage","partnership","capital","settlements","messages"];
+    c.shared_fields=Array.from(new Set(c.shared_fields.concat(["lending","arbitrage","partnership","capital"]).filter(Boolean)));
+    c.activity_log=Array.isArray(c.activity_log)?c.activity_log:[];
+    c.messages=Array.isArray(c.messages)?c.messages:[];
+    c.pending_approvals=Array.isArray(c.pending_approvals)?c.pending_approvals:[];
+    return c;
+  }
+  function ensureAll(){ (state?.merchants||[]).forEach(ensureCollab); }
+  function fieldLabel(k){ return ({lending:"Lending deals",arbitrage:"Arbitrage deals",partnership:"Partnership",capital:"Capital placement",settlements:"Settlements and payouts",messages:"Messages"})[k] || k; }
+  function roleLabel(k){ return ({owner:"Owner",partner:"Partner",viewer:"Viewer"})[k] || k; }
+  function modeLabel(k){ return k==="read_only" ? "Read-only" : "Comment"; }
+  function approvalTypeLabel(k){ return ({settlement:"Settlement review",profit_record:"Profit record",deal_close:"Deal closure",capital_change:"Capital change"})[k] || String(k||"").replace(/_/g," "); }
+  function approvalSummary(a){
+    var d=(a&&a.data)||{};
+    if(!a) return "Unknown approval";
+    if(a.type==="settlement") return "Settlement proposal, rev "+fmtQ(d.revenue_qar||0)+", cost "+fmtQ(d.cost_qar||0);
+    if(a.type==="profit_record") return "Profit record, "+(d.month||"month")+", "+fmtQ(d.profit_qar||0);
+    if(a.type==="deal_close") return "Close "+(d.target_type||"deal")+" "+(d.target_label||"");
+    if(a.type==="capital_change") return "Capital change to "+fmtU(d.new_capital||0,0)+(d.new_rate?" @ "+d.new_rate+"%":"");
+    return approvalTypeLabel(a.type);
+  }
+  function approvalDealType(a){
+    var d=(a&&a.data)||{};
+    if(d.target_type) return d.target_type;
+    if(a?.type==="settlement") return "partnership";
+    if(a?.type==="profit_record" || a?.type==="capital_change") return "capital";
+    return "general";
+  }
+  function collabLog(m,action,detail,dealType,dealId,actor){
+    var c=ensureCollab(m);
+    c.activity_log.push({id:uid(),ts:Date.now(),actor:actor||"you",action:action,detail:detail,deal_type:dealType||"general",deal_id:dealId||null});
+    if(c.activity_log.length>200) c.activity_log=c.activity_log.slice(-200);
+  }
+  function pushMsg(m,sender,text){
+    var c=ensureCollab(m);
+    c.messages.push({id:uid(),ts:Date.now(),sender:sender,text:text,read:sender==="you",attachments:[]});
+    if(c.messages.length>200) c.messages=c.messages.slice(-200);
+  }
+  function markRead(m){ ensureCollab(m).messages.forEach(function(msg){ if(msg.sender==="partner") msg.read=true; }); }
+  function commitApproval(m,a,note){
+    if(!a) return {ok:false,msg:"Approval not found"};
+    if(a.status!=="pending") return {ok:false,msg:"Approval already resolved"};
+    var d=a.data||{}, wacop=getWACOP()||3.7;
+    if(a.type==="settlement"){
+      if(!(m.partnership&&m.partnership.active)) return {ok:false,msg:"No active partnership on this merchant"};
+      var rev=num(d.revenue_qar,0), cost=num(d.cost_qar,0);
+      if(!(rev>0 && cost>=0 && cost<=rev)) return {ok:false,msg:"Invalid settlement values"};
+      var net=rev-cost, yourPct=num(m.partnership.profit_ratio?.you_percentage,0), yourShare=net*yourPct/100, yourShareUsdt=yourShare/wacop;
+      m.partnership.settlements=m.partnership.settlements||[];
+      m.partnership.settlements.push({id:uid(),settlement_date:d.settlement_date?new Date(d.settlement_date).getTime():Date.now(),revenue_qar:rev,cost_qar:cost,net_profit_qar:net,your_share_qar:yourShare,your_share_usdt:yourShareUsdt,conversion_rate_qar_per_usdt:wacop,transactions_count:num(d.transactions_count,0)});
+    } else if(a.type==="profit_record"){
+      if(!(m.capital_placement&&m.capital_placement.active)) return {ok:false,msg:"No active capital placement on this merchant"};
+      var profitQar=num(d.profit_qar,0);
+      if(!(profitQar>0)) return {ok:false,msg:"Invalid profit amount"};
+      var profitUsdt=profitQar/wacop;
+      m.capital_placement.monthly_profits=m.capital_placement.monthly_profits||[];
+      m.capital_placement.monthly_profits.push({month:d.month||"",profit_qar:profitQar,profit_usdt:profitUsdt,conversion_rate:wacop,paid_date:d.paid_date?new Date(d.paid_date).getTime():Date.now()});
+      m.capital_placement.cumulative_profit_usdt=num(m.capital_placement.cumulative_profit_usdt,0)+profitUsdt;
+    } else if(a.type==="deal_close"){
+      if(d.target_type==="lending"){
+        var l=(m.lending||[]).find(function(x){return x.id===d.target_id;});
+        if(!l) return {ok:false,msg:"Lending deal not found"};
+        l.status="closed"; l.actual_return_date=d.actual_return_date?new Date(d.actual_return_date).getTime():Date.now();
+      } else if(d.target_type==="arbitrage"){
+        var ar=(m.arbitrage||[]).find(function(x){return x.id===d.target_id;});
+        if(!ar) return {ok:false,msg:"Arbitrage deal not found"};
+        ar.status="closed"; ar.actual_return_date=d.actual_return_date?new Date(d.actual_return_date).getTime():Date.now();
+      } else return {ok:false,msg:"Unsupported deal type"};
+    } else if(a.type==="capital_change"){
+      if(!(m.capital_placement&&m.capital_placement.active)) return {ok:false,msg:"No active capital placement on this merchant"};
+      var nextCap=num(d.new_capital,0), nextRate=num(d.new_rate,0);
+      if(nextCap>0) m.capital_placement.usdt_capital=nextCap;
+      if(nextRate>0) m.capital_placement.monthly_profit_rate=nextRate/100;
+      if(typeof d.suspended!=="undefined") m.capital_placement.suspended=!!d.suspended;
+    } else return {ok:false,msg:"Unsupported approval type"};
+    a.status="approved"; a.resolved_ts=Date.now(); a.notes=String(note||"").trim();
+    m.last_activity_date=Date.now();
+    return {ok:true,msg:approvalSummary(a)};
+  }
+  function approvalFormHtml(type,m){
+    if(type==="settlement") return '<div class="form-field"><label class="form-label">Settlement Date *</label><input id="reqSettlementDate" type="date" class="inp-field" value="'+new Date().toISOString().slice(0,10)+'"/></div><div class="form-field"><label class="form-label">Revenue (QAR) *</label><input id="reqRevenue" class="inp-field" inputmode="decimal" placeholder="750000"/></div><div class="form-field"><label class="form-label">Cost (QAR) *</label><input id="reqCost" class="inp-field" inputmode="decimal" placeholder="680000"/></div><div class="form-field"><label class="form-label">Transactions Count</label><input id="reqTxCount" class="inp-field" inputmode="decimal" value="0"/></div>';
+    if(type==="profit_record") return '<div class="form-field"><label class="form-label">Month *</label><input id="reqMonth" type="month" class="inp-field" value="'+new Date().toISOString().slice(0,7)+'"/></div><div class="form-field"><label class="form-label">Profit (QAR) *</label><input id="reqProfitQar" class="inp-field" inputmode="decimal" placeholder="50000"/></div><div class="form-field"><label class="form-label">Paid Date *</label><input id="reqPaidDate" type="date" class="inp-field" value="'+new Date().toISOString().slice(0,10)+'"/></div>';
+    if(type==="deal_close"){
+      var opts=[];
+      (m.lending||[]).filter(function(l){return l.status==="active";}).forEach(function(l){ opts.push('<option value="lending::'+esc(l.id)+'">Lending · '+fmtU(l.amount_usdt,0)+' · '+new Date(l.sent_date).toLocaleDateString()+'</option>'); });
+      (m.arbitrage||[]).filter(function(a){return a.status==="active";}).forEach(function(a){ opts.push('<option value="arbitrage::'+esc(a.id)+'">Arbitrage · '+fmtU(a.usdt_sent,0)+' · '+new Date(a.sent_date).toLocaleDateString()+'</option>'); });
+      return '<div class="form-field"><label class="form-label">Active Deal *</label><select id="reqDealTarget" class="inp-field">'+(opts.length?opts.join(""):'<option value="">No active lending or arbitrage deals</option>')+'</select></div><div class="form-field"><label class="form-label">Closure Date *</label><input id="reqCloseDate" type="date" class="inp-field" value="'+new Date().toISOString().slice(0,10)+'"/></div>';
+    }
+    if(type==="capital_change") return '<div class="form-field"><label class="form-label">New Capital (USDT) *</label><input id="reqNewCapital" class="inp-field" inputmode="decimal" placeholder="250000" value="'+esc(String(num(m.capital_placement?.usdt_capital,0)||""))+'"/></div><div class="form-field"><label class="form-label">New Monthly Rate %</label><input id="reqNewRate" class="inp-field" inputmode="decimal" placeholder="10" value="'+esc(String((num(m.capital_placement?.monthly_profit_rate,0)*100)||""))+'"/></div><div class="form-field"><label class="form-label"><input id="reqSuspend" type="checkbox" '+(m.capital_placement?.suspended?'checked':'')+'/> Suspend capital placement</label></div>';
+    return '';
+  }
+  function partnerSnapshot(m){
+    var c=ensureCollab(m), parts=['<div class="muted" style="font-size:9px;margin-bottom:6px;">Role: '+esc(roleLabel(c.role))+' · Access: '+esc(modeLabel(c.access_mode))+'</div>'];
+    if(c.shared_fields.includes("lending")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">LENDING</div>'+(((m.lending||[]).filter(function(l){return l.status==="active";}).slice(0,5)).map(function(l){return '<div style="display:flex;justify-content:space-between;font-size:9px;padding:2px 0;"><span>'+fmtU(l.amount_usdt,0)+'</span><span class="muted">'+new Date(l.sent_date).toLocaleDateString()+'</span></div>';}).join("")||'<div class="muted" style="font-size:9px;margin-top:4px;">No active lending deals</div>')+'</div>');
+    if(c.shared_fields.includes("arbitrage")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">ARBITRAGE</div>'+(((m.arbitrage||[]).filter(function(a){return a.status==="active";}).slice(0,5)).map(function(a){return '<div style="display:flex;justify-content:space-between;font-size:9px;padding:2px 0;"><span>'+fmtU(a.usdt_sent,0)+' @ '+esc(String(a.price_qar_per_usdt||"—"))+'</span><span class="muted">'+new Date(a.sent_date).toLocaleDateString()+'</span></div>';}).join("")||'<div class="muted" style="font-size:9px;margin-top:4px;">No active arbitrage deals</div>')+'</div>');
+    if(c.shared_fields.includes("partnership")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">PARTNERSHIP</div>'+(m.partnership?.active?'<div style="font-size:9px;margin-top:4px;">Capital '+fmtU(m.partnership.usdt_sent,0)+' · Your share '+num(m.partnership.profit_ratio?.you_percentage,0)+'%</div>':'<div class="muted" style="font-size:9px;margin-top:4px;">No active partnership</div>')+'</div>');
+    if(c.shared_fields.includes("capital")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">CAPITAL</div>'+(m.capital_placement?.active?'<div style="font-size:9px;margin-top:4px;">Capital '+fmtU(m.capital_placement.usdt_capital,0)+' · Rate '+((num(m.capital_placement.monthly_profit_rate,0))*100).toFixed(0)+'%/mo</div>':'<div class="muted" style="font-size:9px;margin-top:4px;">No active capital placement</div>')+'</div>');
+    if(c.shared_fields.includes("settlements")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">SETTLEMENTS AND PAYOUTS</div>'+((m.partnership?.settlements||[]).slice(-3).reverse().map(function(s){return '<div style="font-size:9px;padding:2px 0;">Settlement · '+new Date(s.settlement_date).toLocaleDateString()+' · '+fmtQ(s.your_share_qar)+'</div>';}).join("")+(m.capital_placement?.monthly_profits||[]).slice(-3).reverse().map(function(p){return '<div style="font-size:9px;padding:2px 0;">Profit · '+esc(p.month||"")+' · '+fmtQ(p.profit_qar)+'</div>';}).join("")||'<div class="muted" style="font-size:9px;margin-top:4px;">No shared settlements or payouts</div>')+'</div>');
+    if(c.shared_fields.includes("messages")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">MESSAGES</div>'+((c.messages||[]).slice(-4).reverse().map(function(msg){return '<div style="font-size:9px;padding:2px 0;"><strong>'+esc(msg.sender==="you"?"You":"Partner")+':</strong> '+esc(msg.text)+'</div>';}).join("")||'<div class="muted" style="font-size:9px;margin-top:4px;">No shared messages</div>')+'</div>');
+    return parts.join("");
+  }
+
+  window._mchKpis = function(){
+    ensureAll();
+    let totalUsdt=0,totalProfit=0,pendingReturn=0,lendingActive=0,arbitrageActive=0,partnershipActive=0,capitalActive=0,collabEnabled=0,pendingApprovals=0,totalMessages=0,unreadMessages=0;
+    (state.merchants||[]).forEach(function(m){
+      var lending=m.lending||[], arb=m.arbitrage||[], part=m.partnership||{}, cap=m.capital_placement||{}, col=ensureCollab(m);
+      lending.forEach(function(l){ if(l.status==="active"){ totalUsdt+=num(l.amount_usdt,0); pendingReturn+=num(l.amount_usdt,0); lendingActive++; }});
+      arb.forEach(function(a){ if(a.status==="active"){ totalUsdt+=num(a.usdt_sent,0); arbitrageActive++; }});
+      if(part.active){ totalUsdt+=num(part.usdt_sent,0); partnershipActive++; }
+      if(cap.active){ totalUsdt+=num(cap.usdt_capital,0); capitalActive++; }
+      totalProfit+=(cap.monthly_profits||[]).reduce(function(s,p){return s+num(p.profit_usdt,0);},0);
+      totalProfit+=(part.settlements||[]).reduce(function(s,p){return s+num(p.your_share_usdt,0);},0);
+      if(col.enabled) collabEnabled++;
+      pendingApprovals+=(col.pending_approvals||[]).filter(function(a){return a.status==="pending";}).length;
+      totalMessages+=(col.messages||[]).length;
+      unreadMessages+=(col.messages||[]).filter(function(msg){return msg.sender==="partner"&&!msg.read;}).length;
+    });
+    var totalDeals=lendingActive+arbitrageActive+partnershipActive+capitalActive;
+    var collaborationScore=(state.merchants||[]).length?Math.round(collabEnabled/(state.merchants||[]).length*100):0;
+    return {totalUsdt,totalProfit,pendingReturn,lendingActive,arbitrageActive,partnershipActive,capitalActive,collabEnabled,pendingApprovals,totalMessages,unreadMessages,totalDeals,activeDeals:totalDeals,collaborationScore};
+  };
+
+  window.renderMerchants = function(){
+    setHeader("Merchants & Collaboration","Partnerships, Lending, Arbitrage, Capital, Collaboration");
+    state.merchants=Array.isArray(state.merchants)?state.merchants:[];
+    ensureAll();
+    var tab=window._mchTab||"overview";
+    var kpis=_mchKpis();
+    var tabs=[{id:"overview",icon:"📊",label:"Overview"},{id:"directory",icon:"👥",label:"Directory"},{id:"collaboration",icon:"🤝",label:"Collaboration",badge:kpis.pendingApprovals},{id:"dealboard",icon:"📋",label:"Deal Board",badge:kpis.totalDeals},{id:"analytics",icon:"📈",label:"Analytics"}];
+    var tabBar='<div style="display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;">'+tabs.map(function(t){return '<button class="rowBtn mch-tab-btn" data-mchtab="'+t.id+'" style="font-size:calc(10px * var(--ui-scale,1));padding:5px 10px;display:flex;align-items:center;gap:4px;'+(tab===t.id?'background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;':'')+'">'+t.icon+' '+t.label+(t.badge?(' <span style="background:var(--bad);color:#fff;font-size:8px;padding:1px 5px;border-radius:999px;margin-left:2px;">'+t.badge+'</span>'):'')+'</button>';}).join("")+'</div>';
+    var kpiRow='<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">'+
+      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--brand);border-color:color-mix(in srgb,var(--brand) 30%,transparent);background:color-mix(in srgb,var(--brand) 10%,transparent)">Capital</span></div><div class="kpi-lbl">TOTAL ACTIVE USDT</div><div class="kpi-val">'+fmtU(kpis.totalUsdt,0)+'</div><div class="kpi-sub">'+state.merchants.length+' merchant'+(state.merchants.length!==1?'s':'')+'</div></div>'+
+      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge good" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">YTD</span></div><div class="kpi-lbl">PROFIT RECEIVED</div><div class="kpi-val good">'+fmtQ(kpis.totalProfit)+'</div><div class="kpi-sub">Partnerships and capital</div></div>'+
+      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge warn" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Pending</span></div><div class="kpi-lbl">LENDING RETURNS DUE</div><div class="kpi-val warn">'+fmtU(kpis.pendingReturn,0)+'</div><div class="kpi-sub">'+kpis.lendingActive+' active lending'+(kpis.lendingActive!==1?'s':'')+'</div></div>'+
+      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--t5,#0ea5e9);border-color:color-mix(in srgb,var(--t5,#0ea5e9) 30%,transparent);background:color-mix(in srgb,var(--t5,#0ea5e9) 10%,transparent)">Live</span></div><div class="kpi-lbl">ACTIVE DEALS</div><div class="kpi-val">'+kpis.activeDeals+'</div><div class="kpi-sub">Lending, arbitrage, partnership, capital</div></div>'+
+      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">'+kpis.collaborationScore+'%</span></div><div class="kpi-lbl">COLLABORATION SCORE</div><div class="kpi-val">'+kpis.collabEnabled+' shared</div><div class="kpi-sub">'+kpis.totalMessages+' messages · '+kpis.unreadMessages+' unread</div></div>'+
+      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent);background:color-mix(in srgb,var(--bad) 10%,transparent)">'+kpis.pendingApprovals+'</span></div><div class="kpi-lbl">PENDING APPROVALS</div><div class="kpi-val">'+(kpis.pendingApprovals>0?'<span style="color:var(--bad);">Needs review</span>':'<span style="color:var(--good);">All clear</span>')+'</div><div class="kpi-sub">Approval queue across all shared merchants</div></div>'+
+    '</div>';
+    var content="";
+    if(tab==="overview") content=_mchOverview(kpis);
+    else if(tab==="directory") content=_mchDirectory();
+    else if(tab==="collaboration") content=_mchCollaboration(kpis);
+    else if(tab==="dealboard") content=_mchDealBoard();
+    else if(tab==="analytics") content=_mchAnalytics(kpis);
+    $("#pageBody").innerHTML=tabBar+kpiRow+content;
+    $$(".mch-tab-btn").forEach(function(b){ b.addEventListener("click",function(){ window._mchTab=b.dataset.mchtab; render(); }); });
+    _wireMchEvents(tab);
+  };
+
+  window._mchCollaboration = function(kpis){
+    ensureAll();
+    var merchants=state.merchants||[];
+    var collabMerchants=merchants.filter(function(m){ return ensureCollab(m).enabled; });
+    var allApprovals=[], allActivity=[];
+    merchants.forEach(function(m){ ensureCollab(m).pending_approvals.forEach(function(a){ if(a.status==="pending") allApprovals.push(Object.assign({},a,{merchantName:m.name,merchantId:m.id})); }); });
+    collabMerchants.forEach(function(m){ ensureCollab(m).activity_log.forEach(function(a){ allActivity.push(Object.assign({},a,{merchantName:m.name,merchantId:m.id})); }); });
+    allApprovals.sort(function(a,b){ return b.ts-a.ts; });
+    allActivity.sort(function(a,b){ return b.ts-a.ts; });
+    var approvalsHtml=allApprovals.length?allApprovals.map(function(a){
+      return '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;border:1px solid var(--line);"><div style="font-weight:700;font-size:10px;">'+esc(approvalTypeLabel(a.type))+'</div><div style="font-size:9px;margin-top:3px;">'+esc(approvalSummary(a))+'</div><div class="muted" style="font-size:9px;margin-top:3px;">'+esc(a.merchantName)+' · '+_relTime(a.ts)+' · by '+esc(a.requested_by)+'</div><div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;"><button class="rowBtn approveApprovalBtn" data-mid="'+esc(a.merchantId)+'" data-aid="'+esc(a.id)+'" style="font-size:8px;padding:2px 6px;color:var(--good);">✓ Approve</button><button class="rowBtn rejectApprovalBtn" data-mid="'+esc(a.merchantId)+'" data-aid="'+esc(a.id)+'" style="font-size:8px;padding:2px 6px;color:var(--bad);">✗ Reject</button></div></div>';
+    }).join(""):'<div class="muted" style="font-size:10px;padding:10px;">No pending approvals, all clear ✓</div>';
+    var cardsHtml=collabMerchants.length?collabMerchants.map(function(m){
+      var col=ensureCollab(m), pending=(col.pending_approvals||[]).filter(function(a){return a.status==="pending";}).length, unread=(col.messages||[]).filter(function(msg){return msg.sender==="partner"&&!msg.read;}).length;
+      return '<div style="padding:10px;background:var(--panel2);border-radius:var(--lt-radius-sm);border:1px solid var(--line);margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;"><div><strong>'+esc(m.name)+'</strong> <span class="pill" style="font-size:8px;color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);">● Shared</span><div class="muted" style="font-size:9px;margin-top:4px;">Role: '+esc(roleLabel(col.role))+' · Access: '+esc(modeLabel(col.access_mode))+'</div></div><div style="display:flex;gap:4px;flex-wrap:wrap;"><button class="rowBtn manageCollabBtn" data-mid="'+esc(m.id)+'" style="font-size:8px;padding:2px 6px;">⚙ Manage</button><button class="rowBtn sendMsgBtn" data-mid="'+esc(m.id)+'" style="font-size:8px;padding:2px 6px;">💬 Message</button><button class="rowBtn partnerActionBtn" data-mid="'+esc(m.id)+'" style="font-size:8px;padding:2px 6px;">📋 Partner Action</button><button class="rowBtn partnerViewBtn" data-mid="'+esc(m.id)+'" style="font-size:8px;padding:2px 6px;">👁 Partner View</button></div></div><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:9px;" class="muted"><span>📨 '+(col.messages||[]).length+' messages'+(unread?(' · '+unread+' unread'):'')+'</span><span>'+(pending?('<span style="color:var(--bad);">⚠ '+pending+' pending</span>'):'✓ clear')+'</span><span>🔑 '+(col.shared_token?col.shared_token.slice(0,8)+'…':'no token')+'</span></div><div class="muted" style="font-size:8px;margin-top:6px;">Visible to partner: '+esc((col.shared_fields||[]).map(fieldLabel).join(', ')||'Nothing selected')+'</div>'+((col.messages||[]).length?'<div style="margin-top:8px;border-top:1px solid var(--line2);padding-top:6px;max-height:110px;overflow-y:auto;">'+(col.messages||[]).slice(-4).reverse().map(function(msg){return '<div style="font-size:9px;padding:2px 0;"><span style="font-weight:600;">'+esc(msg.sender==="you"?"You":"Partner")+':</span> '+esc(msg.text)+' <span class="muted" style="font-size:8px;">'+_relTime(msg.ts)+'</span></div>';}).join("")+'</div>':'')+'</div>';
+    }).join(""):'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No collaborative merchants</div><div class="empty-s">Enable collaboration on a merchant from the Directory tab</div></div>';
+    var timelineHtml=allActivity.length?allActivity.slice(0,24).map(function(a){return '<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--line2);font-size:9px;"><span class="muted" style="flex-shrink:0;min-width:56px;">'+_relTime(a.ts)+'</span><span style="flex-shrink:0;">'+(a.actor==="you"?"👤":"🤝")+'</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong>'+esc(a.merchantName)+'</strong>, '+esc(a.detail||a.action)+'</span></div>';}).join(""):'<div class="muted" style="font-size:10px;padding:10px;">No collaboration activity yet</div>';
+    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div class="panel"><div class="panel-head"><h2>Pending Approvals</h2><span class="pill">'+allApprovals.length+'</span></div><div class="panel-body" style="max-height:300px;overflow-y:auto;">'+approvalsHtml+'</div></div><div class="panel"><div class="panel-head"><h2>Activity Timeline</h2><span class="pill">'+Math.min(allActivity.length,24)+' events</span></div><div class="panel-body" style="max-height:300px;overflow-y:auto;">'+timelineHtml+'</div></div></div><div class="panel" style="margin-top:10px;"><div class="panel-head"><h2>Collaborative Merchants</h2><span class="pill">'+collabMerchants.length+' active</span></div><div class="panel-body">'+cardsHtml+'</div></div>';
+  };
+
+  window._wireMchEvents = function(tab){
+    $("#qaAddMerchant")?.addEventListener("click",function(){addMerchantModal();});
+    $("#qaGotoDirectory")?.addEventListener("click",function(){window._mchTab="directory";render();});
+    $("#qaGotoCollab")?.addEventListener("click",function(){window._mchTab="collaboration";render();});
+    $("#qaGotoDealBoard")?.addEventListener("click",function(){window._mchTab="dealboard";render();});
+    $("#addMerchantBtn")?.addEventListener("click",function(){addMerchantModal();});
+    $("#editMerchantBtn")?.addEventListener("click",function(){editMerchantModal(window._selectedMerchantId);});
+    $("#addLendingBtn")?.addEventListener("click",function(){addLendingModal(window._selectedMerchantId);});
+    $("#addArbitrageBtn")?.addEventListener("click",function(){addArbitrageModal(window._selectedMerchantId);});
+    $("#addPartnershipBtn")?.addEventListener("click",function(){addPartnershipModal(window._selectedMerchantId);});
+    $("#addCapitalBtn")?.addEventListener("click",function(){addCapitalModal(window._selectedMerchantId);});
+    $("#settlementBtn")?.addEventListener("click",function(){addSettlementModal(window._selectedMerchantId);});
+    $("#recordProfitBtn")?.addEventListener("click",function(){recordProfitModal(window._selectedMerchantId);});
+    $("#toggleCollabBtn")?.addEventListener("click",function(){_toggleCollab(window._selectedMerchantId);});
+    $$(".manageCollabBtn").forEach(function(b){ b.addEventListener("click",function(){ window._manageCollab(b.dataset.mid); }); });
+    $$(".sendMsgBtn").forEach(function(b){ b.addEventListener("click",function(){ window._sendCollabMessage(b.dataset.mid); }); });
+    $$(".partnerActionBtn").forEach(function(b){ b.addEventListener("click",function(){ window._requestApproval(b.dataset.mid,"partner"); }); });
+    $$(".partnerViewBtn").forEach(function(b){ b.addEventListener("click",function(){ window._simulatePartnerAccess(b.dataset.mid); }); });
+    $$(".approveApprovalBtn").forEach(function(b){ b.addEventListener("click",function(){ window._approveApproval(b.dataset.mid,b.dataset.aid); }); });
+    $$(".rejectApprovalBtn").forEach(function(b){ b.addEventListener("click",function(){ window._rejectApproval(b.dataset.mid,b.dataset.aid); }); });
+    if(tab==="analytics") _renderMchProfitChart();
+  };
+
+  window._manageCollab = function(id){
+    var m=(state.merchants||[]).find(function(x){return x.id===id;}); if(!m) return;
+    var c=ensureCollab(m);
+    var fieldHtml=["lending","arbitrage","partnership","capital","settlements","messages"].map(function(k){ return '<label style="display:flex;align-items:center;gap:6px;font-size:9px;padding:4px 6px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><input type="checkbox" class="mcField" value="'+k+'" '+(c.shared_fields.includes(k)?'checked':'')+'/> '+fieldLabel(k)+'</label>'; }).join("");
+    openModal("Manage Collaboration — "+esc(m.name), '<div class="form-field"><label class="form-label"><input id="mcEnabled" type="checkbox" '+(c.enabled?'checked':'')+'/> Enable collaboration</label></div><div class="form-field"><label class="form-label">Role</label><select id="mcRole" class="inp-field"><option value="owner"'+(c.role==="owner"?' selected':'')+'>Owner</option><option value="partner"'+(c.role==="partner"?' selected':'')+'>Partner</option><option value="viewer"'+(c.role==="viewer"?' selected':'')+'>Viewer</option></select></div><div class="form-field"><label class="form-label">Partner Access Mode</label><select id="mcMode" class="inp-field"><option value="comment"'+(c.access_mode==="comment"?' selected':'')+'>Comment mode</option><option value="read_only"'+(c.access_mode==="read_only"?' selected':'')+'>Read-only</option></select></div><div class="form-field"><label class="form-label">Shared Fields</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+fieldHtml+'</div></div><div class="form-field"><label class="form-label">Current Share Token</label><div class="inp-field" style="user-select:all;font-family:var(--lt-font-mono,monospace);">'+esc(c.shared_token||"—")+'</div><label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:9px;"><input id="mcRegen" type="checkbox"/> Regenerate token on save</label></div><div class="msg" id="mcMsg"></div>', '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_save">Save Collaboration</button>');
+    setTimeout(function(){
+      $("#m_c")?.addEventListener("click",closeModal);
+      $("#m_save")?.addEventListener("click",function(){
+        var enabled=!!$("#mcEnabled")?.checked, role=$("#mcRole")?.value||"owner", mode=$("#mcMode")?.value||"comment", fields=$$(".mcField:checked").map(function(el){return el.value;});
+        if(enabled && !fields.length){ var box=$("#mcMsg"); if(box){ box.textContent="Select at least one shared field"; box.className="msg err"; } return; }
+        c.enabled=enabled; c.role=role; c.access_mode=mode; c.shared_fields=fields.length?fields:c.shared_fields;
+        if(!enabled) c.shared_token=""; else if(!c.shared_token || $("#mcRegen")?.checked) c.shared_token=_genToken();
+        collabLog(m,"collaboration_configured","Collaboration settings updated","general",null,"you");
+        saveRecompute("Collaboration settings saved","good");
+        closeModal();
+      });
+    },0);
+  };
+
+  window._sendCollabMessage = function(id){
+    var m=(state.merchants||[]).find(function(x){return x.id===id;}); if(!m) return;
+    openModal("Send Message to "+esc(m.name), '<div class="form-field"><label class="form-label">Message *</label><textarea id="collabMsg" class="inp-field" style="min-height:80px;" placeholder="Type your message…"></textarea></div><div class="msg" id="collabMsgErr"></div>', '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">Send Message</button>');
+    setTimeout(function(){
+      $("#m_c")?.addEventListener("click",closeModal);
+      $("#m_send")?.addEventListener("click",function(){
+        var text=(($("#collabMsg")?.value)||"").trim(); if(!text){ var e=$("#collabMsgErr"); if(e){ e.textContent="Message is required"; e.className="msg err"; } return; }
+        pushMsg(m,"you",text); collabLog(m,"sent_message","Message sent: "+text.slice(0,60),"general",null,"you"); saveRecompute("Message sent","good"); closeModal();
+      });
+    },0);
+  };
+
+  window._sendPartnerMessage = function(id){
+    var m=(state.merchants||[]).find(function(x){return x.id===id;}); if(!m) return;
+    openModal("Partner Message — "+esc(m.name), '<div class="form-field"><label class="form-label">Message *</label><textarea id="partnerMsg" class="inp-field" style="min-height:80px;" placeholder="Type the partner message…"></textarea></div><div class="msg" id="partnerMsgErr"></div>', '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">Send as Partner</button>');
+    setTimeout(function(){
+      $("#m_c")?.addEventListener("click",closeModal);
+      $("#m_send")?.addEventListener("click",function(){
+        var text=(($("#partnerMsg")?.value)||"").trim(); if(!text){ var e=$("#partnerMsgErr"); if(e){ e.textContent="Message is required"; e.className="msg err"; } return; }
+        pushMsg(m,"partner",text); collabLog(m,"partner_message","Partner message: "+text.slice(0,60),"general",null,"partner"); saveRecompute("Partner message added","good"); closeModal();
+      });
+    },0);
+  };
+
+  window._requestApproval = function(id,requestedBy){
+    var m=(state.merchants||[]).find(function(x){return x.id===id;}); if(!m) return;
+    var c=ensureCollab(m); requestedBy=requestedBy||"partner";
+    openModal((requestedBy==="partner"?"Partner Action":"Request Approval")+" — "+esc(m.name), '<div class="form-field"><label class="form-label">Request Type *</label><select id="reqType" class="inp-field"><option value="settlement">Settlement Review</option><option value="profit_record">Profit Record Verification</option><option value="deal_close">Deal Closure</option><option value="capital_change">Capital Change</option></select></div><div id="reqDynamic">'+approvalFormHtml("settlement",m)+'</div><div class="form-field"><label class="form-label">Description *</label><textarea id="reqDesc" class="inp-field" style="min-height:60px;" placeholder="Describe what needs approval…"></textarea></div><div class="msg" id="reqErr"></div>', '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_req">Submit Request</button>');
+    setTimeout(function(){
+      function renderFields(){ var t=$("#reqType")?.value||"settlement"; var box=$("#reqDynamic"); if(box) box.innerHTML=approvalFormHtml(t,m); }
+      $("#reqType")?.addEventListener("change",renderFields);
+      $("#m_c")?.addEventListener("click",closeModal);
+      $("#m_req")?.addEventListener("click",function(){
+        var type=$("#reqType")?.value||"settlement", desc=(($("#reqDesc")?.value)||"").trim(), err=$("#reqErr");
+        if(!desc){ if(err){ err.textContent="Description is required"; err.className="msg err"; } return; }
+        var payload={description:desc};
+        if(type==="settlement"){
+          var rev=num($("#reqRevenue")?.value,0), cost=num($("#reqCost")?.value,0);
+          if(!(rev>0&&cost>=0&&cost<=rev)){ if(err){ err.textContent="Valid settlement amounts are required"; err.className="msg err"; } return; }
+          payload.settlement_date=$("#reqSettlementDate")?.value||new Date().toISOString().slice(0,10); payload.revenue_qar=rev; payload.cost_qar=cost; payload.transactions_count=num($("#reqTxCount")?.value,0);
+        } else if(type==="profit_record"){
+          var pq=num($("#reqProfitQar")?.value,0); if(!(pq>0)){ if(err){ err.textContent="Profit amount is required"; err.className="msg err"; } return; }
+          payload.month=$("#reqMonth")?.value||""; payload.profit_qar=pq; payload.paid_date=$("#reqPaidDate")?.value||new Date().toISOString().slice(0,10);
+        } else if(type==="deal_close"){
+          var target=$("#reqDealTarget")?.value||""; if(!target){ if(err){ err.textContent="Select an active deal"; err.className="msg err"; } return; }
+          var parts=target.split("::"); payload.target_type=parts[0]; payload.target_id=parts[1]; payload.actual_return_date=$("#reqCloseDate")?.value||new Date().toISOString().slice(0,10); payload.target_label=($("#reqDealTarget")?.selectedOptions?.[0]||{}).textContent||"";
+        } else if(type==="capital_change"){
+          var cap=num($("#reqNewCapital")?.value,0), rate=num($("#reqNewRate")?.value,0); if(!(cap>0 || rate>0)){ if(err){ err.textContent="Set a new capital amount or rate"; err.className="msg err"; } return; }
+          payload.new_capital=cap; payload.new_rate=rate; payload.suspended=!!$("#reqSuspend")?.checked;
+        }
+        c.pending_approvals.push({id:uid(),ts:Date.now(),type:type,status:"pending",requested_by:requestedBy,data:payload,resolved_ts:null,notes:""});
+        collabLog(m,"approval_requested",(requestedBy==="partner"?"Partner requested: ":"Approval requested: ")+approvalSummary({type:type,data:payload}),approvalDealType({type:type,data:payload}),payload.target_id||null,requestedBy==="partner"?"partner":"you");
+        if(requestedBy==="partner") pushMsg(m,"partner","Requested approval, "+approvalSummary({type:type,data:payload}));
+        saveRecompute("Approval request submitted","good"); closeModal();
+      });
+    },0);
+  };
+
+  window._simulatePartnerAccess = function(id){
+    var m=(state.merchants||[]).find(function(x){return x.id===id;}); if(!m) return;
+    var c=ensureCollab(m);
+    openModal("Partner Access — "+esc(m.name), '<div class="form-field"><label class="form-label">Share Token</label><input id="partnerToken" class="inp-field" value="'+esc(window._partnerTokenDraft||"")+'" placeholder="Enter share token"/></div><div class="msg" id="partnerTokenMsg">Enter the active token to simulate partner access.</div><div id="partnerSnapshot"></div>', '<button class="btn secondary" id="m_c">Close</button><button class="btn" id="m_open">Open Shared View</button>');
+    setTimeout(function(){
+      $("#m_c")?.addEventListener("click",closeModal);
+      $("#m_open")?.addEventListener("click",function(){
+        var token=(($("#partnerToken")?.value)||"").trim(); window._partnerTokenDraft=token;
+        var msg=$("#partnerTokenMsg");
+        if(!c.enabled || !c.shared_token || token!==c.shared_token){ if(msg){ msg.textContent="Token invalid or collaboration is disabled"; msg.className="msg err"; } return; }
+        if(msg){ msg.textContent="Token accepted. Shared view opened."; msg.className="msg good"; }
+        $("#partnerSnapshot").innerHTML='<div style="margin-top:8px;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--lt-radius-sm);">'+partnerSnapshot(m)+'</div>'+(c.access_mode==="comment"?'<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><button class="rowBtn" id="partnerMsgBtn">💬 Send partner message</button><button class="rowBtn" id="partnerReqBtn">📋 Request action</button></div>':'<div class="muted" style="font-size:9px;margin-top:8px;">This token is read-only.</div>');
+        markRead(m); collabLog(m,"partner_view_opened","Partner opened shared view","general",null,"partner"); saveRecompute("Partner view simulated","good");
+        $("#partnerMsgBtn")?.addEventListener("click",function(){ window._sendPartnerMessage(m.id); });
+        $("#partnerReqBtn")?.addEventListener("click",function(){ window._requestApproval(m.id,"partner"); });
+      });
+    },0);
+  };
+
+  window._approveApproval = function(mid,aid){
+    var m=(state.merchants||[]).find(function(x){return x.id===mid;}); if(!m) return;
+    var a=(ensureCollab(m).pending_approvals||[]).find(function(x){return x.id===aid;}); if(!a) return;
+    var note=prompt("Optional approval note for "+m.name, a.notes||""); if(note===null) return;
+    var res=commitApproval(m,a,note||""); if(!res.ok){ toast(res.msg,"warn"); return; }
+    collabLog(m,"approved","Approved: "+res.msg,approvalDealType(a),a.data?.target_id||null,"you");
+    pushMsg(m,"you","Approved: "+res.msg+(note?(" · Note: "+note):""));
+    saveRecompute("Approval granted","good");
+  };
+
+  window._rejectApproval = function(mid,aid){
+    var m=(state.merchants||[]).find(function(x){return x.id===mid;}); if(!m) return;
+    var a=(ensureCollab(m).pending_approvals||[]).find(function(x){return x.id===aid;}); if(!a) return;
+    if(a.status!=="pending"){ toast("Approval already resolved","warn"); return; }
+    var note=prompt("Optional rejection note for "+m.name, a.notes||""); if(note===null) return;
+    a.status="rejected"; a.resolved_ts=Date.now(); a.notes=String(note||"").trim();
+    collabLog(m,"rejected","Rejected: "+approvalSummary(a),approvalDealType(a),a.data?.target_id||null,"you");
+    pushMsg(m,"you","Rejected: "+approvalSummary(a)+(note?(" · Note: "+note):""));
+    saveRecompute("Approval rejected","warn");
+  };
+
+  ensureAll();
+  if(typeof render==="function" && state?.page==="merchants") render();
+})();
+</script>
+
 </body>
 </html>
