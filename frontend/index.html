@@ -787,6 +787,27 @@ tbody tr { transition: background var(--lt-tr); }
 
   /* keep stock table pinned to viewport width on mobile */
   body[data-page="stock"] .tableWrap{overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+
+  /* force full-width containers/panels for Orders & Stock on phones */
+  body[data-page="orders"] #pageBody,
+  body[data-page="stock"] #pageBody,
+  body[data-page="orders"] .twoColPage,
+  body[data-page="stock"] .twoColPage,
+  body[data-page="orders"] .twoColPage > div,
+  body[data-page="stock"] .twoColPage > div,
+  body[data-page="orders"] .formPanel,
+  body[data-page="stock"] .formPanel,
+  body[data-page="orders"] .panel,
+  body[data-page="stock"] .panel,
+  body[data-page="orders"] .tableWrap,
+  body[data-page="stock"] .tableWrap{width:100%;max-width:100%;min-width:0;box-sizing:border-box;}
+
+  body[data-page="orders"] .inputBox,
+  body[data-page="stock"] .inputBox,
+  body[data-page="orders"] .inputBox input,
+  body[data-page="stock"] .inputBox input,
+  body[data-page="orders"] .inputBox select,
+  body[data-page="stock"] .inputBox select{max-width:100%;min-width:0;}
 }
 @media(max-width:560px){ .kpis{grid-template-columns:1fr;} .analytics-stats{grid-template-columns:1fr;} .lt-grid{grid-template-columns:1fr 1fr;} body[data-page="settings"] .lt-grid{grid-template-columns:repeat(2,minmax(0,1fr));} body[data-page="settings"] .theme-colors{grid-template-columns:repeat(2,minmax(0,1fr));} }
 .div-line { display: none !important; }
@@ -2171,6 +2192,22 @@ const fmtQ=n=>{
   }
   return fmtQRaw(q);
 };
+
+function curUnit(){ return (state && state.currency==="USDT") ? "USDT" : "QAR"; }
+// QAR-amount formatter with unit that respects the currency toggle.
+// If user selects USDT but WACOP is missing, we fall back to QAR display (same behavior as before).
+function fmtQWithUnit(qarAmount){
+  const q = num(qarAmount);
+  if(!Number.isFinite(q)) return "—";
+  const w = (typeof getWACOP==="function") ? getWACOP() : null;
+  if(state && state.currency==="USDT"){
+    if(w && w>0) return fmtU(q/w)+" USDT";
+    return fmtQRaw(q)+" QAR";
+  }
+  return fmtQRaw(q)+" QAR";
+}
+
+
 // Quantities (USDT) keep up to 2 decimals for readability
 const fmtU=n=>Number.isFinite(num(n))?num(n).toLocaleString(uiLocale(),{minimumFractionDigits:0,maximumFractionDigits:2}):"—";
 // Prices show decimals (default 2)
