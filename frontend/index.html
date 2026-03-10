@@ -1957,11 +1957,15 @@ function syncSaleDraftFromInputs(){
   const sellEl=$("#t_sell");
   if(sellEl&&String(sellEl.value||"").trim()!=="")d.sellPriceQAR=num(sellEl.value);
   const amtEl=$("#t_amt");
+  const rawAmt=amtEl&&String(amtEl.value||"").trim()!==""?num(amtEl.value):NaN;
   if(d.mode==="USDT"){
-    d.amountUSDT=amtEl&&String(amtEl.value||"").trim()!==""?num(amtEl.value):NaN;
+    d.amountUSDT=rawAmt;
+    d.amountQAR=(Number.isFinite(d.amountUSDT)&&Number.isFinite(d.sellPriceQAR)&&d.sellPriceQAR>0)?d.amountUSDT*d.sellPriceQAR:NaN;
+  }else if(d.currency==="USDT"){
+    d.amountUSDT=rawAmt;
     d.amountQAR=(Number.isFinite(d.amountUSDT)&&Number.isFinite(d.sellPriceQAR)&&d.sellPriceQAR>0)?d.amountUSDT*d.sellPriceQAR:NaN;
   }else{
-    d.amountQAR=amtEl&&String(amtEl.value||"").trim()!==""?currencyToQar(amtEl.value,d.currency):NaN;
+    d.amountQAR=rawAmt;
     d.amountUSDT=(Number.isFinite(d.amountQAR)&&Number.isFinite(d.sellPriceQAR)&&d.sellPriceQAR>0)?d.amountQAR/d.sellPriceQAR:NaN;
   }
   const cust=$("#t_cust");if(cust)d.customerId=String(cust.value||"");
@@ -1969,9 +1973,10 @@ function syncSaleDraftFromInputs(){
   return d;
 }
 
+
 function getBatchDraft(){
   if(!window._batchDraft){
-    window._batchDraft={ts:Date.now(),currency:"QAR",amountUSDT:NaN,buyPriceQAR:NaN,source:"",note:""};
+    window._batchDraft={ts:Date.now(),currency:"QAR",amountUSDT:NaN,amountQAR:NaN,buyPriceQAR:NaN,source:"",note:""};
   }
   const d=window._batchDraft;
   if(!Number.isFinite(d.ts))d.ts=Date.now();
@@ -1981,7 +1986,7 @@ function getBatchDraft(){
   return d;
 }
 function resetBatchDraft(){
-  window._batchDraft={ts:Date.now(),currency:"QAR",amountUSDT:NaN,buyPriceQAR:NaN,source:"",note:""};
+  window._batchDraft={ts:Date.now(),currency:"QAR",amountUSDT:NaN,amountQAR:NaN,buyPriceQAR:NaN,source:"",note:""};
 }
 function syncBatchDraftFromInputs(){
   if(!document.getElementById("b_dt")&&!document.getElementById("b_amt")&&!document.getElementById("b_px"))return getBatchDraft();
@@ -1989,14 +1994,22 @@ function syncBatchDraftFromInputs(){
   const ts=inputToTs($("#b_dt")?.value);
   if(Number.isFinite(ts))d.ts=ts;
   d.currency=normalizeCurrency((($("#b_formcur")?.value)||d.currency));
-  const amtEl=$("#b_amt");
-  d.amountUSDT=amtEl&&String(amtEl.value||"").trim()!==""?num(amtEl.value):NaN;
   const pxEl=$("#b_px");
   d.buyPriceQAR=pxEl&&String(pxEl.value||"").trim()!==""?num(pxEl.value):NaN;
+  const amtEl=$("#b_amt");
+  const rawAmt=amtEl&&String(amtEl.value||"").trim()!==""?num(amtEl.value):NaN;
+  if(d.currency==="USDT"){
+    d.amountUSDT=rawAmt;
+    d.amountQAR=(Number.isFinite(d.amountUSDT)&&Number.isFinite(d.buyPriceQAR)&&d.buyPriceQAR>0)?d.amountUSDT*d.buyPriceQAR:NaN;
+  }else{
+    d.amountQAR=rawAmt;
+    d.amountUSDT=(Number.isFinite(d.amountQAR)&&Number.isFinite(d.buyPriceQAR)&&d.buyPriceQAR>0)?d.amountQAR/d.buyPriceQAR:NaN;
+  }
   const src=$("#b_src");if(src)d.source=String(src.value||"");
   const note=$("#b_note");if(note)d.note=String(note.value||"");
   return d;
 }
+
 function syncActiveFormDrafts(){syncSaleDraftFromInputs();syncBatchDraftFromInputs();}
 function setCurrency(cur){
   state.currency="QAR";
@@ -2011,15 +2024,23 @@ function setSaleCurrency(cur){
   $$("[data-salecur]").forEach(b=>b.classList.toggle("active",b.dataset.salecur===next));
   const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=d.mode==="USDT"?"Quantity (USDT)":"Amount ("+next+")";
   const input=$("#t_amt");
-  if(input&&d.mode==="QAR")input.value=inputMoneyQARIn(d.amountQAR,next,2);
+  if(input&&d.mode==="QAR")input.value=next==="USDT"
+    ?(Number.isFinite(d.amountUSDT)?num(d.amountUSDT).toFixed(2):"")
+    :(Number.isFinite(d.amountQAR)?num(d.amountQAR).toFixed(2):"");
   updateSalePreview();
 }
+
 function setBatchCurrency(cur){
   const d=syncBatchDraftFromInputs();
   const next=normalizeCurrency(cur);
   d.currency=next;
   if($("#b_formcur"))$("#b_formcur").value=next;
   $$("[data-batchcur]").forEach(b=>b.classList.toggle("active",b.dataset.batchcur===next));
+  const lbl=$("#b_amt_lbl");if(lbl)lbl.textContent=next==="USDT"?"Total (USDT)":"Amount (QAR)";
+  const input=$("#b_amt");
+  if(input)input.value=next==="USDT"
+    ?(Number.isFinite(d.amountUSDT)?num(d.amountUSDT).toFixed(2):"")
+    :(Number.isFinite(d.amountQAR)?num(d.amountQAR).toFixed(2):"");
   updateBatchPreview();
 }
 // ── FIFO ENGINE ──────────────────────────────────────────────────
@@ -2246,15 +2267,14 @@ function chartOpts(extra={}){
 
 // ── ACTIONS ──────────────────────────────────────────────────────
 function addTrade(){
-  syncSaleDraftFromInputs();
-  const ts=inputToTs($("#t_dt")?.value),mode=$("#t_mode_val")?.value||"USDT";
-  const sell=num($("#t_sell")?.value),raw=num($("#t_amt")?.value);const fee=0;
-  const usesStock=$("#t_stock")?.checked??true;
-  const customerId=$("#t_cust")?.value.trim()||"";
+  const d=syncSaleDraftFromInputs();
+  const ts=Number.isFinite(d.ts)?d.ts:inputToTs($("#t_dt")?.value),mode=d.mode||$("#t_mode_val")?.value||"USDT";
+  const sell=num(d.sellPriceQAR),rawText=String($("#t_amt")?.value||"").trim();const fee=0;
+  const usesStock=d.usesStock!==false;
+  const customerId=String(d.customerId||"").trim();
   const errs=[];
-  if(!Number.isFinite(ts))errs.push("date");if(!(sell>0))errs.push("sell price");if(!(raw>0))errs.push(mode==="USDT"?"qty":"amount");
-  const rawQAR=mode==="USDT"?NaN:displayToQar(raw);
-  let amountUSDT=mode==="USDT"?raw:(sell>0?rawQAR/sell:0);
+  if(!Number.isFinite(ts))errs.push("date");if(!(sell>0))errs.push("sell price");if(rawText==="")errs.push(mode==="USDT"?"qty":"amount");
+  const amountUSDT=num(d.amountUSDT);
   if(!(amountUSDT>0))errs.push("qty");
   if(errs.length){const el=$("#t_msg");if(el){el.textContent="Fix: "+errs.join(", ");el.className="msg err";}return;}
   const id=uid(),trade={id,ts,inputMode:mode,amountUSDT,sellPriceQAR:sell,feeQAR:fee,note:"",voided:false,usesStock,revisions:[],customerId};
@@ -2265,6 +2285,7 @@ function addTrade(){
   const tm=$("#t_msg");if(tm){tm.textContent="";tm.className="msg";}
   updateSalePreview();
 }
+
 
 function openAddCustomerModal(prefillName=""){
   openModal("Add Customer",`
@@ -2298,9 +2319,9 @@ function openAddCustomerModal(prefillName=""){
 
 
 function addBatch(){
-  syncBatchDraftFromInputs();
-  const ts=inputToTs($("#b_dt")?.value),amt=num($("#b_amt")?.value),px=displayToQar($("#b_px")?.value),src=$("#b_src")?.value.trim()||"",note=$("#b_note")?.value.trim()||"";
-  const errs=[];if(!Number.isFinite(ts))errs.push("date");if(!(amt>0))errs.push("qty");if(!(px>0))errs.push("price");if(!src)errs.push("supplier");
+  const d=syncBatchDraftFromInputs();
+  const ts=Number.isFinite(d.ts)?d.ts:inputToTs($("#b_dt")?.value),amt=num(d.amountUSDT),px=num(d.buyPriceQAR),src=$("#b_src")?.value.trim()||"",note=$("#b_note")?.value.trim()||"";
+  const errs=[];if(!Number.isFinite(ts))errs.push("date");if(!(amt>0))errs.push("total");if(!(px>0))errs.push("price");if(!src)errs.push("supplier");
   if(errs.length){const el=$("#b_msg");if(el){el.textContent="Fix: "+errs.join(", ");el.className="msg err";}return;}
   ensureSupplierRecord({name:src});
   state.batches.push({id:uid(),ts,initialUSDT:amt,buyPriceQAR:px,source:src,note});
@@ -2309,6 +2330,7 @@ function addBatch(){
   saveRecompute("Batch added ✓","good");
   const bm=$("#b_msg");if(bm){bm.textContent="";bm.className="msg";}
 }
+
 function setMode(m){
   const d=syncSaleDraftFromInputs();
   const next=m==="QAR"?"QAR":"USDT";
@@ -2327,10 +2349,13 @@ function setMode(m){
   if(input){
     input.value=next==="USDT"
       ?(Number.isFinite(d.amountUSDT)?num(d.amountUSDT).toFixed(2):"")
-      :inputMoneyQARIn(d.amountQAR,saleCur,2);
+      :(saleCur==="USDT"
+        ?(Number.isFinite(d.amountUSDT)?num(d.amountUSDT).toFixed(2):"")
+        :(Number.isFinite(d.amountQAR)?num(d.amountQAR).toFixed(2):""));
   }
   updateSalePreview();
 }
+
 function updateSalePreview(){
   const d=syncSaleDraftFromInputs();
   const mode=d.mode||"USDT",sell=num(d.sellPriceQAR);const fee=0;
@@ -2366,18 +2391,19 @@ function updateSalePreview(){
 function updateBatchPreview(){
   const d=syncBatchDraftFromInputs();
   const box=$("#batchPreview");if(!box)return;
-  const qty=num(d.amountUSDT),buy=num(d.buyPriceQAR),total=(qty>0&&buy>0)?qty*buy:NaN;
+  const qty=num(d.amountUSDT),buy=num(d.buyPriceQAR),volume=Number.isFinite(d.amountQAR)?num(d.amountQAR):((qty>0&&buy>0)?qty*buy:NaN);
   const cur=normalizeCurrency(d.currency);
   if(!(qty>0)||!(buy>0)){
-    box.innerHTML=`<div class="pt">Batch Preview</div><div class="muted" style="font-size:calc(11px * var(--ui-scale,1));">Total stays in USDT, volume stays in QAR, buy price stays in QAR.</div>`;
+    box.innerHTML=`<div class="pt">Batch Preview</div><div class="muted" style="font-size:calc(11px * var(--ui-scale,1));">Enter either total in USDT or amount in QAR. The saved batch total stays in USDT, volume stays in QAR, buy price stays in QAR.</div>`;
     return;
   }
   box.innerHTML=`<div class="pt">Batch Preview</div>
     <div class="pr"><span>Total</span><strong>${fmtU(qty)} USDT</strong></div>
     <div class="pr"><span>Buy Price</span><strong>${fmtRateQARFixed(buy)}</strong></div>
-    <div class="pr"><span>Volume</span><strong>${fmtQ(total)} QAR</strong></div>
-    <div class="muted" style="font-size:calc(10px * var(--ui-scale,1));margin-top:6px;">Toggle helper, ${cur==="USDT"?"USDT estimate "+fmtMoneyQARIn(total,"USDT"):"QAR volume locked for accounting"}.</div>`;
+    <div class="pr"><span>Volume</span><strong>${fmtQ(volume)} QAR</strong></div>
+    <div class="muted" style="font-size:calc(10px * var(--ui-scale,1));margin-top:6px;">${cur==="QAR"?"QAR amount converted into the saved USDT batch total using the buy price above.":"USDT total converted into QAR volume using the buy price above."}</div>`;
 }
+
 
 function toggleVoidTrade(id){const t=state.trades.find(x=>x.id===id);if(!t)return;t.voided=!t.voided;saveRecompute(t.voided?"Trade voided":"Trade restored",t.voided?"warn":"good");}
 function deleteTrade(id, skipConfirm){
@@ -3012,7 +3038,9 @@ function renderLedger(){
   const saleTs=Number.isFinite(saleDraft.ts)?saleDraft.ts:Date.now();
   const saleAmtValue=saleMode==="USDT"
     ?(Number.isFinite(saleDraft.amountUSDT)?num(saleDraft.amountUSDT).toFixed(2):"")
-    :inputMoneyQARIn(saleDraft.amountQAR,saleCur,2);
+    :(saleCur==="USDT"
+      ?(Number.isFinite(saleDraft.amountUSDT)?num(saleDraft.amountUSDT).toFixed(2):"")
+      :(Number.isFinite(saleDraft.amountQAR)?num(saleDraft.amountQAR).toFixed(2):""));
   const saleSellValue=Number.isFinite(saleDraft.sellPriceQAR)?inputRateQARFixed(saleDraft.sellPriceQAR,4):(wacop?inputRateQARFixed(wacop,4):"");
   const saleCustomerId=saleDraft.customerId||"";
   const saleUsesStock=saleDraft.usesStock!==false;
@@ -3159,7 +3187,9 @@ function renderStock(){
   const batchDraft=getBatchDraft();
   const batchCur=normalizeCurrency(batchDraft.currency);
   const batchTs=Number.isFinite(batchDraft.ts)?batchDraft.ts:Date.now();
-  const batchAmtValue=Number.isFinite(batchDraft.amountUSDT)?num(batchDraft.amountUSDT).toFixed(2):"";
+  const batchAmtValue=batchCur==="USDT"
+    ?(Number.isFinite(batchDraft.amountUSDT)?num(batchDraft.amountUSDT).toFixed(2):"")
+    :(Number.isFinite(batchDraft.amountQAR)?num(batchDraft.amountQAR).toFixed(2):"");
   const batchPxValue=Number.isFinite(batchDraft.buyPriceQAR)?num(batchDraft.buyPriceQAR).toFixed(4):"";
   const perf=state.batches.map(b=>{const db=derived.batches.find(x=>x.id===b.id);const rem=db?Math.max(0,db.remainingUSDT):b.initialUSDT,used=b.initialUSDT-rem;let profit=0;for(const[,c]of derived.tradeCalc){if(!c.ok)continue;const s=c.slices.find(s=>s.batchId===b.id);if(s)profit+=s.qty*c.ppu;}return{...b,remaining:rem,used,profit};}).sort((a,b2)=>b2.ts-a.ts);
   const filtered=!q?perf:perf.filter(b=>[fmtDate(b.ts),b.source,b.note].join(" ").toLowerCase().includes(q));
@@ -3187,7 +3217,7 @@ function renderStock(){
           <div class="field2"><div class="lbl">Currency</div><div class="seg" data-tip="Local helper only, stock total stays USDT and volume stays QAR"><button type="button" data-batchcur="QAR" class="${batchCur==="QAR"?"active":""}">QAR</button><button type="button" data-batchcur="USDT" class="${batchCur==="USDT"?"active":""}">USDT</button></div><input id="b_formcur" type="hidden" value="${batchCur}"/></div>
           <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="b_dt" type="datetime-local" style="padding-right:0" value="${dtToInput(batchTs)}"/></div></div>
           <div class="g2tight">
-            <div class="field2"><div class="lbl">Total (USDT)</div><div class="inputBox"><input id="b_amt" inputmode="decimal" placeholder="1000.00" value="${batchAmtValue}"/></div></div>
+            <div class="field2"><div class="lbl" id="b_amt_lbl">${batchCur==="USDT"?"Total (USDT)":"Amount (QAR)"}</div><div class="inputBox"><input id="b_amt" inputmode="decimal" placeholder="1000.00" value="${batchAmtValue}"/></div></div>
             <div class="field2"><div class="lbl">Buy Price (QAR)</div><div class="inputBox"><input id="b_px" inputmode="decimal" placeholder="${wacop?num(wacop).toFixed(4):"3.5900"}" value="${batchPxValue}"/></div></div>
           </div>
           <div class="g2tight">
