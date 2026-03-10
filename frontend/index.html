@@ -9762,7 +9762,80 @@ function runSettingsTest() {
 </script>
 
 <script>
+/* ═══════════════════════════════════════════════════════════════════════
+   MERCHANT PLATFORM — END-TO-END SYSTEM
+   Architecture: local state (localStorage), full lifecycle:
+   Onboarding → Profile → Directory → Invites → Relationships →
+   Deals → Settlements → Approvals → Messages → Audit → Notifications
+   ═══════════════════════════════════════════════════════════════════════ */
 (function(){
+
+  /* ─── Utilities ──────────────────────────────────────────────────────── */
+  function uid(){ return 'xxxx-xxxx-4xxx-yxxx'.replace(/[xy]/g,function(c){ var r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); }); }
+  function esc(s){ var d=document.createElement('div'); d.textContent=String(s||''); return d.innerHTML; }
+  function now(){ return Date.now(); }
+  function fmtTs(ts){ if(!ts) return '—'; try{ return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return '—'; } }
+  function fmtAgo(ts){ if(!ts) return '—'; var d=Date.now()-ts, s=Math.round(d/1000); if(s<60) return s+'s ago'; if(s<3600) return Math.round(s/60)+'m ago'; if(s<86400) return Math.round(s/3600)+'h ago'; return Math.round(s/86400)+'d ago'; }
+  function num(v,def){ var n=parseFloat(v); return isNaN(n)?def||0:n; }
+  function fmtU(v,dp){ return (num(v,0)).toFixed(dp==null?2:dp)+' USDT'; }
+  function fmtQ(v){ return (num(v,0)).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})+' QAR'; }
+  function mrc(){ return 'MRC-'+Math.random().toString(36).slice(2,6).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase(); }
+  function tok(){ return Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,10); }
+  function $(sel){ return document.querySelector(sel); }
+  function $$(sel){ return Array.from(document.querySelectorAll(sel)); }
+  function cls(status){ var map={active:'good',restricted:'warn',suspended:'warn',terminated:'bad',archived:'muted',draft:'muted',due:'warn',settled:'good',overdue:'bad',closed:'muted',cancelled:'bad',pending:'warn',accepted:'good',rejected:'bad',withdrawn:'muted',expired:'muted',approved:'good'}; return map[status]||'muted'; }
+  function badge(status){ return '<span class="pill" style="font-size:8px;color:var(--'+cls(status)+');border-color:color-mix(in srgb,var(--'+cls(status)+') 30%,transparent);background:color-mix(in srgb,var(--'+cls(status)+') 10%,transparent);">'+esc(status)+'</span>'; }
+
+  /* ─── State ──────────────────────────────────────────────────────────── */
+  var MKEY='mch_platform_v2';
+  function mLoad(){ try{ return JSON.parse(localStorage.getItem(MKEY)||'null')||null; }catch(e){ return null; } }
+  function mSave(s){ try{ localStorage.setItem(MKEY,JSON.stringify(s)); }catch(e){} }
+
+  function defaultState(){
+    return {
+      profile: null,          // MerchantProfile | null
+      invites: [],            // MerchantInvite[]
+      relationships: [],      // MerchantRelationship[]
+      deals: [],              // MerchantDeal[]
+      messages: [],           // MerchantMessage[]
+      approvals: [],          // MerchantApproval[]
+      auditLogs: [],          // AuditLog[]
+      notifications: [],      // MerchantNotification[]
+      // Keep legacy collab merchants
+      merchants: []
+    };
+  }
+
+  var MS = mLoad() || defaultState();
+  // migrate legacy state
+  if(!MS.profile && !MS.invites){ MS = Object.assign(defaultState(), { merchants: MS.merchants||[] }); }
+
+  function save(){
+    mSave(MS);
+    // also keep legacy state.merchants in sync
+    if(typeof state !== 'undefined' && Array.isArray(MS.merchants)){ state.merchants = MS.merchants; }
+  }
+
+  /* ─── Navigation state ───────────────────────────────────────────────── */
+  var _tab = 'overview';         // current main tab
+  var _wsRelId = null;           // relationship workspace open
+  var _wsTab = 'overview';       // workspace sub-tab
+  var _notifPoll = null;
+
+  /* ─── Audit helper ───────────────────────────────────────────────────── */
+  function audit(action, entityType, entityId, detail){
+    MS.auditLogs.unshift({ id:uid(), ts:now(), actor_user_id:'me', entity_type:entityType||'general', entity_id:entityId||null, action:action, detail:detail||'' });
+    if(MS.auditLogs.length>500) MS.auditLogs=MS.auditLogs.slice(0,500);
+  }
+
+  /* ─── Notification helper ────────────────────────────────────────────── */
+  function notify(category, title, body, relId){
+    MS.notifications.unshift({ id:uid(), ts:now(), category:category, title:title, body:body, relationship_id:relId||null, read_at:null });
+    if(MS.notifications.length>200) MS.notifications=MS.notifications.slice(0,200);
+  }
+  function unreadCount(){ return MS.notifications.filter(function(n){ return !n.read_at; }).length; }
+
+  /* ─── START: keep legacy collab helpers ──────────────────────────────── */
   window._partnerTokenDraft = window._partnerTokenDraft || "";
   function ensureCollab(m){
     if(!m.collaboration || typeof m.collaboration !== "object"){
@@ -9773,83 +9846,83 @@ function runSettingsTest() {
     if(typeof c.shared_token!=="string") c.shared_token="";
     if(!["owner","partner","viewer"].includes(c.role)) c.role="owner";
     if(!["comment","read_only"].includes(c.access_mode)) c.access_mode="comment";
-    if(!Array.isArray(c.shared_fields) || !c.shared_fields.length) c.shared_fields=["lending","arbitrage","partnership","capital","settlements","messages"];
-    c.shared_fields=Array.from(new Set(c.shared_fields.concat(["lending","arbitrage","partnership","capital"]).filter(Boolean)));
+    if(!Array.isArray(c.shared_fields)||!c.shared_fields.length) c.shared_fields=["lending","arbitrage","partnership","capital","settlements","messages"];
     c.activity_log=Array.isArray(c.activity_log)?c.activity_log:[];
     c.messages=Array.isArray(c.messages)?c.messages:[];
     c.pending_approvals=Array.isArray(c.pending_approvals)?c.pending_approvals:[];
     return c;
   }
-  function ensureAll(){ (state?.merchants||[]).forEach(ensureCollab); }
-  function fieldLabel(k){ return ({lending:"Lending deals",arbitrage:"Arbitrage deals",partnership:"Partnership",capital:"Capital placement",settlements:"Settlements and payouts",messages:"Messages"})[k] || k; }
-  function roleLabel(k){ return ({owner:"Owner",partner:"Partner",viewer:"Viewer"})[k] || k; }
-  function modeLabel(k){ return k==="read_only" ? "Read-only" : "Comment"; }
-  function approvalTypeLabel(k){ return ({settlement:"Settlement review",profit_record:"Profit record",deal_close:"Deal closure",capital_change:"Capital change"})[k] || String(k||"").replace(/_/g," "); }
+  function ensureAll(){ (MS.merchants||[]).forEach(ensureCollab); }
+  function fieldLabel(k){ return ({lending:"Lending deals",arbitrage:"Arbitrage deals",partnership:"Partnership",capital:"Capital placement",settlements:"Settlements/payouts",messages:"Messages"})[k]||k; }
+  function roleLabel(k){ return ({owner:"Owner",partner:"Partner",viewer:"Viewer",admin:"Admin",operator:"Operator",finance:"Finance",commenter:"Commenter"})[k]||k; }
+  function modeLabel(k){ return k==="read_only"?"Read-only":"Comment"; }
+  function approvalTypeLabel(k){ return ({settlement:"Settlement review",profit_record:"Profit record",deal_close:"Deal closure",capital_change:"Capital change",settlement_submit:"Settlement Submit",profit_record_submit:"Profit Record Submit",deal_close_approval:"Deal Close",relationship_suspend:"Suspend Relationship",relationship_terminate:"Terminate Relationship",capital_adjustment:"Capital Adjustment"})[k]||String(k||"").replace(/_/g," "); }
   function approvalSummary(a){
     var d=(a&&a.data)||{};
     if(!a) return "Unknown approval";
-    if(a.type==="settlement") return "Settlement proposal, rev "+fmtQ(d.revenue_qar||0)+", cost "+fmtQ(d.cost_qar||0);
-    if(a.type==="profit_record") return "Profit record, "+(d.month||"month")+", "+fmtQ(d.profit_qar||0);
-    if(a.type==="deal_close") return "Close "+(d.target_type||"deal")+" "+(d.target_label||"");
-    if(a.type==="capital_change") return "Capital change to "+fmtU(d.new_capital||0,0)+(d.new_rate?" @ "+d.new_rate+"%":"");
+    if(a.type==="settlement"||a.type==="settlement_submit") return "Settlement, rev "+fmtQ(d.revenue_qar||0)+", cost "+fmtQ(d.cost_qar||0);
+    if(a.type==="profit_record"||a.type==="profit_record_submit") return "Profit record, "+(d.month||"month")+", "+fmtQ(d.profit_qar||0);
+    if(a.type==="deal_close"||a.type==="deal_close_approval") return "Close "+(d.target_type||"deal")+" "+(d.target_label||"");
+    if(a.type==="capital_change"||a.type==="capital_adjustment") return "Capital change to "+fmtU(d.new_capital||0,0)+(d.new_rate?" @ "+d.new_rate+"%":"");
     return approvalTypeLabel(a.type);
   }
   function approvalDealType(a){
     var d=(a&&a.data)||{};
     if(d.target_type) return d.target_type;
-    if(a?.type==="settlement") return "partnership";
-    if(a?.type==="profit_record" || a?.type==="capital_change") return "capital";
+    if(a?.type==="settlement"||a?.type==="settlement_submit") return "partnership";
+    if(a?.type==="profit_record"||a?.type==="profit_record_submit"||a?.type==="capital_change"||a?.type==="capital_adjustment") return "capital";
     return "general";
   }
   function collabLog(m,action,detail,dealType,dealId,actor){
     var c=ensureCollab(m);
-    c.activity_log.push({id:uid(),ts:Date.now(),actor:actor||"you",action:action,detail:detail,deal_type:dealType||"general",deal_id:dealId||null});
+    c.activity_log.push({id:uid(),ts:now(),actor:actor||"you",action:action,detail:detail,deal_type:dealType||"general",deal_id:dealId||null});
     if(c.activity_log.length>200) c.activity_log=c.activity_log.slice(-200);
   }
   function pushMsg(m,sender,text){
     var c=ensureCollab(m);
-    c.messages.push({id:uid(),ts:Date.now(),sender:sender,text:text,read:sender==="you",attachments:[]});
+    c.messages.push({id:uid(),ts:now(),sender:sender,text:text,read:sender==="you",attachments:[]});
     if(c.messages.length>200) c.messages=c.messages.slice(-200);
   }
   function markRead(m){ ensureCollab(m).messages.forEach(function(msg){ if(msg.sender==="partner") msg.read=true; }); }
+  function getWACOP(){ try{ return num((typeof state!=='undefined'?state:window).wacop||3.65,3.65); }catch(e){ return 3.65; } }
   function commitApproval(m,a,note){
     if(!a) return {ok:false,msg:"Approval not found"};
     if(a.status!=="pending") return {ok:false,msg:"Approval already resolved"};
-    var d=a.data||{}, wacop=getWACOP()||3.7;
+    var d=a.data||{},wacop=getWACOP()||3.7;
     if(a.type==="settlement"){
       if(!(m.partnership&&m.partnership.active)) return {ok:false,msg:"No active partnership on this merchant"};
-      var rev=num(d.revenue_qar,0), cost=num(d.cost_qar,0);
-      if(!(rev>0 && cost>=0 && cost<=rev)) return {ok:false,msg:"Invalid settlement values"};
-      var net=rev-cost, yourPct=num(m.partnership.profit_ratio?.you_percentage,0), yourShare=net*yourPct/100, yourShareUsdt=yourShare/wacop;
+      var rev=num(d.revenue_qar,0),cost=num(d.cost_qar,0);
+      if(!(rev>0&&cost>=0&&cost<=rev)) return {ok:false,msg:"Invalid settlement values"};
+      var net=rev-cost,yourPct=num(m.partnership.profit_ratio?.you_percentage,0),yourShare=net*yourPct/100,yourShareUsdt=yourShare/wacop;
       m.partnership.settlements=m.partnership.settlements||[];
-      m.partnership.settlements.push({id:uid(),settlement_date:d.settlement_date?new Date(d.settlement_date).getTime():Date.now(),revenue_qar:rev,cost_qar:cost,net_profit_qar:net,your_share_qar:yourShare,your_share_usdt:yourShareUsdt,conversion_rate_qar_per_usdt:wacop,transactions_count:num(d.transactions_count,0)});
+      m.partnership.settlements.push({id:uid(),settlement_date:d.settlement_date?new Date(d.settlement_date).getTime():now(),revenue_qar:rev,cost_qar:cost,net_profit_qar:net,your_share_qar:yourShare,your_share_usdt:yourShareUsdt,conversion_rate_qar_per_usdt:wacop,transactions_count:num(d.transactions_count,0)});
     } else if(a.type==="profit_record"){
       if(!(m.capital_placement&&m.capital_placement.active)) return {ok:false,msg:"No active capital placement on this merchant"};
       var profitQar=num(d.profit_qar,0);
       if(!(profitQar>0)) return {ok:false,msg:"Invalid profit amount"};
       var profitUsdt=profitQar/wacop;
       m.capital_placement.monthly_profits=m.capital_placement.monthly_profits||[];
-      m.capital_placement.monthly_profits.push({month:d.month||"",profit_qar:profitQar,profit_usdt:profitUsdt,conversion_rate:wacop,paid_date:d.paid_date?new Date(d.paid_date).getTime():Date.now()});
+      m.capital_placement.monthly_profits.push({month:d.month||"",profit_qar:profitQar,profit_usdt:profitUsdt,conversion_rate:wacop,paid_date:d.paid_date?new Date(d.paid_date).getTime():now()});
       m.capital_placement.cumulative_profit_usdt=num(m.capital_placement.cumulative_profit_usdt,0)+profitUsdt;
     } else if(a.type==="deal_close"){
       if(d.target_type==="lending"){
         var l=(m.lending||[]).find(function(x){return x.id===d.target_id;});
         if(!l) return {ok:false,msg:"Lending deal not found"};
-        l.status="closed"; l.actual_return_date=d.actual_return_date?new Date(d.actual_return_date).getTime():Date.now();
+        l.status="closed";l.actual_return_date=d.actual_return_date?new Date(d.actual_return_date).getTime():now();
       } else if(d.target_type==="arbitrage"){
         var ar=(m.arbitrage||[]).find(function(x){return x.id===d.target_id;});
         if(!ar) return {ok:false,msg:"Arbitrage deal not found"};
-        ar.status="closed"; ar.actual_return_date=d.actual_return_date?new Date(d.actual_return_date).getTime():Date.now();
+        ar.status="closed";ar.actual_return_date=d.actual_return_date?new Date(d.actual_return_date).getTime():now();
       } else return {ok:false,msg:"Unsupported deal type"};
     } else if(a.type==="capital_change"){
       if(!(m.capital_placement&&m.capital_placement.active)) return {ok:false,msg:"No active capital placement on this merchant"};
-      var nextCap=num(d.new_capital,0), nextRate=num(d.new_rate,0);
+      var nextCap=num(d.new_capital,0),nextRate=num(d.new_rate,0);
       if(nextCap>0) m.capital_placement.usdt_capital=nextCap;
       if(nextRate>0) m.capital_placement.monthly_profit_rate=nextRate/100;
       if(typeof d.suspended!=="undefined") m.capital_placement.suspended=!!d.suspended;
     } else return {ok:false,msg:"Unsupported approval type"};
-    a.status="approved"; a.resolved_ts=Date.now(); a.notes=String(note||"").trim();
-    m.last_activity_date=Date.now();
+    a.status="approved";a.resolved_ts=now();a.notes=String(note||"").trim();
+    m.last_activity_date=now();
     return {ok:true,msg:approvalSummary(a)};
   }
   function approvalFormHtml(type,m){
@@ -9859,31 +9932,33 @@ function runSettingsTest() {
       var opts=[];
       (m.lending||[]).filter(function(l){return l.status==="active";}).forEach(function(l){ opts.push('<option value="lending::'+esc(l.id)+'">Lending · '+fmtU(l.amount_usdt,0)+' · '+new Date(l.sent_date).toLocaleDateString()+'</option>'); });
       (m.arbitrage||[]).filter(function(a){return a.status==="active";}).forEach(function(a){ opts.push('<option value="arbitrage::'+esc(a.id)+'">Arbitrage · '+fmtU(a.usdt_sent,0)+' · '+new Date(a.sent_date).toLocaleDateString()+'</option>'); });
-      return '<div class="form-field"><label class="form-label">Active Deal *</label><select id="reqDealTarget" class="inp-field">'+(opts.length?opts.join(""):'<option value="">No active lending or arbitrage deals</option>')+'</select></div><div class="form-field"><label class="form-label">Closure Date *</label><input id="reqCloseDate" type="date" class="inp-field" value="'+new Date().toISOString().slice(0,10)+'"/></div>';
+      return '<div class="form-field"><label class="form-label">Active Deal *</label><select id="reqDealTarget" class="inp-field">'+(opts.length?opts.join(""):'<option value="">No active deals</option>')+'</select></div><div class="form-field"><label class="form-label">Closure Date *</label><input id="reqCloseDate" type="date" class="inp-field" value="'+new Date().toISOString().slice(0,10)+'"/></div>';
     }
-    if(type==="capital_change") return '<div class="form-field"><label class="form-label">New Capital (USDT) *</label><input id="reqNewCapital" class="inp-field" inputmode="decimal" placeholder="250000" value="'+esc(String(num(m.capital_placement?.usdt_capital,0)||""))+'"/></div><div class="form-field"><label class="form-label">New Monthly Rate %</label><input id="reqNewRate" class="inp-field" inputmode="decimal" placeholder="10" value="'+esc(String((num(m.capital_placement?.monthly_profit_rate,0)*100)||""))+'"/></div><div class="form-field"><label class="form-label"><input id="reqSuspend" type="checkbox" '+(m.capital_placement?.suspended?'checked':'')+'/> Suspend capital placement</label></div>';
+    if(type==="capital_change") return '<div class="form-field"><label class="form-label">New Capital (USDT)</label><input id="reqNewCapital" class="inp-field" inputmode="decimal" placeholder="250000" value="'+esc(String(num(m.capital_placement?.usdt_capital,0)||""))+'"/></div><div class="form-field"><label class="form-label">New Monthly Rate %</label><input id="reqNewRate" class="inp-field" inputmode="decimal" placeholder="10" value="'+esc(String((num(m.capital_placement?.monthly_profit_rate,0)*100)||""))+'"/></div><div class="form-field"><label class="form-label"><input id="reqSuspend" type="checkbox" '+(m.capital_placement?.suspended?'checked':'')+'/> Suspend capital placement</label></div>';
     return '';
   }
   function partnerSnapshot(m){
-    var c=ensureCollab(m), parts=['<div class="muted" style="font-size:9px;margin-bottom:6px;">Role: '+esc(roleLabel(c.role))+' · Access: '+esc(modeLabel(c.access_mode))+'</div>'];
+    var c=ensureCollab(m),parts=['<div class="muted" style="font-size:9px;margin-bottom:6px;">Role: '+esc(roleLabel(c.role))+' · Access: '+esc(modeLabel(c.access_mode))+'</div>'];
     if(c.shared_fields.includes("lending")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">LENDING</div>'+(((m.lending||[]).filter(function(l){return l.status==="active";}).slice(0,5)).map(function(l){return '<div style="display:flex;justify-content:space-between;font-size:9px;padding:2px 0;"><span>'+fmtU(l.amount_usdt,0)+'</span><span class="muted">'+new Date(l.sent_date).toLocaleDateString()+'</span></div>';}).join("")||'<div class="muted" style="font-size:9px;margin-top:4px;">No active lending deals</div>')+'</div>');
     if(c.shared_fields.includes("arbitrage")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">ARBITRAGE</div>'+(((m.arbitrage||[]).filter(function(a){return a.status==="active";}).slice(0,5)).map(function(a){return '<div style="display:flex;justify-content:space-between;font-size:9px;padding:2px 0;"><span>'+fmtU(a.usdt_sent,0)+' @ '+esc(String(a.price_qar_per_usdt||"—"))+'</span><span class="muted">'+new Date(a.sent_date).toLocaleDateString()+'</span></div>';}).join("")||'<div class="muted" style="font-size:9px;margin-top:4px;">No active arbitrage deals</div>')+'</div>');
     if(c.shared_fields.includes("partnership")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">PARTNERSHIP</div>'+(m.partnership?.active?'<div style="font-size:9px;margin-top:4px;">Capital '+fmtU(m.partnership.usdt_sent,0)+' · Your share '+num(m.partnership.profit_ratio?.you_percentage,0)+'%</div>':'<div class="muted" style="font-size:9px;margin-top:4px;">No active partnership</div>')+'</div>');
     if(c.shared_fields.includes("capital")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">CAPITAL</div>'+(m.capital_placement?.active?'<div style="font-size:9px;margin-top:4px;">Capital '+fmtU(m.capital_placement.usdt_capital,0)+' · Rate '+((num(m.capital_placement.monthly_profit_rate,0))*100).toFixed(0)+'%/mo</div>':'<div class="muted" style="font-size:9px;margin-top:4px;">No active capital placement</div>')+'</div>');
-    if(c.shared_fields.includes("settlements")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">SETTLEMENTS AND PAYOUTS</div>'+((m.partnership?.settlements||[]).slice(-3).reverse().map(function(s){return '<div style="font-size:9px;padding:2px 0;">Settlement · '+new Date(s.settlement_date).toLocaleDateString()+' · '+fmtQ(s.your_share_qar)+'</div>';}).join("")+(m.capital_placement?.monthly_profits||[]).slice(-3).reverse().map(function(p){return '<div style="font-size:9px;padding:2px 0;">Profit · '+esc(p.month||"")+' · '+fmtQ(p.profit_qar)+'</div>';}).join("")||'<div class="muted" style="font-size:9px;margin-top:4px;">No shared settlements or payouts</div>')+'</div>');
-    if(c.shared_fields.includes("messages")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">MESSAGES</div>'+((c.messages||[]).slice(-4).reverse().map(function(msg){return '<div style="font-size:9px;padding:2px 0;"><strong>'+esc(msg.sender==="you"?"You":"Partner")+':</strong> '+esc(msg.text)+'</div>';}).join("")||'<div class="muted" style="font-size:9px;margin-top:4px;">No shared messages</div>')+'</div>');
+    if(c.shared_fields.includes("settlements")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">SETTLEMENTS</div>'+((m.partnership?.settlements||[]).slice(-3).reverse().map(function(s){return '<div style="font-size:9px;padding:2px 0;">Settlement · '+new Date(s.settlement_date).toLocaleDateString()+' · '+fmtQ(s.your_share_qar)+'</div>';}).join("")+(m.capital_placement?.monthly_profits||[]).slice(-3).reverse().map(function(p){return '<div style="font-size:9px;padding:2px 0;">Profit · '+esc(p.month||"")+' · '+fmtQ(p.profit_qar)+'</div>';}).join("")||'<div class="muted" style="font-size:9px;margin-top:4px;">No shared settlements</div>')+'</div>');
+    if(c.shared_fields.includes("messages")) parts.push('<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;"><div class="muted" style="font-size:9px;">MESSAGES</div>'+((c.messages||[]).slice(-4).reverse().map(function(msg){return '<div style="font-size:9px;padding:2px 0;"><strong>'+esc(msg.sender==="you"?"You":"Partner")+':</strong> '+esc(msg.text)+'</div>';}).join("")||'<div class="muted" style="font-size:9px;margin-top:4px;">No messages</div>')+'</div>');
     return parts.join("");
   }
+  /* ─── END legacy collab helpers ──────────────────────────────────────── */
 
+  /* ─── Legacy KPI calc ───────────────────────────────────────────────── */
   window._mchKpis = function(){
     ensureAll();
-    let totalUsdt=0,totalProfit=0,pendingReturn=0,lendingActive=0,arbitrageActive=0,partnershipActive=0,capitalActive=0,collabEnabled=0,pendingApprovals=0,totalMessages=0,unreadMessages=0;
-    (state.merchants||[]).forEach(function(m){
-      var lending=m.lending||[], arb=m.arbitrage||[], part=m.partnership||{}, cap=m.capital_placement||{}, col=ensureCollab(m);
-      lending.forEach(function(l){ if(l.status==="active"){ totalUsdt+=num(l.amount_usdt,0); pendingReturn+=num(l.amount_usdt,0); lendingActive++; }});
-      arb.forEach(function(a){ if(a.status==="active"){ totalUsdt+=num(a.usdt_sent,0); arbitrageActive++; }});
-      if(part.active){ totalUsdt+=num(part.usdt_sent,0); partnershipActive++; }
-      if(cap.active){ totalUsdt+=num(cap.usdt_capital,0); capitalActive++; }
+    var totalUsdt=0,totalProfit=0,pendingReturn=0,lendingActive=0,arbitrageActive=0,partnershipActive=0,capitalActive=0,collabEnabled=0,pendingApprovals=0,totalMessages=0,unreadMessages=0;
+    (MS.merchants||[]).forEach(function(m){
+      var lending=m.lending||[],arb=m.arbitrage||[],part=m.partnership||{},cap=m.capital_placement||{},col=ensureCollab(m);
+      lending.forEach(function(l){ if(l.status==="active"){ totalUsdt+=num(l.amount_usdt,0);pendingReturn+=num(l.amount_usdt,0);lendingActive++; }});
+      arb.forEach(function(a){ if(a.status==="active"){ totalUsdt+=num(a.usdt_sent,0);arbitrageActive++; }});
+      if(part.active){ totalUsdt+=num(part.usdt_sent,0);partnershipActive++; }
+      if(cap.active){ totalUsdt+=num(cap.usdt_capital,0);capitalActive++; }
       totalProfit+=(cap.monthly_profits||[]).reduce(function(s,p){return s+num(p.profit_usdt,0);},0);
       totalProfit+=(part.settlements||[]).reduce(function(s,p){return s+num(p.your_share_usdt,0);},0);
       if(col.enabled) collabEnabled++;
@@ -9891,200 +9966,1015 @@ function runSettingsTest() {
       totalMessages+=(col.messages||[]).length;
       unreadMessages+=(col.messages||[]).filter(function(msg){return msg.sender==="partner"&&!msg.read;}).length;
     });
-    var totalDeals=lendingActive+arbitrageActive+partnershipActive+capitalActive;
-    var collaborationScore=(state.merchants||[]).length?Math.round(collabEnabled/(state.merchants||[]).length*100):0;
+    // Add new-system pending approvals
+    pendingApprovals += MS.approvals.filter(function(a){ return a.status==='pending'; }).length;
+    var totalDeals=lendingActive+arbitrageActive+partnershipActive+capitalActive+MS.deals.filter(function(d){return d.status==='active';}).length;
+    var collaborationScore=(MS.merchants||[]).length?Math.round(collabEnabled/(MS.merchants||[]).length*100):0;
     return {totalUsdt,totalProfit,pendingReturn,lendingActive,arbitrageActive,partnershipActive,capitalActive,collabEnabled,pendingApprovals,totalMessages,unreadMessages,totalDeals,activeDeals:totalDeals,collaborationScore};
   };
 
+  /* ═══════════════════════════════════════════════════════════════════════
+     MAIN RENDER ENTRY POINT
+     ═══════════════════════════════════════════════════════════════════════ */
   window.renderMerchants = function(){
-    setHeader("Merchants & Collaboration","Partnerships, Lending, Arbitrage, Capital, Collaboration");
-    state.merchants=Array.isArray(state.merchants)?state.merchants:[];
-    ensureAll();
-    var tab=window._mchTab||"overview";
-    var kpis=_mchKpis();
-    var tabs=[{id:"overview",icon:"📊",label:"Overview"},{id:"directory",icon:"👥",label:"Directory"},{id:"collaboration",icon:"🤝",label:"Collaboration",badge:kpis.pendingApprovals},{id:"dealboard",icon:"📋",label:"Deal Board",badge:kpis.totalDeals},{id:"analytics",icon:"📈",label:"Analytics"}];
-    var tabBar='<div style="display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;">'+tabs.map(function(t){return '<button class="rowBtn mch-tab-btn" data-mchtab="'+t.id+'" style="font-size:calc(10px * var(--ui-scale,1));padding:5px 10px;display:flex;align-items:center;gap:4px;'+(tab===t.id?'background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;':'')+'">'+t.icon+' '+t.label+(t.badge?(' <span style="background:var(--bad);color:#fff;font-size:8px;padding:1px 5px;border-radius:999px;margin-left:2px;">'+t.badge+'</span>'):'')+'</button>';}).join("")+'</div>';
-    var kpiRow='<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">'+
-      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--brand);border-color:color-mix(in srgb,var(--brand) 30%,transparent);background:color-mix(in srgb,var(--brand) 10%,transparent)">Capital</span></div><div class="kpi-lbl">TOTAL ACTIVE USDT</div><div class="kpi-val">'+fmtU(kpis.totalUsdt,0)+'</div><div class="kpi-sub">'+state.merchants.length+' merchant'+(state.merchants.length!==1?'s':'')+'</div></div>'+
-      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge good" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">YTD</span></div><div class="kpi-lbl">PROFIT RECEIVED</div><div class="kpi-val good">'+fmtQ(kpis.totalProfit)+'</div><div class="kpi-sub">Partnerships and capital</div></div>'+
-      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge warn" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Pending</span></div><div class="kpi-lbl">LENDING RETURNS DUE</div><div class="kpi-val warn">'+fmtU(kpis.pendingReturn,0)+'</div><div class="kpi-sub">'+kpis.lendingActive+' active lending'+(kpis.lendingActive!==1?'s':'')+'</div></div>'+
-      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--t5,#0ea5e9);border-color:color-mix(in srgb,var(--t5,#0ea5e9) 30%,transparent);background:color-mix(in srgb,var(--t5,#0ea5e9) 10%,transparent)">Live</span></div><div class="kpi-lbl">ACTIVE DEALS</div><div class="kpi-val">'+kpis.activeDeals+'</div><div class="kpi-sub">Lending, arbitrage, partnership, capital</div></div>'+
-      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">'+kpis.collaborationScore+'%</span></div><div class="kpi-lbl">COLLABORATION SCORE</div><div class="kpi-val">'+kpis.collabEnabled+' shared</div><div class="kpi-sub">'+kpis.totalMessages+' messages · '+kpis.unreadMessages+' unread</div></div>'+
-      '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent);background:color-mix(in srgb,var(--bad) 10%,transparent)">'+kpis.pendingApprovals+'</span></div><div class="kpi-lbl">PENDING APPROVALS</div><div class="kpi-val">'+(kpis.pendingApprovals>0?'<span style="color:var(--bad);">Needs review</span>':'<span style="color:var(--good);">All clear</span>')+'</div><div class="kpi-sub">Approval queue across all shared merchants</div></div>'+
+    if(typeof setHeader === 'function') setHeader("Merchant Platform","Profile · Invites · Relationships · Deals · Approvals · Audit");
+    if(!MS.profile){ _renderOnboarding(); return; }
+    _renderHub();
+  };
+
+  /* ─── ONBOARDING ─────────────────────────────────────────────────────── */
+  function _renderOnboarding(){
+    var pb = $('#pageBody'); if(!pb) return;
+    pb.innerHTML = `
+      <div style="max-width:520px;margin:40px auto;">
+        <div class="panel" style="padding:28px;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <div style="font-size:36px;margin-bottom:8px;">🏪</div>
+            <h2 style="margin:0 0 6px;font-size:16px;">Create Your Merchant Profile</h2>
+            <div class="muted" style="font-size:11px;">Set up your merchant identity to start collaborating, creating deals, and managing relationships.</div>
+          </div>
+          <div class="form-field"><label class="form-label">Display Name *</label><input id="ob_name" class="inp-field" placeholder="e.g. Taheito Trading"/></div>
+          <div class="form-field">
+            <label class="form-label">Nickname * <span class="muted" style="font-weight:400;">(3–30 chars, lowercase, letters/numbers/_)</span></label>
+            <div style="display:flex;gap:6px;">
+              <input id="ob_nick" class="inp-field" style="flex:1;" placeholder="e.g. taheito_fx" oninput="window._checkNick(this.value)"/>
+              <span id="ob_nick_status" style="font-size:9px;padding:6px 8px;align-self:center;"></span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="form-field"><label class="form-label">Merchant Type</label>
+              <select id="ob_type" class="inp-field">
+                <option value="independent">Independent</option>
+                <option value="desk">Desk</option>
+                <option value="partner">Partner</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-field"><label class="form-label">Region</label><input id="ob_region" class="inp-field" placeholder="e.g. Qatar, UAE"/></div>
+          </div>
+          <div class="form-field"><label class="form-label">Bio</label><textarea id="ob_bio" class="inp-field" style="min-height:60px;" placeholder="Brief description of your business…"></textarea></div>
+          <div class="form-field"><label class="form-label">Discoverability</label>
+            <select id="ob_disc" class="inp-field">
+              <option value="public">Public — searchable by anyone</option>
+              <option value="merchant_id_only">Merchant ID only — not in search</option>
+              <option value="hidden">Hidden — private</option>
+            </select>
+          </div>
+          <div class="form-field"><label class="form-label">Default Currency</label>
+            <select id="ob_cur" class="inp-field">
+              <option value="USDT">USDT</option><option value="BTC">BTC</option><option value="ETH">ETH</option>
+            </select>
+          </div>
+          <div class="msg" id="ob_err"></div>
+          <div style="margin-top:18px;text-align:center;">
+            <button class="btn" id="ob_submit" style="min-width:180px;">Create Merchant Profile →</button>
+          </div>
+        </div>
+      </div>`;
+    $('#ob_submit')?.addEventListener('click', function(){
+      var name = ($('#ob_name')?.value||'').trim();
+      var nick = ($('#ob_nick')?.value||'').trim().toLowerCase();
+      var type = $('#ob_type')?.value||'independent';
+      var region = ($('#ob_region')?.value||'').trim();
+      var bio = ($('#ob_bio')?.value||'').trim();
+      var disc = $('#ob_disc')?.value||'public';
+      var cur = $('#ob_cur')?.value||'USDT';
+      var err = $('#ob_err');
+      if(!name){ if(err){err.textContent='Display name is required';err.className='msg err';} return; }
+      if(!/^[a-z0-9_]{3,30}$/.test(nick)){ if(err){err.textContent='Nickname must be 3–30 chars, lowercase letters/numbers/_';err.className='msg err';} return; }
+      MS.profile = { id:uid(), owner_user_id:'me', merchant_id:mrc(), nickname:nick, display_name:name, merchant_type:type, region:region, default_currency:cur, discoverability:disc, bio:bio, status:'active', created_at:now(), updated_at:now() };
+      audit('profile_created','profile',MS.profile.id,'Merchant profile created: '+name);
+      notify('system','Welcome to Merchant Platform!','Your profile '+name+' ('+MS.profile.merchant_id+') is now active.');
+      save();
+      if(typeof render==='function') render(); else renderMerchants();
+    });
+    window._checkNick = function(v){
+      var el = $('#ob_nick_status'); if(!el) return;
+      v = (v||'').trim().toLowerCase();
+      if(!v){ el.textContent=''; return; }
+      if(!/^[a-z0-9_]{3,30}$/.test(v)){ el.textContent='✗ Invalid'; el.style.color='var(--bad)'; return; }
+      el.textContent='✓ Available'; el.style.color='var(--good)';
+    };
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     HUB — tabbed merchant dashboard
+     ═══════════════════════════════════════════════════════════════════════ */
+  function _renderHub(){
+    // Check if we're in relationship workspace
+    if(_wsRelId){ _renderWorkspace(); return; }
+
+    var pb = $('#pageBody'); if(!pb) return;
+    var kpis = _mchKpis();
+    var p = MS.profile;
+    var uc = unreadCount();
+    var pendingInvites = MS.invites.filter(function(i){ return i.to_merchant_id===p.merchant_id && i.status==='pending'; }).length;
+    var pendingApprovals = MS.approvals.filter(function(a){ return a.reviewer_merchant_id===p.merchant_id && a.status==='pending'; }).length;
+
+    var tabs = [
+      {id:'overview',  icon:'📊', label:'Overview'},
+      {id:'profile',   icon:'🪪', label:'Profile'},
+      {id:'directory', icon:'🔍', label:'Directory'},
+      {id:'invites',   icon:'📨', label:'Invites', badge: pendingInvites},
+      {id:'relationships', icon:'🤝', label:'Relationships'},
+      {id:'deals',     icon:'📋', label:'Deals', badge: MS.deals.filter(function(d){return d.status==='due'||d.status==='overdue';}).length||0},
+      {id:'approvals', icon:'✅', label:'Approvals', badge: pendingApprovals},
+      {id:'messages',  icon:'💬', label:'Messages'},
+      {id:'audit',     icon:'📜', label:'Audit'},
+      {id:'notifications', icon:'🔔', label:'Notifs', badge: uc},
+      {id:'settings',  icon:'⚙', label:'Settings'},
+      // Legacy
+      {id:'legacy_collaboration', icon:'🔗', label:'Legacy Collab', badge: kpis.pendingApprovals},
+      {id:'dealboard', icon:'📈', label:'Deal Board'},
+      {id:'analytics', icon:'📉', label:'Analytics'},
+    ];
+
+    var tabBar = '<div style="display:flex;gap:3px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;">' +
+      tabs.map(function(t){
+        return '<button class="rowBtn mch-tab-btn" data-mchtab="'+t.id+'" style="font-size:calc(9.5px * var(--ui-scale,1));padding:4px 9px;display:flex;align-items:center;gap:3px;'+(_tab===t.id?'background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;':'')+'">'+t.icon+' '+t.label+(t.badge?(' <span style="background:var(--bad);color:#fff;font-size:8px;padding:1px 5px;border-radius:999px;margin-left:2px;">'+t.badge+'</span>'):'')+'</button>';
+      }).join('')+'</div>';
+
+    var kpiRow = '<div class="kpis" style="margin-bottom:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">' +
+      _kpi('MERCHANT ID','🪪',p.merchant_id,'',p.status) +
+      _kpi('RELATIONSHIPS','🤝',MS.relationships.filter(function(r){return r.status==='active';}).length,'active') +
+      _kpi('ACTIVE DEALS','📋',MS.deals.filter(function(d){return d.status==='active';}).length,'deals') +
+      _kpi('PENDING APPROVALS','✅',pendingApprovals||0,pendingApprovals?'needs review':'all clear') +
+      _kpi('NOTIFICATIONS','🔔',uc,'unread') +
     '</div>';
-    var content="";
-    if(tab==="overview") content=_mchOverview(kpis);
-    else if(tab==="directory") content=_mchDirectory();
-    else if(tab==="collaboration") content=_mchCollaboration(kpis);
-    else if(tab==="dealboard") content=_mchDealBoard();
-    else if(tab==="analytics") content=_mchAnalytics(kpis);
-    $("#pageBody").innerHTML=tabBar+kpiRow+content;
-    $$(".mch-tab-btn").forEach(function(b){ b.addEventListener("click",function(){ window._mchTab=b.dataset.mchtab; render(); }); });
-    _wireMchEvents(tab);
-  };
 
-  window._mchCollaboration = function(kpis){
-    ensureAll();
-    var merchants=state.merchants||[];
-    var collabMerchants=merchants.filter(function(m){ return ensureCollab(m).enabled; });
-    var allApprovals=[], allActivity=[];
-    merchants.forEach(function(m){ ensureCollab(m).pending_approvals.forEach(function(a){ if(a.status==="pending") allApprovals.push(Object.assign({},a,{merchantName:m.name,merchantId:m.id})); }); });
-    collabMerchants.forEach(function(m){ ensureCollab(m).activity_log.forEach(function(a){ allActivity.push(Object.assign({},a,{merchantName:m.name,merchantId:m.id})); }); });
-    allApprovals.sort(function(a,b){ return b.ts-a.ts; });
-    allActivity.sort(function(a,b){ return b.ts-a.ts; });
-    var approvalsHtml=allApprovals.length?allApprovals.map(function(a){
-      return '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;border:1px solid var(--line);"><div style="font-weight:700;font-size:10px;">'+esc(approvalTypeLabel(a.type))+'</div><div style="font-size:9px;margin-top:3px;">'+esc(approvalSummary(a))+'</div><div class="muted" style="font-size:9px;margin-top:3px;">'+esc(a.merchantName)+' · '+_relTime(a.ts)+' · by '+esc(a.requested_by)+'</div><div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;"><button class="rowBtn approveApprovalBtn" data-mid="'+esc(a.merchantId)+'" data-aid="'+esc(a.id)+'" style="font-size:8px;padding:2px 6px;color:var(--good);">✓ Approve</button><button class="rowBtn rejectApprovalBtn" data-mid="'+esc(a.merchantId)+'" data-aid="'+esc(a.id)+'" style="font-size:8px;padding:2px 6px;color:var(--bad);">✗ Reject</button></div></div>';
-    }).join(""):'<div class="muted" style="font-size:10px;padding:10px;">No pending approvals, all clear ✓</div>';
-    var cardsHtml=collabMerchants.length?collabMerchants.map(function(m){
-      var col=ensureCollab(m), pending=(col.pending_approvals||[]).filter(function(a){return a.status==="pending";}).length, unread=(col.messages||[]).filter(function(msg){return msg.sender==="partner"&&!msg.read;}).length;
-      return '<div style="padding:10px;background:var(--panel2);border-radius:var(--lt-radius-sm);border:1px solid var(--line);margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;"><div><strong>'+esc(m.name)+'</strong> <span class="pill" style="font-size:8px;color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);">● Shared</span><div class="muted" style="font-size:9px;margin-top:4px;">Role: '+esc(roleLabel(col.role))+' · Access: '+esc(modeLabel(col.access_mode))+'</div></div><div style="display:flex;gap:4px;flex-wrap:wrap;"><button class="rowBtn manageCollabBtn" data-mid="'+esc(m.id)+'" style="font-size:8px;padding:2px 6px;">⚙ Manage</button><button class="rowBtn sendMsgBtn" data-mid="'+esc(m.id)+'" style="font-size:8px;padding:2px 6px;">💬 Message</button><button class="rowBtn partnerActionBtn" data-mid="'+esc(m.id)+'" style="font-size:8px;padding:2px 6px;">📋 Partner Action</button><button class="rowBtn partnerViewBtn" data-mid="'+esc(m.id)+'" style="font-size:8px;padding:2px 6px;">👁 Partner View</button></div></div><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:9px;" class="muted"><span>📨 '+(col.messages||[]).length+' messages'+(unread?(' · '+unread+' unread'):'')+'</span><span>'+(pending?('<span style="color:var(--bad);">⚠ '+pending+' pending</span>'):'✓ clear')+'</span><span>🔑 '+(col.shared_token?col.shared_token.slice(0,8)+'…':'no token')+'</span></div><div class="muted" style="font-size:8px;margin-top:6px;">Visible to partner: '+esc((col.shared_fields||[]).map(fieldLabel).join(', ')||'Nothing selected')+'</div>'+((col.messages||[]).length?'<div style="margin-top:8px;border-top:1px solid var(--line2);padding-top:6px;max-height:110px;overflow-y:auto;">'+(col.messages||[]).slice(-4).reverse().map(function(msg){return '<div style="font-size:9px;padding:2px 0;"><span style="font-weight:600;">'+esc(msg.sender==="you"?"You":"Partner")+':</span> '+esc(msg.text)+' <span class="muted" style="font-size:8px;">'+_relTime(msg.ts)+'</span></div>';}).join("")+'</div>':'')+'</div>';
-    }).join(""):'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No collaborative merchants</div><div class="empty-s">Enable collaboration on a merchant from the Directory tab</div></div>';
-    var timelineHtml=allActivity.length?allActivity.slice(0,24).map(function(a){return '<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--line2);font-size:9px;"><span class="muted" style="flex-shrink:0;min-width:56px;">'+_relTime(a.ts)+'</span><span style="flex-shrink:0;">'+(a.actor==="you"?"👤":"🤝")+'</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong>'+esc(a.merchantName)+'</strong>, '+esc(a.detail||a.action)+'</span></div>';}).join(""):'<div class="muted" style="font-size:10px;padding:10px;">No collaboration activity yet</div>';
-    return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div class="panel"><div class="panel-head"><h2>Pending Approvals</h2><span class="pill">'+allApprovals.length+'</span></div><div class="panel-body" style="max-height:300px;overflow-y:auto;">'+approvalsHtml+'</div></div><div class="panel"><div class="panel-head"><h2>Activity Timeline</h2><span class="pill">'+Math.min(allActivity.length,24)+' events</span></div><div class="panel-body" style="max-height:300px;overflow-y:auto;">'+timelineHtml+'</div></div></div><div class="panel" style="margin-top:10px;"><div class="panel-head"><h2>Collaborative Merchants</h2><span class="pill">'+collabMerchants.length+' active</span></div><div class="panel-body">'+cardsHtml+'</div></div>';
-  };
+    var content = '';
+    if(_tab==='overview')          content = _tabOverview(kpis);
+    else if(_tab==='profile')      content = _tabProfile();
+    else if(_tab==='directory')    content = _tabDirectory();
+    else if(_tab==='invites')      content = _tabInvites();
+    else if(_tab==='relationships') content = _tabRelationships();
+    else if(_tab==='deals')        content = _tabDeals();
+    else if(_tab==='approvals')    content = _tabApprovals();
+    else if(_tab==='messages')     content = _tabMessages();
+    else if(_tab==='audit')        content = _tabAudit();
+    else if(_tab==='notifications') content = _tabNotifications();
+    else if(_tab==='settings')     content = _tabSettings();
+    // Legacy
+    else if(_tab==='legacy_collaboration') content = _mchCollaboration(kpis);
+    else if(_tab==='dealboard')    content = _mchDealBoard();
+    else if(_tab==='analytics')    content = _mchAnalytics(kpis);
 
-  window._wireMchEvents = function(tab){
-    $("#qaAddMerchant")?.addEventListener("click",function(){addMerchantModal();});
-    $("#qaGotoDirectory")?.addEventListener("click",function(){window._mchTab="directory";render();});
-    $("#qaGotoCollab")?.addEventListener("click",function(){window._mchTab="collaboration";render();});
-    $("#qaGotoDealBoard")?.addEventListener("click",function(){window._mchTab="dealboard";render();});
-    $("#addMerchantBtn")?.addEventListener("click",function(){addMerchantModal();});
-    $("#editMerchantBtn")?.addEventListener("click",function(){editMerchantModal(window._selectedMerchantId);});
-    $("#addLendingBtn")?.addEventListener("click",function(){addLendingModal(window._selectedMerchantId);});
-    $("#addArbitrageBtn")?.addEventListener("click",function(){addArbitrageModal(window._selectedMerchantId);});
-    $("#addPartnershipBtn")?.addEventListener("click",function(){addPartnershipModal(window._selectedMerchantId);});
-    $("#addCapitalBtn")?.addEventListener("click",function(){addCapitalModal(window._selectedMerchantId);});
-    $("#settlementBtn")?.addEventListener("click",function(){addSettlementModal(window._selectedMerchantId);});
-    $("#recordProfitBtn")?.addEventListener("click",function(){recordProfitModal(window._selectedMerchantId);});
-    $("#toggleCollabBtn")?.addEventListener("click",function(){_toggleCollab(window._selectedMerchantId);});
-    $$(".manageCollabBtn").forEach(function(b){ b.addEventListener("click",function(){ window._manageCollab(b.dataset.mid); }); });
-    $$(".sendMsgBtn").forEach(function(b){ b.addEventListener("click",function(){ window._sendCollabMessage(b.dataset.mid); }); });
-    $$(".partnerActionBtn").forEach(function(b){ b.addEventListener("click",function(){ window._requestApproval(b.dataset.mid,"partner"); }); });
-    $$(".partnerViewBtn").forEach(function(b){ b.addEventListener("click",function(){ window._simulatePartnerAccess(b.dataset.mid); }); });
-    $$(".approveApprovalBtn").forEach(function(b){ b.addEventListener("click",function(){ window._approveApproval(b.dataset.mid,b.dataset.aid); }); });
-    $$(".rejectApprovalBtn").forEach(function(b){ b.addEventListener("click",function(){ window._rejectApproval(b.dataset.mid,b.dataset.aid); }); });
-    if(tab==="analytics") _renderMchProfitChart();
-  };
+    pb.innerHTML = tabBar + kpiRow + content;
 
-  window._manageCollab = function(id){
-    var m=(state.merchants||[]).find(function(x){return x.id===id;}); if(!m) return;
-    var c=ensureCollab(m);
-    var fieldHtml=["lending","arbitrage","partnership","capital","settlements","messages"].map(function(k){ return '<label style="display:flex;align-items:center;gap:6px;font-size:9px;padding:4px 6px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><input type="checkbox" class="mcField" value="'+k+'" '+(c.shared_fields.includes(k)?'checked':'')+'/> '+fieldLabel(k)+'</label>'; }).join("");
-    openModal("Manage Collaboration — "+esc(m.name), '<div class="form-field"><label class="form-label"><input id="mcEnabled" type="checkbox" '+(c.enabled?'checked':'')+'/> Enable collaboration</label></div><div class="form-field"><label class="form-label">Role</label><select id="mcRole" class="inp-field"><option value="owner"'+(c.role==="owner"?' selected':'')+'>Owner</option><option value="partner"'+(c.role==="partner"?' selected':'')+'>Partner</option><option value="viewer"'+(c.role==="viewer"?' selected':'')+'>Viewer</option></select></div><div class="form-field"><label class="form-label">Partner Access Mode</label><select id="mcMode" class="inp-field"><option value="comment"'+(c.access_mode==="comment"?' selected':'')+'>Comment mode</option><option value="read_only"'+(c.access_mode==="read_only"?' selected':'')+'>Read-only</option></select></div><div class="form-field"><label class="form-label">Shared Fields</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+fieldHtml+'</div></div><div class="form-field"><label class="form-label">Current Share Token</label><div class="inp-field" style="user-select:all;font-family:var(--lt-font-mono,monospace);">'+esc(c.shared_token||"—")+'</div><label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:9px;"><input id="mcRegen" type="checkbox"/> Regenerate token on save</label></div><div class="msg" id="mcMsg"></div>', '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_save">Save Collaboration</button>');
+    $$('.mch-tab-btn').forEach(function(b){ b.addEventListener('click',function(){ _tab=b.dataset.mchtab; renderMerchants(); }); });
+    _wireHub();
+  }
+
+  function _kpi(label,icon,val,sub,status){
+    var c = status ? cls(status) : 'brand';
+    return '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--'+c+');border-color:color-mix(in srgb,var(--'+c+') 30%,transparent);background:color-mix(in srgb,var(--'+c+') 10%,transparent);">'+icon+'</span></div><div class="kpi-lbl">'+label+'</div><div class="kpi-val">'+esc(String(val))+'</div>'+(sub?'<div class="kpi-sub">'+esc(sub)+'</div>':'')+'</div>';
+  }
+
+  /* ─── TAB: Overview ─────────────────────────────────────────────────── */
+  function _tabOverview(kpis){
+    var p = MS.profile;
+    var rels = MS.relationships.filter(function(r){return r.status==='active';});
+    var activeDeals = MS.deals.filter(function(d){return d.status==='active';});
+    var totalExposure = activeDeals.reduce(function(s,d){return s+num(d.amount,0);},0);
+    var realizedPnl = MS.deals.filter(function(d){return d.status==='settled';}).reduce(function(s,d){return s+num(d.realized_pnl,0);},0);
+    var recentNotifs = MS.notifications.slice(0,5);
+    var recentAudit = MS.auditLogs.slice(0,6);
+
+    var statsRow = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;">' +
+      _statCard('Total Exposure',fmtU(totalExposure+kpis.totalUsdt,0),'var(--brand)') +
+      _statCard('Realized P&L',fmtU(realizedPnl,2)+(realizedPnl>=0?'':''), realizedPnl>=0?'var(--good)':'var(--bad)') +
+      _statCard('Active Relationships',rels.length,'var(--t5,#0ea5e9)') +
+      _statCard('Deals (all types)',MS.deals.length+kpis.totalDeals,'var(--warn)') +
+    '</div>';
+
+    var notifHtml = recentNotifs.length ? recentNotifs.map(function(n){
+      return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);align-items:flex-start;">' +
+        '<span style="font-size:14px;">'+(n.category==='invite'?'📨':n.category==='approval'?'✅':n.category==='message'?'💬':'🔔')+'</span>' +
+        '<div style="flex:1;min-width:0;"><div style="font-size:10px;font-weight:600;">'+(n.read_at?'':' <span style="display:inline-block;width:6px;height:6px;background:var(--brand);border-radius:50%;margin-right:3px;vertical-align:middle;"></span>')+esc(n.title)+'</div><div class="muted" style="font-size:9px;">'+esc(n.body||'')+'</div></div>' +
+        '<span class="muted" style="font-size:8px;flex-shrink:0;">'+fmtAgo(n.ts)+'</span></div>';
+    }).join('') : '<div class="muted" style="font-size:10px;padding:8px 0;">No notifications yet</div>';
+
+    var auditHtml = recentAudit.length ? recentAudit.map(function(a){
+      return '<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--line2);font-size:9px;">' +
+        '<span class="muted" style="flex-shrink:0;min-width:60px;">'+fmtAgo(a.ts)+'</span>' +
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(a.action.replace(/_/g,' '))+' — '+esc(a.detail)+'</span></div>';
+    }).join('') : '<div class="muted" style="font-size:10px;padding:8px 0;">No activity yet</div>';
+
+    return statsRow +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+        '<div class="panel"><div class="panel-head"><h2>Recent Notifications</h2><button class="rowBtn" id="goNotifs" style="font-size:9px;">View all →</button></div><div class="panel-body">'+notifHtml+'</div></div>' +
+        '<div class="panel"><div class="panel-head"><h2>Recent Activity</h2><button class="rowBtn" id="goAudit" style="font-size:9px;">View all →</button></div><div class="panel-body">'+auditHtml+'</div></div>' +
+      '</div>' +
+      '<div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;">' +
+        '<button class="btn secondary" id="qaGotoDirectory" style="font-size:10px;">🔍 Find Merchants</button>' +
+        '<button class="btn secondary" id="qaGotoInvites" style="font-size:10px;">📨 View Invites</button>' +
+        '<button class="btn secondary" id="qaGotoRels" style="font-size:10px;">🤝 Relationships</button>' +
+        '<button class="btn secondary" id="qaGotoDeals" style="font-size:10px;">📋 Manage Deals</button>' +
+      '</div>';
+  }
+
+  function _statCard(label,val,color){
+    return '<div class="kpi-card"><div class="kpi-lbl">'+label+'</div><div class="kpi-val" style="color:'+color+';">'+esc(val)+'</div></div>';
+  }
+
+  /* ─── TAB: Profile ──────────────────────────────────────────────────── */
+  function _tabProfile(){
+    var p = MS.profile;
+    return '<div style="max-width:600px;">' +
+      '<div class="panel" style="margin-bottom:10px;">' +
+        '<div class="panel-head"><h2>Your Merchant Profile</h2><button class="btn" id="editProfileBtn" style="font-size:9px;">Edit</button></div>' +
+        '<div class="panel-body">' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:10px;">' +
+            _profileRow('Merchant ID',p.merchant_id) + _profileRow('Nickname','@'+p.nickname) +
+            _profileRow('Display Name',p.display_name) + _profileRow('Type',p.merchant_type) +
+            _profileRow('Region',p.region||'—') + _profileRow('Currency',p.default_currency) +
+            _profileRow('Discoverability',p.discoverability) + _profileRow('Status',p.status) +
+          '</div>' +
+          (p.bio ? '<div style="margin-top:10px;padding:10px;background:var(--panel2);border-radius:var(--lt-radius-sm);font-size:10px;">'+esc(p.bio)+'</div>' : '') +
+          '<div style="margin-top:8px;" class="muted" style="font-size:9px;">Created '+fmtTs(p.created_at)+'</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function _profileRow(label,val){
+    return '<div style="padding:6px 8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:8px;">'+esc(label)+'</div><div style="font-weight:600;margin-top:2px;">'+esc(String(val||'—'))+'</div></div>';
+  }
+
+  /* ─── TAB: Directory ────────────────────────────────────────────────── */
+  var _dirResults = [];
+  function _tabDirectory(){
+    var html = '<div class="panel"><div class="panel-head"><h2>Merchant Directory</h2></div><div class="panel-body">' +
+      '<div style="display:flex;gap:6px;margin-bottom:12px;">' +
+        '<input id="dir_q" class="inp-field" style="flex:1;" placeholder="Search by nickname or Merchant ID (MRC-...)"/>' +
+        '<button class="btn" id="dir_search" style="font-size:10px;">🔍 Search</button>' +
+      '</div>';
+
+    if(_dirResults.length){
+      html += '<div style="display:flex;flex-direction:column;gap:6px;">' + _dirResults.map(function(r){
+        var alreadyRel = MS.relationships.some(function(rel){return (rel.merchant_a_id===MS.profile.merchant_id&&rel.merchant_b_id===r.merchant_id)||(rel.merchant_b_id===MS.profile.merchant_id&&rel.merchant_a_id===r.merchant_id);});
+        var pendingInv = MS.invites.some(function(i){return i.to_merchant_id===r.merchant_id&&i.from_merchant_id===MS.profile.merchant_id&&i.status==='pending';});
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--panel2);border-radius:var(--lt-radius-sm);border:1px solid var(--line);">' +
+          '<div><div style="font-weight:700;font-size:10px;">'+esc(r.display_name)+' <span class="muted">@'+esc(r.nickname)+'</span></div>' +
+          '<div class="muted" style="font-size:9px;">'+esc(r.merchant_id)+' · '+esc(r.merchant_type)+' · '+esc(r.region||'—')+'</div>' +
+          (r.bio?'<div style="font-size:9px;margin-top:3px;">'+esc(r.bio)+'</div>':'') + '</div>' +
+          '<div style="display:flex;gap:4px;">' +
+          (alreadyRel ? '<span style="font-size:9px;color:var(--good);">✓ Connected</span>' :
+           pendingInv ? '<span style="font-size:9px;color:var(--warn);">Invite sent</span>' :
+           '<button class="btn dir-invite-btn" data-mid="'+esc(r.merchant_id)+'" data-name="'+esc(r.display_name)+'" style="font-size:9px;">Send Invite</button>') +
+          '</div></div>';
+      }).join('') + '</div>';
+    } else {
+      html += '<div class="muted" style="font-size:10px;padding:16px;text-align:center;">Search for merchants by nickname or Merchant ID to discover and invite them.</div>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  /* ─── TAB: Invites ──────────────────────────────────────────────────── */
+  var _invTab = 'inbox';
+  function _tabInvites(){
+    var p = MS.profile;
+    var inbox = MS.invites.filter(function(i){return i.to_merchant_id===p.merchant_id;});
+    var sent = MS.invites.filter(function(i){return i.from_merchant_id===p.merchant_id;});
+    var list = _invTab==='inbox' ? inbox : sent;
+
+    var tabToggle = '<div style="display:flex;gap:4px;margin-bottom:12px;">' +
+      '<button class="rowBtn" id="inv_inbox" style="'+ (_invTab==='inbox'?'background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;':'')+' font-size:9px;padding:4px 10px;">📥 Inbox ('+inbox.filter(function(i){return i.status==='pending';}).length+')</button>' +
+      '<button class="rowBtn" id="inv_sent" style="'+(_invTab==='sent'?'background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;':'')+' font-size:9px;padding:4px 10px;">📤 Sent ('+sent.length+')</button>' +
+    '</div>';
+
+    var listHtml = list.length ? list.slice().reverse().map(function(inv){
+      var isInbox = _invTab==='inbox';
+      return '<div style="padding:10px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--lt-radius-sm);margin-bottom:6px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;">' +
+          '<div>' +
+            '<div style="font-weight:700;font-size:10px;">'+(isInbox?'From: '+esc(inv.from_merchant_id):'To: '+esc(inv.to_merchant_id))+'</div>' +
+            (inv.purpose?'<div style="font-size:9px;margin-top:2px;">Purpose: '+esc(inv.purpose)+'</div>':'') +
+            (inv.message?'<div style="font-size:9px;color:var(--muted);margin-top:2px;">"'+esc(inv.message)+'"</div>':'') +
+            '<div class="muted" style="font-size:8px;margin-top:4px;">'+fmtAgo(inv.created_at)+' · Role: '+esc(inv.requested_role)+'</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">' +
+          badge(inv.status) +
+          (isInbox && inv.status==='pending' ?
+            '<button class="rowBtn inv-accept" data-id="'+inv.id+'" style="font-size:8px;color:var(--good);">✓ Accept</button>' +
+            '<button class="rowBtn inv-reject" data-id="'+inv.id+'" style="font-size:8px;color:var(--bad);">✗ Reject</button>' :
+            (!isInbox && inv.status==='pending' ?
+              '<button class="rowBtn inv-withdraw" data-id="'+inv.id+'" style="font-size:8px;color:var(--warn);">Withdraw</button>' : '')) +
+          '</div>' +
+        '</div></div>';
+    }).join('') : '<div class="muted" style="font-size:10px;padding:16px;text-align:center;">No '+_invTab+' invites.</div>';
+
+    return '<div class="panel"><div class="panel-head"><h2>Invites</h2></div><div class="panel-body">' + tabToggle + listHtml + '</div></div>';
+  }
+
+  /* ─── TAB: Relationships ────────────────────────────────────────────── */
+  function _tabRelationships(){
+    var rels = MS.relationships;
+    if(!rels.length){
+      return '<div class="panel"><div class="panel-body"><div class="empty" style="padding:40px;text-align:center;"><div style="font-size:36px;">🤝</div><div class="empty-t" style="margin-top:8px;">No Relationships Yet</div><div class="empty-s">Send invites from the Directory tab to form relationships.</div><button class="btn secondary" id="qaGotoDirectory" style="margin-top:12px;">🔍 Go to Directory</button></div></div></div>';
+    }
+    return '<div class="panel"><div class="panel-head"><h2>Relationships</h2><span class="pill">'+rels.length+'</span></div><div class="panel-body">' +
+      rels.map(function(r){
+        var counterparty = r.merchant_a_id===MS.profile.merchant_id ? r.merchant_b_id : r.merchant_a_id;
+        var relDeals = MS.deals.filter(function(d){return d.relationship_id===r.id;});
+        var activeDeals = relDeals.filter(function(d){return d.status==='active';});
+        var exposure = activeDeals.reduce(function(s,d){return s+num(d.amount,0);},0);
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--lt-radius-sm);margin-bottom:6px;flex-wrap:wrap;gap:8px;">' +
+          '<div>' +
+            '<div style="font-weight:700;font-size:10px;">'+esc(counterparty)+' '+badge(r.status)+'</div>' +
+            '<div class="muted" style="font-size:9px;margin-top:2px;">Type: '+esc(r.relationship_type)+' · '+activeDeals.length+' active deals · Exposure: '+fmtU(exposure,0)+'</div>' +
+            '<div class="muted" style="font-size:8px;">Since '+fmtTs(r.created_at)+'</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;">' +
+            '<button class="rowBtn rel-open" data-id="'+r.id+'" style="font-size:9px;">Open Workspace →</button>' +
+            (r.status==='active'?'<button class="rowBtn rel-suspend" data-id="'+r.id+'" style="font-size:8px;color:var(--warn);">Suspend</button>':'') +
+            (r.status!=='terminated'&&r.status!=='archived'?'<button class="rowBtn rel-terminate" data-id="'+r.id+'" style="font-size:8px;color:var(--bad);">Terminate</button>':'') +
+          '</div>' +
+        '</div>';
+      }).join('') +
+    '</div></div>';
+  }
+
+  /* ─── TAB: Deals (global) ───────────────────────────────────────────── */
+  function _tabDeals(){
+    var deals = MS.deals;
+    var filterStatus = window._dealFilter || 'all';
+    var statuses = ['all','draft','active','due','settled','overdue','closed','cancelled'];
+    var filterBar = '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;">' +
+      statuses.map(function(s){
+        return '<button class="rowBtn deal-filter" data-s="'+s+'" style="font-size:8px;padding:3px 8px;'+(filterStatus===s?'background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;':'')+'">'+s+'</button>';
+      }).join('') + '</div>';
+    var shown = filterStatus==='all' ? deals : deals.filter(function(d){return d.status===filterStatus;});
+    var listHtml = shown.length ? shown.slice().reverse().map(function(d){
+      var rel = MS.relationships.find(function(r){return r.id===d.relationship_id;});
+      var cp = rel ? (rel.merchant_a_id===MS.profile.merchant_id?rel.merchant_b_id:rel.merchant_a_id) : '—';
+      return '<div style="padding:10px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--lt-radius-sm);margin-bottom:6px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;">' +
+          '<div>' +
+            '<div style="font-weight:700;font-size:10px;">'+esc(d.title)+' '+badge(d.status)+'</div>' +
+            '<div class="muted" style="font-size:9px;margin-top:2px;">'+esc(d.deal_type)+' · '+fmtU(d.amount,0)+' '+esc(d.currency)+' · with '+esc(cp)+'</div>' +
+            '<div class="muted" style="font-size:8px;">'+fmtTs(d.issue_date)+(d.due_date?' → Due: '+fmtTs(d.due_date):'')+'</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;">' +
+            (d.status==='draft'?'<button class="rowBtn deal-activate" data-id="'+d.id+'" style="font-size:8px;color:var(--good);">▶ Activate</button>':'') +
+            (d.status==='active'?'<button class="rowBtn deal-settle" data-id="'+d.id+'" style="font-size:8px;color:var(--brand);">Settle</button>':'') +
+            (d.status==='active'?'<button class="rowBtn deal-close" data-id="'+d.id+'" style="font-size:8px;color:var(--warn);">Close</button>':'') +
+            (d.status==='active'?'<button class="rowBtn deal-cancel" data-id="'+d.id+'" style="font-size:8px;color:var(--bad);">Cancel</button>':'') +
+          '</div>' +
+        '</div></div>';
+    }).join('') : '<div class="muted" style="font-size:10px;padding:16px;text-align:center;">No deals found. Create deals inside a Relationship Workspace.</div>';
+
+    return '<div class="panel"><div class="panel-head"><h2>All Deals</h2><span class="pill">'+deals.length+'</span></div><div class="panel-body">'+filterBar+listHtml+'</div></div>';
+  }
+
+  /* ─── TAB: Approvals ────────────────────────────────────────────────── */
+  var _appTab = 'inbox';
+  function _tabApprovals(){
+    var p = MS.profile;
+    var inbox = MS.approvals.filter(function(a){return a.reviewer_merchant_id===p.merchant_id;});
+    var sent = MS.approvals.filter(function(a){return a.submitted_by_merchant_id===p.merchant_id;});
+    var list = _appTab==='inbox' ? inbox : sent;
+
+    var tabToggle = '<div style="display:flex;gap:4px;margin-bottom:12px;">' +
+      '<button class="rowBtn" id="app_inbox" style="'+(_appTab==='inbox'?'background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;':'')+' font-size:9px;padding:4px 10px;">📥 Inbox ('+inbox.filter(function(a){return a.status==='pending';}).length+')</button>' +
+      '<button class="rowBtn" id="app_sent" style="'+(_appTab==='sent'?'background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;':'')+' font-size:9px;padding:4px 10px;">📤 Sent ('+sent.length+')</button>' +
+    '</div>';
+
+    var listHtml = list.length ? list.slice().reverse().map(function(a){
+      var isInbox = _appTab==='inbox';
+      var deal = MS.deals.find(function(d){return d.id===a.target_entity_id;});
+      return '<div style="padding:10px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--lt-radius-sm);margin-bottom:6px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;">' +
+          '<div>' +
+            '<div style="font-weight:700;font-size:10px;">'+esc(approvalTypeLabel(a.type))+' '+badge(a.status)+'</div>' +
+            '<div class="muted" style="font-size:9px;margin-top:2px;">'+esc(approvalSummary(a))+'</div>' +
+            (deal?'<div class="muted" style="font-size:9px;">Deal: '+esc(deal.title)+'</div>':'') +
+            '<div class="muted" style="font-size:8px;margin-top:4px;">'+fmtAgo(a.submitted_at)+' · from '+esc(a.submitted_by_merchant_id)+'</div>' +
+            (a.resolution_note?'<div style="font-size:9px;margin-top:4px;padding:4px 6px;background:var(--panel);border-radius:4px;">Note: '+esc(a.resolution_note)+'</div>':'') +
+          '</div>' +
+          '<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">' +
+          (isInbox && a.status==='pending' ?
+            '<button class="rowBtn app-approve" data-id="'+a.id+'" style="font-size:8px;color:var(--good);">✓ Approve</button>' +
+            '<button class="rowBtn app-reject" data-id="'+a.id+'" style="font-size:8px;color:var(--bad);">✗ Reject</button>' : '') +
+          (a.status==='pending'?'<button class="rowBtn app-cancel" data-id="'+a.id+'" style="font-size:8px;color:var(--muted);">Cancel</button>':'') +
+          '</div>' +
+        '</div></div>';
+    }).join('') : '<div class="muted" style="font-size:10px;padding:16px;text-align:center;">No '+_appTab+' approvals.</div>';
+
+    return '<div class="panel"><div class="panel-head"><h2>Approvals</h2></div><div class="panel-body">'+tabToggle+listHtml+'</div></div>';
+  }
+
+  /* ─── TAB: Messages ─────────────────────────────────────────────────── */
+  function _tabMessages(){
+    var rels = MS.relationships.filter(function(r){return r.status==='active';});
+    if(!rels.length){
+      return '<div class="panel"><div class="panel-body"><div class="muted" style="padding:20px;text-align:center;">No active relationships. Messages live inside a Relationship Workspace.</div></div></div>';
+    }
+    return '<div class="panel"><div class="panel-head"><h2>Messages</h2><div class="muted" style="font-size:9px;">Select a relationship to message</div></div><div class="panel-body">' +
+      rels.map(function(r){
+        var cp = r.merchant_a_id===MS.profile.merchant_id ? r.merchant_b_id : r.merchant_a_id;
+        var relMsgs = MS.messages.filter(function(m){return m.relationship_id===r.id;});
+        var last = relMsgs[relMsgs.length-1];
+        var unread = relMsgs.filter(function(m){return m.sender_merchant_id!==MS.profile.merchant_id&&!m.read_at;}).length;
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--lt-radius-sm);margin-bottom:6px;cursor:pointer;" class="rowBtn rel-open" data-id="'+r.id+'">' +
+          '<div><div style="font-weight:700;font-size:10px;">'+esc(cp)+(unread?' <span style="background:var(--bad);color:#fff;font-size:8px;padding:1px 5px;border-radius:999px;">'+unread+'</span>':'')+'</div>' +
+          (last?'<div class="muted" style="font-size:9px;margin-top:2px;">'+(last.sender_merchant_id===MS.profile.merchant_id?'You: ':cp+': ')+esc((last.body||'').slice(0,60))+'</div>':'<div class="muted" style="font-size:9px;">No messages yet</div>') +
+          '</div><span style="font-size:16px;">💬</span></div>';
+      }).join('') +
+    '</div></div>';
+  }
+
+  /* ─── TAB: Audit ────────────────────────────────────────────────────── */
+  function _tabAudit(){
+    var logs = MS.auditLogs;
+    return '<div class="panel"><div class="panel-head"><h2>Personal Audit Log</h2><span class="pill">'+logs.length+'</span></div><div class="panel-body" style="max-height:500px;overflow-y:auto;">' +
+      (logs.length ? logs.map(function(a){
+        return '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line2);font-size:9px;">' +
+          '<span class="muted" style="flex-shrink:0;min-width:72px;">'+fmtAgo(a.ts)+'</span>' +
+          '<span style="flex-shrink:0;width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--brand);">'+esc(a.entity_type)+'</span>' +
+          '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong>'+esc(a.action.replace(/_/g,' '))+'</strong> — '+esc(a.detail)+'</span>' +
+        '</div>';
+      }).join('') : '<div class="muted" style="font-size:10px;padding:16px;text-align:center;">No audit logs yet.</div>') +
+    '</div></div>';
+  }
+
+  /* ─── TAB: Notifications ────────────────────────────────────────────── */
+  function _tabNotifications(){
+    var notifs = MS.notifications;
+    return '<div class="panel"><div class="panel-head"><h2>Notifications</h2><div style="display:flex;gap:6px;">' +
+      '<button class="rowBtn" id="notif_read_all" style="font-size:9px;">Mark all read</button>' +
+    '</div></div><div class="panel-body" style="max-height:500px;overflow-y:auto;">' +
+      (notifs.length ? notifs.map(function(n){
+        return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--line2);align-items:flex-start;'+(n.read_at?'opacity:0.6;':'')+'">' +
+          '<span style="font-size:14px;flex-shrink:0;">'+(n.category==='invite'?'📨':n.category==='approval'?'✅':n.category==='message'?'💬':n.category==='due_alert'?'⚠':n.category==='risk'?'🚨':'🔔')+'</span>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:10px;font-weight:'+(n.read_at?'400':'700')+';">'+(n.read_at?'':' <span style="display:inline-block;width:6px;height:6px;background:var(--brand);border-radius:50%;margin-right:3px;vertical-align:middle;"></span>')+esc(n.title)+'</div>' +
+            (n.body?'<div class="muted" style="font-size:9px;margin-top:2px;">'+esc(n.body)+'</div>':'') +
+          '</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">' +
+            '<span class="muted" style="font-size:8px;white-space:nowrap;">'+fmtAgo(n.ts)+'</span>' +
+            (!n.read_at?'<button class="rowBtn notif-read" data-id="'+n.id+'" style="font-size:7px;padding:2px 5px;">Read</button>':'') +
+          '</div>' +
+        '</div>';
+      }).join('') : '<div class="muted" style="font-size:10px;padding:16px;text-align:center;">No notifications.</div>') +
+    '</div></div>';
+  }
+
+  /* ─── TAB: Settings ─────────────────────────────────────────────────── */
+  function _tabSettings(){
+    var p = MS.profile;
+    return '<div style="max-width:520px;">' +
+      '<div class="panel"><div class="panel-head"><h2>Merchant Settings</h2></div><div class="panel-body">' +
+        '<div class="form-field"><label class="form-label">Display Name *</label><input id="set_name" class="inp-field" value="'+esc(p.display_name)+'"/></div>' +
+        '<div class="form-field"><label class="form-label">Bio</label><textarea id="set_bio" class="inp-field" style="min-height:60px;">'+esc(p.bio||'')+'</textarea></div>' +
+        '<div class="form-field"><label class="form-label">Region</label><input id="set_region" class="inp-field" value="'+esc(p.region||'')+'"/></div>' +
+        '<div class="form-field"><label class="form-label">Discoverability</label>' +
+          '<select id="set_disc" class="inp-field">' +
+            ['public','merchant_id_only','hidden'].map(function(v){return '<option value="'+v+'"'+(p.discoverability===v?' selected':'')+'>'+v+'</option>';}).join('') +
+          '</select>' +
+        '</div>' +
+        '<div class="form-field"><label class="form-label">Default Currency</label>' +
+          '<select id="set_cur" class="inp-field">' +
+            ['USDT','BTC','ETH'].map(function(v){return '<option value="'+v+'"'+(p.default_currency===v?' selected':'')+'>'+v+'</option>';}).join('') +
+          '</select>' +
+        '</div>' +
+        '<div class="msg" id="set_err"></div>' +
+        '<div style="margin-top:14px;display:flex;gap:8px;">' +
+          '<button class="btn" id="set_save">Save Settings</button>' +
+          '<button class="btn secondary" id="set_reset_profile" style="color:var(--bad);border-color:var(--bad);">Reset Platform</button>' +
+        '</div>' +
+      '</div></div>' +
+    '</div>';
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     RELATIONSHIP WORKSPACE
+     ═══════════════════════════════════════════════════════════════════════ */
+  function _renderWorkspace(){
+    var rel = MS.relationships.find(function(r){return r.id===_wsRelId;});
+    if(!rel){ _wsRelId=null; renderMerchants(); return; }
+    var pb = $('#pageBody'); if(!pb) return;
+    var p = MS.profile;
+    var counterparty = rel.merchant_a_id===p.merchant_id ? rel.merchant_b_id : rel.merchant_a_id;
+    var relDeals = MS.deals.filter(function(d){return d.relationship_id===rel.id;});
+    var relMsgs = MS.messages.filter(function(m){return m.relationship_id===rel.id;});
+    var relAudit = MS.auditLogs.filter(function(a){return a.entity_id===rel.id||relDeals.some(function(d){return d.id===a.entity_id;});});
+
+    var wsSubTabs = [
+      {id:'overview',icon:'📊',label:'Overview'},
+      {id:'deals',icon:'📋',label:'Deals',badge:relDeals.filter(function(d){return d.status==='active';}).length||0},
+      {id:'messages',icon:'💬',label:'Messages',badge:relMsgs.filter(function(m){return m.sender_merchant_id!==p.merchant_id&&!m.read_at;}).length||0},
+      {id:'audit',icon:'📜',label:'Audit'},
+    ];
+
+    var header = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">' +
+      '<button class="rowBtn" id="ws_back" style="font-size:9px;">← Back</button>' +
+      '<div style="flex:1;"><div style="font-weight:700;font-size:13px;">'+esc(counterparty)+' '+badge(rel.status)+'</div>' +
+      '<div class="muted" style="font-size:9px;">'+esc(rel.relationship_type)+' · Since '+fmtTs(rel.created_at)+'</div></div>' +
+      '<div style="display:flex;gap:4px;">' +
+        (rel.status==='active'?'<button class="rowBtn" id="ws_new_deal" style="font-size:9px;color:var(--good);">+ New Deal</button>':'') +
+      '</div>' +
+    '</div>';
+
+    var subTabBar = '<div style="display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:8px;">' +
+      wsSubTabs.map(function(t){
+        return '<button class="rowBtn ws-tab-btn" data-wstab="'+t.id+'" style="font-size:9px;padding:4px 9px;'+(_wsTab===t.id?'background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;':'')+'">'+t.icon+' '+t.label+(t.badge?(' <span style="background:var(--bad);color:#fff;font-size:8px;padding:1px 5px;border-radius:999px;margin-left:2px;">'+t.badge+'</span>'):'')+'</button>';
+      }).join('') + '</div>';
+
+    var content = '';
+    if(_wsTab==='overview') content = _wsOverview(rel,counterparty,relDeals,relMsgs);
+    else if(_wsTab==='deals') content = _wsDeals(rel,relDeals);
+    else if(_wsTab==='messages') content = _wsMessages(rel,relMsgs,counterparty);
+    else if(_wsTab==='audit') content = _wsAudit(relAudit);
+
+    pb.innerHTML = header + subTabBar + content;
+
+    $('#ws_back')?.addEventListener('click',function(){ _wsRelId=null; _wsTab='overview'; renderMerchants(); });
+    $$('.ws-tab-btn').forEach(function(b){ b.addEventListener('click',function(){ _wsTab=b.dataset.wstab; renderMerchants(); }); });
+    _wireWorkspace(rel,relMsgs);
+  }
+
+  function _wsOverview(rel,cp,relDeals,relMsgs){
+    var activeDeals = relDeals.filter(function(d){return d.status==='active';});
+    var exposure = activeDeals.reduce(function(s,d){return s+num(d.amount,0);},0);
+    var settled = relDeals.filter(function(d){return d.status==='settled';});
+    var pnl = settled.reduce(function(s,d){return s+num(d.realized_pnl,0);},0);
+    var pendingApprovals = MS.approvals.filter(function(a){return a.relationship_id===rel.id&&a.status==='pending';}).length;
+    return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px;">' +
+      _statCard('Counterparty',esc(cp),'var(--brand)') +
+      _statCard('Active Deals',activeDeals.length,'var(--t5,#0ea5e9)') +
+      _statCard('Exposure',fmtU(exposure,0),'var(--warn)') +
+      _statCard('Realized P&L',fmtU(pnl,2),pnl>=0?'var(--good)':'var(--bad)') +
+      _statCard('Pending Approvals',pendingApprovals,pendingApprovals?'var(--bad)':'var(--good)') +
+    '</div>';
+  }
+
+  function _wsDeals(rel,relDeals){
+    var html = '<div class="panel"><div class="panel-head"><h2>Deals</h2>' +
+      (rel.status==='active'?'<button class="rowBtn" id="ws_new_deal2" style="font-size:9px;color:var(--good);">+ New Deal</button>':'') +
+    '</div><div class="panel-body">';
+    if(!relDeals.length){
+      html += '<div class="muted" style="font-size:10px;padding:16px;text-align:center;">No deals yet. Click "+ New Deal" to create one.</div>';
+    } else {
+      html += relDeals.slice().reverse().map(function(d){
+        return '<div style="padding:10px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--lt-radius-sm);margin-bottom:6px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;">' +
+            '<div>' +
+              '<div style="font-weight:700;font-size:10px;">'+esc(d.title)+' '+badge(d.status)+'</div>' +
+              '<div class="muted" style="font-size:9px;margin-top:2px;">'+esc(d.deal_type)+' · '+fmtU(d.amount,0)+' '+esc(d.currency)+'</div>' +
+              '<div class="muted" style="font-size:8px;">'+fmtTs(d.issue_date)+(d.due_date?' → '+fmtTs(d.due_date):'')+'</div>' +
+              (d.realized_pnl!==null&&d.realized_pnl!==undefined?'<div style="font-size:9px;margin-top:2px;">P&L: <strong style="color:'+(num(d.realized_pnl,0)>=0?'var(--good)':'var(--bad)')+';">'+fmtU(d.realized_pnl,2)+'</strong></div>':'') +
+            '</div>' +
+            '<div style="display:flex;gap:4px;flex-wrap:wrap;">' +
+              (d.status==='draft'?'<button class="rowBtn ws-deal-activate" data-id="'+d.id+'" style="font-size:8px;color:var(--good);">▶ Activate</button>':'') +
+              (d.status==='active'?'<button class="rowBtn ws-deal-settle" data-id="'+d.id+'" style="font-size:8px;color:var(--brand);">Settle</button>':'') +
+              (d.status==='active'?'<button class="rowBtn ws-deal-profit" data-id="'+d.id+'" style="font-size:8px;color:var(--good);">Record Profit</button>':'') +
+              (d.status==='active'?'<button class="rowBtn ws-deal-close" data-id="'+d.id+'" style="font-size:8px;color:var(--warn);">Close</button>':'') +
+              (d.status==='active'?'<button class="rowBtn ws-deal-cancel" data-id="'+d.id+'" style="font-size:8px;color:var(--bad);">Cancel</button>':'') +
+            '</div>' +
+          '</div></div>';
+      }).join('');
+    }
+    return html + '</div></div>';
+  }
+
+  function _wsMessages(rel,relMsgs,cp){
+    // Mark all as read
+    relMsgs.forEach(function(m){ if(m.sender_merchant_id!==MS.profile.merchant_id) m.read_at=now(); });
+    save();
+    return '<div class="panel"><div class="panel-head"><h2>Messages with '+esc(cp)+'</h2></div><div class="panel-body">' +
+      '<div id="ws_msg_list" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;padding-right:4px;">' +
+        (relMsgs.length ? relMsgs.map(function(m){
+          var isMe = m.sender_merchant_id===MS.profile.merchant_id;
+          return '<div style="display:flex;'+(isMe?'justify-content:flex-end;':'')+'">' +
+            '<div style="max-width:80%;padding:7px 10px;border-radius:12px;'+(isMe?'background:var(--brand);color:#fff;border-bottom-right-radius:3px;':'background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:3px;')+'">' +
+              '<div style="font-size:10px;">'+esc(m.body)+'</div>' +
+              '<div style="font-size:8px;margin-top:3px;opacity:0.7;text-align:'+(isMe?'right':'left')+';">'+fmtAgo(m.ts)+(isMe?' · You':' · '+esc(cp))+'</div>' +
+            '</div></div>';
+        }).join('') : '<div class="muted" style="font-size:10px;text-align:center;padding:20px;">No messages yet. Start the conversation!</div>') +
+      '</div>' +
+      '<div style="display:flex;gap:6px;">' +
+        '<input id="ws_msg_input" class="inp-field" style="flex:1;" placeholder="Type a message…"/>' +
+        '<button class="btn" id="ws_msg_send" style="font-size:10px;">Send</button>' +
+      '</div>' +
+    '</div></div>';
+  }
+
+  function _wsAudit(relAudit){
+    return '<div class="panel"><div class="panel-head"><h2>Relationship Audit</h2><span class="pill">'+relAudit.length+'</span></div><div class="panel-body" style="max-height:400px;overflow-y:auto;">' +
+      (relAudit.length ? relAudit.map(function(a){
+        return '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line2);font-size:9px;">' +
+          '<span class="muted" style="flex-shrink:0;min-width:72px;">'+fmtAgo(a.ts)+'</span>' +
+          '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong>'+esc(a.action.replace(/_/g,' '))+'</strong> — '+esc(a.detail)+'</span>' +
+        '</div>';
+      }).join('') : '<div class="muted" style="font-size:10px;padding:16px;text-align:center;">No audit entries for this relationship.</div>') +
+    '</div></div>';
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LEGACY TABS (preserved from original)
+     ═══════════════════════════════════════════════════════════════════════ */
+  window._mchTab = window._mchTab || 'overview';
+
+  /* ─── Wire Hub Events ────────────────────────────────────────────────── */
+  function _wireHub(){
+    $('#goNotifs')?.addEventListener('click',function(){ _tab='notifications'; renderMerchants(); });
+    $('#goAudit')?.addEventListener('click',function(){ _tab='audit'; renderMerchants(); });
+    $('#qaGotoDirectory')?.addEventListener('click',function(){ _tab='directory'; renderMerchants(); });
+    $('#qaGotoInvites')?.addEventListener('click',function(){ _tab='invites'; renderMerchants(); });
+    $('#qaGotoRels')?.addEventListener('click',function(){ _tab='relationships'; renderMerchants(); });
+    $('#qaGotoDeals')?.addEventListener('click',function(){ _tab='deals'; renderMerchants(); });
+
+    // Profile edit
+    $('#editProfileBtn')?.addEventListener('click',function(){ _openEditProfile(); });
+
+    // Directory
+    $('#dir_search')?.addEventListener('click',function(){ _dirSearch(); });
+    $('#dir_q')?.addEventListener('keydown',function(e){ if(e.key==='Enter') _dirSearch(); });
+    $$('.dir-invite-btn').forEach(function(b){ b.addEventListener('click',function(){ _openInviteModal(b.dataset.mid,b.dataset.name); }); });
+
+    // Invites
+    $('#inv_inbox')?.addEventListener('click',function(){ _invTab='inbox'; renderMerchants(); });
+    $('#inv_sent')?.addEventListener('click',function(){ _invTab='sent'; renderMerchants(); });
+    $$('.inv-accept').forEach(function(b){ b.addEventListener('click',function(){ _acceptInvite(b.dataset.id); }); });
+    $$('.inv-reject').forEach(function(b){ b.addEventListener('click',function(){ _rejectInvite(b.dataset.id); }); });
+    $$('.inv-withdraw').forEach(function(b){ b.addEventListener('click',function(){ _withdrawInvite(b.dataset.id); }); });
+
+    // Relationships
+    $$('.rel-open').forEach(function(b){ b.addEventListener('click',function(){ _wsRelId=b.dataset.id; _wsTab='overview'; renderMerchants(); }); });
+    $$('.rel-suspend').forEach(function(b){ b.addEventListener('click',function(){ _suspendRel(b.dataset.id); }); });
+    $$('.rel-terminate').forEach(function(b){ b.addEventListener('click',function(){ _terminateRel(b.dataset.id); }); });
+
+    // Deals tab
+    $$('.deal-filter').forEach(function(b){ b.addEventListener('click',function(){ window._dealFilter=b.dataset.s; renderMerchants(); }); });
+    $$('.deal-activate').forEach(function(b){ b.addEventListener('click',function(){ _activateDeal(b.dataset.id); }); });
+    $$('.deal-settle').forEach(function(b){ b.addEventListener('click',function(){ _openSettleModal(b.dataset.id); }); });
+    $$('.deal-close').forEach(function(b){ b.addEventListener('click',function(){ _closeDeal(b.dataset.id); }); });
+    $$('.deal-cancel').forEach(function(b){ b.addEventListener('click',function(){ _cancelDeal(b.dataset.id); }); });
+
+    // Approvals tab
+    $('#app_inbox')?.addEventListener('click',function(){ _appTab='inbox'; renderMerchants(); });
+    $('#app_sent')?.addEventListener('click',function(){ _appTab='sent'; renderMerchants(); });
+    $$('.app-approve').forEach(function(b){ b.addEventListener('click',function(){ _approveApprovalNew(b.dataset.id); }); });
+    $$('.app-reject').forEach(function(b){ b.addEventListener('click',function(){ _rejectApprovalNew(b.dataset.id); }); });
+    $$('.app-cancel').forEach(function(b){ b.addEventListener('click',function(){ _cancelApproval(b.dataset.id); }); });
+
+    // Notifications
+    $('#notif_read_all')?.addEventListener('click',function(){ MS.notifications.forEach(function(n){n.read_at=now();}); save(); renderMerchants(); });
+    $$('.notif-read').forEach(function(b){ b.addEventListener('click',function(){ var n=MS.notifications.find(function(x){return x.id===b.dataset.id;}); if(n) n.read_at=now(); save(); renderMerchants(); }); });
+
+    // Settings
+    $('#set_save')?.addEventListener('click',function(){ _saveSettings(); });
+    $('#set_reset_profile')?.addEventListener('click',function(){
+      if(!confirm('Reset entire Merchant Platform? This will delete your profile, relationships, and all data.')) return;
+      MS = defaultState(); save(); renderMerchants();
+    });
+  }
+
+  /* ─── Wire Workspace Events ─────────────────────────────────────────── */
+  function _wireWorkspace(rel,relMsgs){
+    // New deal buttons
+    var openNewDeal = function(){ _openNewDealModal(rel.id); };
+    $('#ws_new_deal')?.addEventListener('click',openNewDeal);
+    $('#ws_new_deal2')?.addEventListener('click',openNewDeal);
+
+    // Deal actions
+    $$('.ws-deal-activate').forEach(function(b){ b.addEventListener('click',function(){ _activateDeal(b.dataset.id); }); });
+    $$('.ws-deal-settle').forEach(function(b){ b.addEventListener('click',function(){ _openSettleModal(b.dataset.id); }); });
+    $$('.ws-deal-profit').forEach(function(b){ b.addEventListener('click',function(){ _openProfitModal(b.dataset.id); }); });
+    $$('.ws-deal-close').forEach(function(b){ b.addEventListener('click',function(){ _closeDeal(b.dataset.id); }); });
+    $$('.ws-deal-cancel').forEach(function(b){ b.addEventListener('click',function(){ _cancelDeal(b.dataset.id); }); });
+
+    // Messages
+    var sendMsg = function(){
+      var inp = $('#ws_msg_input'); if(!inp) return;
+      var body = (inp.value||'').trim(); if(!body) return;
+      MS.messages.push({ id:uid(), relationship_id:rel.id, sender_merchant_id:MS.profile.merchant_id, body:body, ts:now(), read_at:now() });
+      var cp = rel.merchant_a_id===MS.profile.merchant_id?rel.merchant_b_id:rel.merchant_a_id;
+      audit('message_sent','message',rel.id,'Sent to '+cp);
+      notify('message','New message from you','Sent: '+body.slice(0,60),rel.id);
+      save(); renderMerchants();
+    };
+    $('#ws_msg_send')?.addEventListener('click',sendMsg);
+    $('#ws_msg_input')?.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); } });
+
+    // Scroll messages to bottom
+    setTimeout(function(){ var l=$('#ws_msg_list'); if(l) l.scrollTop=l.scrollHeight; },50);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     MODAL-DRIVEN ACTIONS
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  function _openEditProfile(){
+    var p = MS.profile;
+    openModal('Edit Profile', [
+      '<div class="form-field"><label class="form-label">Display Name *</label><input id="ep_name" class="inp-field" value="'+esc(p.display_name)+'"/></div>',
+      '<div class="form-field"><label class="form-label">Bio</label><textarea id="ep_bio" class="inp-field" style="min-height:60px;">'+esc(p.bio||'')+'</textarea></div>',
+      '<div class="form-field"><label class="form-label">Region</label><input id="ep_region" class="inp-field" value="'+esc(p.region||'')+'"/></div>',
+      '<div class="form-field"><label class="form-label">Discoverability</label><select id="ep_disc" class="inp-field">'+
+        ['public','merchant_id_only','hidden'].map(function(v){return '<option value="'+v+'"'+(p.discoverability===v?' selected':'')+'>'+v+'</option>';}).join('')+
+      '</select></div>',
+      '<div class="msg" id="ep_err"></div>',
+    ].join(''),
+    '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_save">Save</button>');
     setTimeout(function(){
-      $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_save")?.addEventListener("click",function(){
-        var enabled=!!$("#mcEnabled")?.checked, role=$("#mcRole")?.value||"owner", mode=$("#mcMode")?.value||"comment", fields=$$(".mcField:checked").map(function(el){return el.value;});
-        if(enabled && !fields.length){ var box=$("#mcMsg"); if(box){ box.textContent="Select at least one shared field"; box.className="msg err"; } return; }
-        c.enabled=enabled; c.role=role; c.access_mode=mode; c.shared_fields=fields.length?fields:c.shared_fields;
-        if(!enabled) c.shared_token=""; else if(!c.shared_token || $("#mcRegen")?.checked) c.shared_token=_genToken();
-        collabLog(m,"collaboration_configured","Collaboration settings updated","general",null,"you");
-        saveRecompute("Collaboration settings saved","good");
-        closeModal();
+      $('#m_c')?.addEventListener('click',closeModal);
+      $('#m_save')?.addEventListener('click',function(){
+        var name=($('#ep_name')?.value||'').trim();
+        if(!name){ var e=$('#ep_err');if(e){e.textContent='Name required';e.className='msg err';} return; }
+        p.display_name=name; p.bio=($('#ep_bio')?.value||'').trim(); p.region=($('#ep_region')?.value||'').trim(); p.discoverability=$('#ep_disc')?.value||'public'; p.updated_at=now();
+        audit('profile_updated','profile',p.id,'Updated profile');
+        save(); closeModal(); renderMerchants();
       });
     },0);
-  };
+  }
 
-  window._sendCollabMessage = function(id){
-    var m=(state.merchants||[]).find(function(x){return x.id===id;}); if(!m) return;
-    openModal("Send Message to "+esc(m.name), '<div class="form-field"><label class="form-label">Message *</label><textarea id="collabMsg" class="inp-field" style="min-height:80px;" placeholder="Type your message…"></textarea></div><div class="msg" id="collabMsgErr"></div>', '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">Send Message</button>');
+  function _dirSearch(){
+    var q = ($('#dir_q')?.value||'').trim().toLowerCase();
+    if(!q){ if(typeof toast==='function') toast('Enter a search term','warn'); return; }
+    // Local search simulation: search legacy merchants + return simulated results
+    var found = [];
+    // Search legacy merchants as "known merchants"
+    (MS.merchants||[]).forEach(function(m){
+      if((m.name||'').toLowerCase().includes(q)||(m.id||'').toLowerCase().includes(q)){
+        found.push({ merchant_id:m.id||uid().slice(0,8).toUpperCase(), display_name:m.name||m.id, nickname:(m.name||m.id||'').toLowerCase().replace(/\s+/g,'_').slice(0,20), merchant_type:'independent', region:'—', discoverability:'public', bio:'' });
+      }
+    });
+    // Add simulated results if searching by MRC pattern
+    if(q.startsWith('mrc')){ found.push({ merchant_id:q.toUpperCase(), display_name:'Merchant '+q.toUpperCase(), nickname:q.replace(/[^a-z0-9_]/g,'_'), merchant_type:'independent', region:'Qatar', discoverability:'public', bio:'Simulated merchant' }); }
+    _dirResults = found;
+    renderMerchants();
+    if(!found.length && typeof toast==='function') toast('No public merchants found for "'+q+'"','warn');
+  }
+
+  function _openInviteModal(targetMid,targetName){
+    openModal('Send Invite to '+esc(targetName||targetMid), [
+      '<div class="form-field"><label class="form-label">Purpose</label><input id="inv_purpose" class="inp-field" placeholder="e.g. Trading collaboration"/></div>',
+      '<div class="form-field"><label class="form-label">Requested Role</label><select id="inv_role" class="inp-field"><option value="operator">Operator</option><option value="viewer">Viewer</option><option value="finance">Finance</option><option value="admin">Admin</option></select></div>',
+      '<div class="form-field"><label class="form-label">Message</label><textarea id="inv_msg" class="inp-field" style="min-height:60px;" placeholder="Introduce yourself…"></textarea></div>',
+      '<div class="msg" id="inv_err"></div>',
+    ].join(''),
+    '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">Send Invite</button>');
     setTimeout(function(){
-      $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_send")?.addEventListener("click",function(){
-        var text=(($("#collabMsg")?.value)||"").trim(); if(!text){ var e=$("#collabMsgErr"); if(e){ e.textContent="Message is required"; e.className="msg err"; } return; }
-        pushMsg(m,"you",text); collabLog(m,"sent_message","Message sent: "+text.slice(0,60),"general",null,"you"); saveRecompute("Message sent","good"); closeModal();
+      $('#m_c')?.addEventListener('click',closeModal);
+      $('#m_send')?.addEventListener('click',function(){
+        var purpose=($('#inv_purpose')?.value||'').trim(), role=$('#inv_role')?.value||'operator', msg=($('#inv_msg')?.value||'').trim();
+        var inv = { id:uid(), from_merchant_id:MS.profile.merchant_id, to_merchant_id:targetMid, status:'pending', purpose:purpose, requested_role:role, message:msg, created_at:now(), updated_at:now(), expires_at:now()+14*86400000 };
+        MS.invites.push(inv);
+        audit('invite_sent','invite',inv.id,'Invite sent to '+targetMid);
+        notify('invite','Invite sent','Your invite to '+targetMid+' is pending.');
+        save(); closeModal(); _tab='invites'; _invTab='sent'; renderMerchants();
+        if(typeof toast==='function') toast('Invite sent to '+targetMid,'good');
       });
     },0);
-  };
+  }
 
-  window._sendPartnerMessage = function(id){
-    var m=(state.merchants||[]).find(function(x){return x.id===id;}); if(!m) return;
-    openModal("Partner Message — "+esc(m.name), '<div class="form-field"><label class="form-label">Message *</label><textarea id="partnerMsg" class="inp-field" style="min-height:80px;" placeholder="Type the partner message…"></textarea></div><div class="msg" id="partnerMsgErr"></div>', '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">Send as Partner</button>');
+  function _acceptInvite(id){
+    var inv = MS.invites.find(function(i){return i.id===id;});
+    if(!inv||inv.status!=='pending'){ if(typeof toast==='function') toast('Invite not found or already resolved','warn'); return; }
+    inv.status='accepted'; inv.updated_at=now();
+    // Create relationship
+    var rel = { id:uid(), merchant_a_id:inv.from_merchant_id, merchant_b_id:inv.to_merchant_id, invite_id:inv.id, relationship_type:'general', status:'active', created_at:now(), updated_at:now() };
+    MS.relationships.push(rel);
+    audit('invite_accepted','invite',inv.id,'Accepted invite from '+inv.from_merchant_id+', relationship created');
+    notify('invite','Relationship formed!','You are now connected with '+inv.from_merchant_id,rel.id);
+    save(); renderMerchants();
+    if(typeof toast==='function') toast('Invite accepted — relationship formed','good');
+  }
+
+  function _rejectInvite(id){
+    var inv = MS.invites.find(function(i){return i.id===id;});
+    if(!inv||inv.status!=='pending'){ if(typeof toast==='function') toast('Invite not found','warn'); return; }
+    inv.status='rejected'; inv.updated_at=now();
+    audit('invite_rejected','invite',inv.id,'Rejected invite from '+inv.from_merchant_id);
+    save(); renderMerchants();
+    if(typeof toast==='function') toast('Invite rejected','warn');
+  }
+
+  function _withdrawInvite(id){
+    var inv = MS.invites.find(function(i){return i.id===id;});
+    if(!inv||inv.status!=='pending'){ if(typeof toast==='function') toast('Invite not found','warn'); return; }
+    inv.status='withdrawn'; inv.updated_at=now();
+    audit('invite_withdrawn','invite',inv.id,'Withdrew invite to '+inv.to_merchant_id);
+    save(); renderMerchants();
+    if(typeof toast==='function') toast('Invite withdrawn','warn');
+  }
+
+  function _suspendRel(id){
+    var rel = MS.relationships.find(function(r){return r.id===id;});
+    if(!rel) return;
+    if(!confirm('Suspend relationship with '+_relCp(rel)+'?')) return;
+    rel.status='suspended'; rel.updated_at=now();
+    audit('relationship_suspended','relationship',id,'Suspended');
+    notify('system','Relationship suspended','Your relationship with '+_relCp(rel)+' has been suspended.',id);
+    save(); renderMerchants();
+  }
+
+  function _terminateRel(id){
+    var rel = MS.relationships.find(function(r){return r.id===id;});
+    if(!rel) return;
+    if(!confirm('Permanently terminate relationship with '+_relCp(rel)+'? This cannot be undone.')) return;
+    rel.status='terminated'; rel.updated_at=now();
+    audit('relationship_terminated','relationship',id,'Terminated');
+    notify('system','Relationship terminated','Your relationship with '+_relCp(rel)+' has been terminated.',id);
+    save(); renderMerchants();
+  }
+
+  function _relCp(rel){ return rel.merchant_a_id===MS.profile.merchant_id?rel.merchant_b_id:rel.merchant_a_id; }
+
+  function _openNewDealModal(relId){
+    openModal('New Deal', [
+      '<div class="form-field"><label class="form-label">Title *</label><input id="nd_title" class="inp-field" placeholder="e.g. 30-day lending Q1"/></div>',
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">',
+        '<div class="form-field"><label class="form-label">Deal Type *</label><select id="nd_type" class="inp-field"><option value="lending">Lending</option><option value="arbitrage">Arbitrage</option><option value="partnership">Partnership</option><option value="capital_placement">Capital Placement</option></select></div>',
+        '<div class="form-field"><label class="form-label">Currency</label><select id="nd_cur" class="inp-field"><option value="USDT">USDT</option><option value="BTC">BTC</option><option value="ETH">ETH</option></select></div>',
+      '</div>',
+      '<div class="form-field"><label class="form-label">Amount *</label><input id="nd_amount" class="inp-field" inputmode="decimal" placeholder="50000"/></div>',
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">',
+        '<div class="form-field"><label class="form-label">Issue Date</label><input id="nd_issue" type="date" class="inp-field" value="'+new Date().toISOString().slice(0,10)+'"/></div>',
+        '<div class="form-field"><label class="form-label">Due Date</label><input id="nd_due" type="date" class="inp-field"/></div>',
+      '</div>',
+      '<div class="form-field"><label class="form-label">Expected Return (optional)</label><input id="nd_ret" class="inp-field" inputmode="decimal" placeholder="0"/></div>',
+      '<div class="msg" id="nd_err"></div>',
+    ].join(''),
+    '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_create">Create Deal</button>');
     setTimeout(function(){
-      $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_send")?.addEventListener("click",function(){
-        var text=(($("#partnerMsg")?.value)||"").trim(); if(!text){ var e=$("#partnerMsgErr"); if(e){ e.textContent="Message is required"; e.className="msg err"; } return; }
-        pushMsg(m,"partner",text); collabLog(m,"partner_message","Partner message: "+text.slice(0,60),"general",null,"partner"); saveRecompute("Partner message added","good"); closeModal();
+      $('#m_c')?.addEventListener('click',closeModal);
+      $('#m_create')?.addEventListener('click',function(){
+        var title=($('#nd_title')?.value||'').trim(), type=$('#nd_type')?.value, cur=$('#nd_cur')?.value||'USDT';
+        var amount=num($('#nd_amount')?.value,0);
+        var err=$('#nd_err');
+        if(!title){if(err){err.textContent='Title required';err.className='msg err';} return;}
+        if(!(amount>0)){if(err){err.textContent='Amount must be > 0';err.className='msg err';} return;}
+        var deal = { id:uid(), relationship_id:relId, deal_type:type, title:title, amount:amount, currency:cur, status:'draft', issue_date:new Date($('#nd_issue')?.value||Date.now()).getTime(), due_date:$('#nd_due')?.value?new Date($('#nd_due').value).getTime():null, expected_return:num($('#nd_ret')?.value,0)||null, realized_pnl:null, created_by:MS.profile.merchant_id, created_at:now(), updated_at:now() };
+        MS.deals.push(deal);
+        audit('deal_created','deal',deal.id,'Created deal: '+title);
+        notify('system','Deal created','New '+type+' deal "'+title+'" created.',relId);
+        save(); closeModal(); _wsTab='deals'; renderMerchants();
+        if(typeof toast==='function') toast('Deal created: '+title,'good');
       });
     },0);
-  };
+  }
 
-  window._requestApproval = function(id,requestedBy){
-    var m=(state.merchants||[]).find(function(x){return x.id===id;}); if(!m) return;
-    var c=ensureCollab(m); requestedBy=requestedBy||"partner";
-    openModal((requestedBy==="partner"?"Partner Action":"Request Approval")+" — "+esc(m.name), '<div class="form-field"><label class="form-label">Request Type *</label><select id="reqType" class="inp-field"><option value="settlement">Settlement Review</option><option value="profit_record">Profit Record Verification</option><option value="deal_close">Deal Closure</option><option value="capital_change">Capital Change</option></select></div><div id="reqDynamic">'+approvalFormHtml("settlement",m)+'</div><div class="form-field"><label class="form-label">Description *</label><textarea id="reqDesc" class="inp-field" style="min-height:60px;" placeholder="Describe what needs approval…"></textarea></div><div class="msg" id="reqErr"></div>', '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_req">Submit Request</button>');
+  function _activateDeal(id){
+    var d=MS.deals.find(function(x){return x.id===id;}); if(!d) return;
+    if(d.status!=='draft'){if(typeof toast==='function')toast('Deal is not in draft status','warn');return;}
+    d.status='active'; d.updated_at=now();
+    audit('deal_activated','deal',id,'Deal activated: '+d.title);
+    save(); renderMerchants();
+    if(typeof toast==='function') toast('Deal activated','good');
+  }
+
+  function _openSettleModal(id){
+    var d=MS.deals.find(function(x){return x.id===id;}); if(!d) return;
+    openModal('Submit Settlement — '+esc(d.title), [
+      '<div class="form-field"><label class="form-label">Settlement Amount ('+esc(d.currency)+') *</label><input id="st_amount" class="inp-field" inputmode="decimal" placeholder="'+num(d.amount,0)+'"/></div>',
+      '<div class="form-field"><label class="form-label">Realized P&L ('+esc(d.currency)+')</label><input id="st_pnl" class="inp-field" inputmode="decimal" placeholder="0"/></div>',
+      '<div class="form-field"><label class="form-label">Note</label><input id="st_note" class="inp-field" placeholder="Optional note…"/></div>',
+      '<div class="msg" id="st_err"></div>',
+    ].join(''),
+    '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_submit">Submit for Approval</button>');
     setTimeout(function(){
-      function renderFields(){ var t=$("#reqType")?.value||"settlement"; var box=$("#reqDynamic"); if(box) box.innerHTML=approvalFormHtml(t,m); }
-      $("#reqType")?.addEventListener("change",renderFields);
-      $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_req")?.addEventListener("click",function(){
-        var type=$("#reqType")?.value||"settlement", desc=(($("#reqDesc")?.value)||"").trim(), err=$("#reqErr");
-        if(!desc){ if(err){ err.textContent="Description is required"; err.className="msg err"; } return; }
-        var payload={description:desc};
-        if(type==="settlement"){
-          var rev=num($("#reqRevenue")?.value,0), cost=num($("#reqCost")?.value,0);
-          if(!(rev>0&&cost>=0&&cost<=rev)){ if(err){ err.textContent="Valid settlement amounts are required"; err.className="msg err"; } return; }
-          payload.settlement_date=$("#reqSettlementDate")?.value||new Date().toISOString().slice(0,10); payload.revenue_qar=rev; payload.cost_qar=cost; payload.transactions_count=num($("#reqTxCount")?.value,0);
-        } else if(type==="profit_record"){
-          var pq=num($("#reqProfitQar")?.value,0); if(!(pq>0)){ if(err){ err.textContent="Profit amount is required"; err.className="msg err"; } return; }
-          payload.month=$("#reqMonth")?.value||""; payload.profit_qar=pq; payload.paid_date=$("#reqPaidDate")?.value||new Date().toISOString().slice(0,10);
-        } else if(type==="deal_close"){
-          var target=$("#reqDealTarget")?.value||""; if(!target){ if(err){ err.textContent="Select an active deal"; err.className="msg err"; } return; }
-          var parts=target.split("::"); payload.target_type=parts[0]; payload.target_id=parts[1]; payload.actual_return_date=$("#reqCloseDate")?.value||new Date().toISOString().slice(0,10); payload.target_label=($("#reqDealTarget")?.selectedOptions?.[0]||{}).textContent||"";
-        } else if(type==="capital_change"){
-          var cap=num($("#reqNewCapital")?.value,0), rate=num($("#reqNewRate")?.value,0); if(!(cap>0 || rate>0)){ if(err){ err.textContent="Set a new capital amount or rate"; err.className="msg err"; } return; }
-          payload.new_capital=cap; payload.new_rate=rate; payload.suspended=!!$("#reqSuspend")?.checked;
-        }
-        c.pending_approvals.push({id:uid(),ts:Date.now(),type:type,status:"pending",requested_by:requestedBy,data:payload,resolved_ts:null,notes:""});
-        collabLog(m,"approval_requested",(requestedBy==="partner"?"Partner requested: ":"Approval requested: ")+approvalSummary({type:type,data:payload}),approvalDealType({type:type,data:payload}),payload.target_id||null,requestedBy==="partner"?"partner":"you");
-        if(requestedBy==="partner") pushMsg(m,"partner","Requested approval, "+approvalSummary({type:type,data:payload}));
-        saveRecompute("Approval request submitted","good"); closeModal();
+      $('#m_c')?.addEventListener('click',closeModal);
+      $('#m_submit')?.addEventListener('click',function(){
+        var amount=num($('#st_amount')?.value,0), pnl=num($('#st_pnl')?.value,0), note=($('#st_note')?.value||'').trim();
+        var err=$('#st_err');
+        if(!(amount>0)){if(err){err.textContent='Settlement amount must be > 0';err.className='msg err';} return;}
+        var rel=MS.relationships.find(function(r){return r.id===d.relationship_id;});
+        var cp = rel?_relCp(rel):'counterparty';
+        var approval = { id:uid(), relationship_id:d.relationship_id, type:'settlement_submit', target_entity_type:'deal', target_entity_id:d.id, data:{settlement_amount:amount,realized_pnl:pnl,note:note}, status:'pending', submitted_by_user_id:'me', submitted_by_merchant_id:MS.profile.merchant_id, reviewer_merchant_id:cp, submitted_at:now(), resolved_at:null, resolution_note:'' };
+        MS.approvals.push(approval);
+        audit('settlement_submitted','deal',d.id,'Settlement submitted for approval');
+        notify('approval','Settlement pending approval','Awaiting counterparty approval for "'+d.title+'".',d.relationship_id);
+        save(); closeModal(); renderMerchants();
+        if(typeof toast==='function') toast('Settlement submitted for approval','good');
       });
     },0);
-  };
+  }
 
-  window._simulatePartnerAccess = function(id){
-    var m=(state.merchants||[]).find(function(x){return x.id===id;}); if(!m) return;
-    var c=ensureCollab(m);
-    openModal("Partner Access — "+esc(m.name), '<div class="form-field"><label class="form-label">Share Token</label><input id="partnerToken" class="inp-field" value="'+esc(window._partnerTokenDraft||"")+'" placeholder="Enter share token"/></div><div class="msg" id="partnerTokenMsg">Enter the active token to simulate partner access.</div><div id="partnerSnapshot"></div>', '<button class="btn secondary" id="m_c">Close</button><button class="btn" id="m_open">Open Shared View</button>');
+  function _openProfitModal(id){
+    var d=MS.deals.find(function(x){return x.id===id;}); if(!d) return;
+    openModal('Record Profit — '+esc(d.title), [
+      '<div class="form-field"><label class="form-label">Month *</label><input id="pr_month" type="month" class="inp-field" value="'+new Date().toISOString().slice(0,7)+'"/></div>',
+      '<div class="form-field"><label class="form-label">Profit Amount ('+esc(d.currency)+') *</label><input id="pr_amount" class="inp-field" inputmode="decimal" placeholder="5000"/></div>',
+      '<div class="msg" id="pr_err"></div>',
+    ].join(''),
+    '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_record">Submit for Approval</button>');
     setTimeout(function(){
-      $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_open")?.addEventListener("click",function(){
-        var token=(($("#partnerToken")?.value)||"").trim(); window._partnerTokenDraft=token;
-        var msg=$("#partnerTokenMsg");
-        if(!c.enabled || !c.shared_token || token!==c.shared_token){ if(msg){ msg.textContent="Token invalid or collaboration is disabled"; msg.className="msg err"; } return; }
-        if(msg){ msg.textContent="Token accepted. Shared view opened."; msg.className="msg good"; }
-        $("#partnerSnapshot").innerHTML='<div style="margin-top:8px;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--lt-radius-sm);">'+partnerSnapshot(m)+'</div>'+(c.access_mode==="comment"?'<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><button class="rowBtn" id="partnerMsgBtn">💬 Send partner message</button><button class="rowBtn" id="partnerReqBtn">📋 Request action</button></div>':'<div class="muted" style="font-size:9px;margin-top:8px;">This token is read-only.</div>');
-        markRead(m); collabLog(m,"partner_view_opened","Partner opened shared view","general",null,"partner"); saveRecompute("Partner view simulated","good");
-        $("#partnerMsgBtn")?.addEventListener("click",function(){ window._sendPartnerMessage(m.id); });
-        $("#partnerReqBtn")?.addEventListener("click",function(){ window._requestApproval(m.id,"partner"); });
+      $('#m_c')?.addEventListener('click',closeModal);
+      $('#m_record')?.addEventListener('click',function(){
+        var month=$('#pr_month')?.value||'', amount=num($('#pr_amount')?.value,0);
+        var err=$('#pr_err');
+        if(!month){if(err){err.textContent='Month required';err.className='msg err';} return;}
+        if(!(amount>0)){if(err){err.textContent='Amount must be > 0';err.className='msg err';} return;}
+        var rel=MS.relationships.find(function(r){return r.id===d.relationship_id;});
+        var cp=rel?_relCp(rel):'counterparty';
+        var approval = { id:uid(), relationship_id:d.relationship_id, type:'profit_record_submit', target_entity_type:'deal', target_entity_id:d.id, data:{month:month,profit_amount:amount,currency:d.currency}, status:'pending', submitted_by_user_id:'me', submitted_by_merchant_id:MS.profile.merchant_id, reviewer_merchant_id:cp, submitted_at:now(), resolved_at:null, resolution_note:'' };
+        MS.approvals.push(approval);
+        audit('profit_recorded','deal',d.id,'Profit record submitted: '+month);
+        save(); closeModal(); renderMerchants();
+        if(typeof toast==='function') toast('Profit record submitted for approval','good');
       });
     },0);
-  };
+  }
 
-  window._approveApproval = function(mid,aid){
-    var m=(state.merchants||[]).find(function(x){return x.id===mid;}); if(!m) return;
-    var a=(ensureCollab(m).pending_approvals||[]).find(function(x){return x.id===aid;}); if(!a) return;
-    var note=prompt("Optional approval note for "+m.name, a.notes||""); if(note===null) return;
-    var res=commitApproval(m,a,note||""); if(!res.ok){ toast(res.msg,"warn"); return; }
-    collabLog(m,"approved","Approved: "+res.msg,approvalDealType(a),a.data?.target_id||null,"you");
-    pushMsg(m,"you","Approved: "+res.msg+(note?(" · Note: "+note):""));
-    saveRecompute("Approval granted","good");
-  };
+  function _closeDeal(id){
+    var d=MS.deals.find(function(x){return x.id===id;}); if(!d) return;
+    if(!confirm('Request closure of deal "'+d.title+'"? This will go for approval.')) return;
+    var rel=MS.relationships.find(function(r){return r.id===d.relationship_id;});
+    var cp=rel?_relCp(rel):'counterparty';
+    var approval = { id:uid(), relationship_id:d.relationship_id, type:'deal_close_approval', target_entity_type:'deal', target_entity_id:d.id, data:{title:d.title}, status:'pending', submitted_by_user_id:'me', submitted_by_merchant_id:MS.profile.merchant_id, reviewer_merchant_id:cp, submitted_at:now(), resolved_at:null, resolution_note:'' };
+    MS.approvals.push(approval);
+    audit('deal_close_requested','deal',id,'Closure requested for: '+d.title);
+    save(); renderMerchants();
+    if(typeof toast==='function') toast('Deal closure submitted for approval','warn');
+  }
 
-  window._rejectApproval = function(mid,aid){
-    var m=(state.merchants||[]).find(function(x){return x.id===mid;}); if(!m) return;
-    var a=(ensureCollab(m).pending_approvals||[]).find(function(x){return x.id===aid;}); if(!a) return;
-    if(a.status!=="pending"){ toast("Approval already resolved","warn"); return; }
-    var note=prompt("Optional rejection note for "+m.name, a.notes||""); if(note===null) return;
-    a.status="rejected"; a.resolved_ts=Date.now(); a.notes=String(note||"").trim();
-    collabLog(m,"rejected","Rejected: "+approvalSummary(a),approvalDealType(a),a.data?.target_id||null,"you");
-    pushMsg(m,"you","Rejected: "+approvalSummary(a)+(note?(" · Note: "+note):""));
-    saveRecompute("Approval rejected","warn");
-  };
+  function _cancelDeal(id){
+    var d=MS.deals.find(function(x){return x.id===id;}); if(!d) return;
+    if(!confirm('Cancel deal "'+d.title+'"?')) return;
+    d.status='cancelled'; d.updated_at=now();
+    audit('deal_cancelled','deal',id,'Deal cancelled: '+d.title);
+    save(); renderMerchants();
+    if(typeof toast==='function') toast('Deal cancelled','warn');
+  }
 
+  function _approveApprovalNew(id){
+    var a=MS.approvals.find(function(x){return x.id===id;}); if(!a||a.status!=='pending') return;
+    var note=prompt('Optional approval note:','') ; if(note===null) return;
+    a.status='approved'; a.resolved_at=now(); a.resolution_note=note||'';
+    // Mutate real data
+    var d=MS.deals.find(function(x){return x.id===a.target_entity_id;});
+    if(d){
+      if(a.type==='settlement_submit'){ d.status='settled'; d.realized_pnl=num(a.data?.realized_pnl,0); d.updated_at=now(); }
+      else if(a.type==='deal_close_approval'){ d.status='closed'; d.updated_at=now(); }
+    }
+    audit('approval_approved','approval',id,'Approved: '+approvalTypeLabel(a.type));
+    notify('approval','Approval granted','Your request "'+approvalTypeLabel(a.type)+'" was approved.',a.relationship_id);
+    save(); renderMerchants();
+    if(typeof toast==='function') toast('Approved','good');
+  }
+
+  function _rejectApprovalNew(id){
+    var a=MS.approvals.find(function(x){return x.id===id;}); if(!a||a.status!=='pending') return;
+    var note=prompt('Rejection reason (optional):',''); if(note===null) return;
+    a.status='rejected'; a.resolved_at=now(); a.resolution_note=note||'';
+    audit('approval_rejected','approval',id,'Rejected: '+approvalTypeLabel(a.type));
+    notify('approval','Approval rejected','Your request "'+approvalTypeLabel(a.type)+'" was rejected.',a.relationship_id);
+    save(); renderMerchants();
+    if(typeof toast==='function') toast('Rejected','warn');
+  }
+
+  function _cancelApproval(id){
+    var a=MS.approvals.find(function(x){return x.id===id;}); if(!a||a.status!=='pending') return;
+    a.status='cancelled'; a.resolved_at=now();
+    audit('approval_cancelled','approval',id,'Cancelled: '+approvalTypeLabel(a.type));
+    save(); renderMerchants();
+    if(typeof toast==='function') toast('Approval cancelled','warn');
+  }
+
+  function _saveSettings(){
+    var p=MS.profile;
+    var name=($('#set_name')?.value||'').trim();
+    var err=$('#set_err');
+    if(!name){if(err){err.textContent='Name required';err.className='msg err';} return;}
+    p.display_name=name; p.bio=($('#set_bio')?.value||'').trim(); p.region=($('#set_region')?.value||'').trim(); p.discoverability=$('#set_disc')?.value||'public'; p.default_currency=$('#set_cur')?.value||'USDT'; p.updated_at=now();
+    audit('settings_saved','profile',p.id,'Settings updated');
+    save(); renderMerchants();
+    if(typeof toast==='function') toast('Settings saved','good');
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LEGACY: Preserved original merchant functions for legacy tabs
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* ─── Legacy KPI / state sync ────────────────────────────────────────── */
+  // Keep MS.merchants in sync with state.merchants
+  function _syncLegacy(){
+    if(typeof state!=='undefined'){
+      if(Array.isArray(state.merchants)) MS.merchants=state.merchants;
+      else state.merchants=MS.merchants;
+    }
+  }
+
+
+  /* ─── Boot ───────────────────────────────────────────────────────────── */
+  // Sync legacy merchants
+  if(typeof state!=='undefined' && Array.isArray(state.merchants) && state.merchants.length>0 && MS.merchants.length===0){
+    MS.merchants = state.merchants;
+  }
   ensureAll();
-  if(typeof render==="function" && state?.page==="merchants") render();
+  // Start overdue polling
+  setInterval(function(){
+    MS.deals.forEach(function(d){
+      if(d.status==='active' && d.due_date && d.due_date < Date.now()){
+        d.status='overdue';
+      }
+    });
+  }, 60000);
+
 })();
 </script>
 
