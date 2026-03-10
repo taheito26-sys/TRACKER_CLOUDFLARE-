@@ -1,4 +1,4 @@
-name = "p2p-monitor"
+﻿name = "p2p-tracker"
 main = "src/index.js"
 compatibility_date = "2026-03-10"
 
@@ -12,7 +12,7 @@ id = "00e9cb0899964d34a89b8b41376682ed"
 [[d1_databases]]
 binding = "DB"
 database_name = "crypto-tracker"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "e51dd932-5912-4a1b-b354-ff03bc25d23e"
 
 [vars]
 ALLOWED_ORIGINS = "https://p2p-tracker.pages.dev,https://tracker.pages.dev,https://lovable.dev"
