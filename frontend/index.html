@@ -1682,9 +1682,6 @@ body[data-page="dashboard"] #pageTitle{--ui-scale:1;}
           <button data-range="today">1D</button><button data-range="7d" class="active">7D</button>
           <button data-range="30d">30D</button><button data-range="all">ALL</button>
         </div>
-        <div class="seg" id="curSeg" data-tip="Display currency&#10;Auto-converts amounts using WACOP">
-          <button data-cur="QAR" class="active">QAR</button><button data-cur="USDT">USDT</button>
-        </div>
         <button class="iconBtn" id="langBtn" data-tip="Toggle language">EN</button>
         <div style="display:flex;align-items:center;gap:4px;background:var(--card-bg);border:1px solid var(--line);border-radius:var(--lt-radius-sm);padding:3px 8px;" data-tip="Price alert threshold&#10;Notifies when P2P moves this % from WACOP">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;color:var(--warn);flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -1872,7 +1869,7 @@ function sanitize(s){
   out.theme=["t1","t2","t3","t4","t5"].includes(out.theme)?out.theme:"t1";
   out.page=["dashboard","orders","stock","crm","p2p","analytics","calendar","vault","settings"].includes(out.page)?out.page:"dashboard";
   out.range=["today","7d","30d","all"].includes(out.range)?out.range:"7d";
-  out.currency=["QAR","USDT"].includes(out.currency)?out.currency:"QAR";
+  out.currency="QAR";
   out.lang=["en","ar"].includes(out.lang)?out.lang:"en";
   out.q=String(out.q||"");
   out.cashQAR=num(out.cashQAR,0);
@@ -1928,20 +1925,27 @@ function inputMoneyQAR(qar,digits=2){const d=qarToDisplay(qar);return Number.isF
 function inputRateQAR(qarRate,dQAR=4,dUSDT=4){const d=qarToDisplay(qarRate);return Number.isFinite(d)?d.toFixed(state.currency==="USDT"?dUSDT:dQAR):"";}
 function fmtRateQARFixed(qarRate,digits=4){const n=num(qarRate);return Number.isFinite(n)?fmtP(n,digits)+" QAR":"—";}
 function inputRateQARFixed(qarRate,digits=4){const n=num(qarRate);return Number.isFinite(n)?n.toFixed(digits):"";}
+function normalizeCurrency(cur){return cur==="USDT"?"USDT":"QAR";}
+function qarToCurrency(qar,cur){const n=num(qar);if(!Number.isFinite(n))return NaN;const currency=normalizeCurrency(cur);if(currency==="USDT"){const fx=getDisplayFx();return fx>0?n/fx:n;}return n;}
+function currencyToQar(val,cur){const n=num(val);if(!Number.isFinite(n))return NaN;const currency=normalizeCurrency(cur);if(currency==="USDT"){const fx=getDisplayFx();return fx>0?n*fx:n;}return n;}
+function fmtMoneyQARIn(qar,cur){const currency=normalizeCurrency(cur);const v=qarToCurrency(qar,currency);if(!Number.isFinite(v))return"—";return(currency==="USDT"?fmtU(v):fmtQRaw(v))+" "+currency;}
+function inputMoneyQARIn(qar,cur,digits=2){const currency=normalizeCurrency(cur);const v=qarToCurrency(qar,currency);return Number.isFinite(v)?v.toFixed(digits):"";}
+
 
 function getSaleDraft(){
   if(!window._saleDraft){
-    window._saleDraft={ts:Date.now(),mode:"USDT",amountUSDT:NaN,amountQAR:NaN,sellPriceQAR:getWACOP()||NaN,customerId:"",usesStock:true};
+    window._saleDraft={ts:Date.now(),mode:"USDT",currency:"QAR",amountUSDT:NaN,amountQAR:NaN,sellPriceQAR:getWACOP()||NaN,customerId:"",usesStock:true};
   }
   const d=window._saleDraft;
   if(!Number.isFinite(d.ts))d.ts=Date.now();
   d.mode=d.mode==="QAR"?"QAR":"USDT";
+  d.currency=normalizeCurrency(d.currency);
   if(typeof d.customerId!=="string")d.customerId="";
   if(typeof d.usesStock!=="boolean")d.usesStock=true;
   return d;
 }
 function resetSaleDraft(){
-  window._saleDraft={ts:Date.now(),mode:"USDT",amountUSDT:NaN,amountQAR:NaN,sellPriceQAR:getWACOP()||NaN,customerId:"",usesStock:true};
+  window._saleDraft={ts:Date.now(),mode:"USDT",currency:"QAR",amountUSDT:NaN,amountQAR:NaN,sellPriceQAR:getWACOP()||NaN,customerId:"",usesStock:true};
 }
 function syncSaleDraftFromInputs(){
   if(!document.getElementById("t_dt")&&!document.getElementById("t_sell")&&!document.getElementById("t_amt"))return getSaleDraft();
@@ -1949,6 +1953,7 @@ function syncSaleDraftFromInputs(){
   const ts=inputToTs($("#t_dt")?.value);
   if(Number.isFinite(ts))d.ts=ts;
   d.mode=(($("#t_mode_val")?.value)||d.mode)==="QAR"?"QAR":"USDT";
+  d.currency=normalizeCurrency((($("#t_formcur")?.value)||d.currency));
   const sellEl=$("#t_sell");
   if(sellEl&&String(sellEl.value||"").trim()!=="")d.sellPriceQAR=num(sellEl.value);
   const amtEl=$("#t_amt");
@@ -1956,7 +1961,7 @@ function syncSaleDraftFromInputs(){
     d.amountUSDT=amtEl&&String(amtEl.value||"").trim()!==""?num(amtEl.value):NaN;
     d.amountQAR=(Number.isFinite(d.amountUSDT)&&Number.isFinite(d.sellPriceQAR)&&d.sellPriceQAR>0)?d.amountUSDT*d.sellPriceQAR:NaN;
   }else{
-    d.amountQAR=amtEl&&String(amtEl.value||"").trim()!==""?displayToQar(amtEl.value):NaN;
+    d.amountQAR=amtEl&&String(amtEl.value||"").trim()!==""?currencyToQar(amtEl.value,d.currency):NaN;
     d.amountUSDT=(Number.isFinite(d.amountQAR)&&Number.isFinite(d.sellPriceQAR)&&d.sellPriceQAR>0)?d.amountQAR/d.sellPriceQAR:NaN;
   }
   const cust=$("#t_cust");if(cust)d.customerId=String(cust.value||"");
@@ -1966,22 +1971,24 @@ function syncSaleDraftFromInputs(){
 
 function getBatchDraft(){
   if(!window._batchDraft){
-    window._batchDraft={ts:Date.now(),amountUSDT:NaN,buyPriceQAR:NaN,source:"",note:""};
+    window._batchDraft={ts:Date.now(),currency:"QAR",amountUSDT:NaN,buyPriceQAR:NaN,source:"",note:""};
   }
   const d=window._batchDraft;
   if(!Number.isFinite(d.ts))d.ts=Date.now();
+  d.currency=normalizeCurrency(d.currency);
   if(typeof d.source!=="string")d.source="";
   if(typeof d.note!=="string")d.note="";
   return d;
 }
 function resetBatchDraft(){
-  window._batchDraft={ts:Date.now(),amountUSDT:NaN,buyPriceQAR:NaN,source:"",note:""};
+  window._batchDraft={ts:Date.now(),currency:"QAR",amountUSDT:NaN,buyPriceQAR:NaN,source:"",note:""};
 }
 function syncBatchDraftFromInputs(){
   if(!document.getElementById("b_dt")&&!document.getElementById("b_amt")&&!document.getElementById("b_px"))return getBatchDraft();
   const d=getBatchDraft();
   const ts=inputToTs($("#b_dt")?.value);
   if(Number.isFinite(ts))d.ts=ts;
+  d.currency=normalizeCurrency((($("#b_formcur")?.value)||d.currency));
   const amtEl=$("#b_amt");
   d.amountUSDT=amtEl&&String(amtEl.value||"").trim()!==""?num(amtEl.value):NaN;
   const pxEl=$("#b_px");
@@ -1992,12 +1999,29 @@ function syncBatchDraftFromInputs(){
 }
 function syncActiveFormDrafts(){syncSaleDraftFromInputs();syncBatchDraftFromInputs();}
 function setCurrency(cur){
-  syncActiveFormDrafts();
-  state.currency=cur==="USDT"?"USDT":"QAR";
+  state.currency="QAR";
   save();
   render();
 }
-
+function setSaleCurrency(cur){
+  const d=syncSaleDraftFromInputs();
+  const next=normalizeCurrency(cur);
+  d.currency=next;
+  if($("#t_formcur"))$("#t_formcur").value=next;
+  $$("[data-salecur]").forEach(b=>b.classList.toggle("active",b.dataset.salecur===next));
+  const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=d.mode==="USDT"?"Quantity (USDT)":"Amount ("+next+")";
+  const input=$("#t_amt");
+  if(input&&d.mode==="QAR")input.value=inputMoneyQARIn(d.amountQAR,next,2);
+  updateSalePreview();
+}
+function setBatchCurrency(cur){
+  const d=syncBatchDraftFromInputs();
+  const next=normalizeCurrency(cur);
+  d.currency=next;
+  if($("#b_formcur"))$("#b_formcur").value=next;
+  $$("[data-batchcur]").forEach(b=>b.classList.toggle("active",b.dataset.batchcur===next));
+  updateBatchPreview();
+}
 // ── FIFO ENGINE ──────────────────────────────────────────────────
 function recomputeFor(s){
   const batches=s.batches.map(b=>({...b,remainingUSDT:b.initialUSDT})).sort((a,b)=>a.ts-b.ts);
@@ -2275,7 +2299,7 @@ function openAddCustomerModal(prefillName=""){
 
 function addBatch(){
   syncBatchDraftFromInputs();
-  const ts=inputToTs($("#b_dt")?.value),amt=num($("#b_amt")?.value),px=num($("#b_px")?.value),src=$("#b_src")?.value.trim()||"",note=$("#b_note")?.value.trim()||"";
+  const ts=inputToTs($("#b_dt")?.value),amt=num($("#b_amt")?.value),px=displayToQar($("#b_px")?.value),src=$("#b_src")?.value.trim()||"",note=$("#b_note")?.value.trim()||"";
   const errs=[];if(!Number.isFinite(ts))errs.push("date");if(!(amt>0))errs.push("qty");if(!(px>0))errs.push("price");if(!src)errs.push("supplier");
   if(errs.length){const el=$("#b_msg");if(el){el.textContent="Fix: "+errs.join(", ");el.className="msg err";}return;}
   ensureSupplierRecord({name:src});
@@ -2297,12 +2321,13 @@ function setMode(m){
   if($("#t_mode_val"))$("#t_mode_val").value=next;
   $("#modeUSDT")?.classList.toggle("active",next==="USDT");
   $("#modeQAR")?.classList.toggle("active",next==="QAR");
-  const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=next==="USDT"?"Quantity":"Amount ("+(state.currency==="USDT"?"USDT":"QAR")+")";
+  const saleCur=normalizeCurrency(d.currency);
+  const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=next==="USDT"?"Quantity (USDT)":"Amount ("+saleCur+")";
   const input=$("#t_amt");
   if(input){
     input.value=next==="USDT"
       ?(Number.isFinite(d.amountUSDT)?num(d.amountUSDT).toFixed(2):"")
-      :inputMoneyQAR(d.amountQAR,2);
+      :inputMoneyQARIn(d.amountQAR,saleCur,2);
   }
   updateSalePreview();
 }
@@ -2321,9 +2346,9 @@ function updateSalePreview(){
     box.innerHTML=`<div class="pt">Live Preview</div>
       <div class="pr"><span>Sell Price</span><strong>${fmtRateQARFixed(sell)}</strong></div>
       <div class="pr"><span>Qty</span><strong>${fmtU(amt)} USDT</strong></div>
-      <div class="pr"><span>Revenue</span><strong>${fmtMoneyQAR(rev)}</strong></div>
+      <div class="pr"><span>Volume</span><strong>${fmtQ(rev)} QAR</strong></div>
       <div class="pr"><span>Cost (FIFO)</span><strong>Skipped</strong></div>
-      <div class="pr" style="border-top:1px solid color-mix(in srgb,var(--brand) 20%,transparent);padding-top:6px;margin-top:4px;"><span style="font-weight:900">Net</span><strong style="color:var(--good);">${fmtMoneyQAR(rev)}</strong></div>
+      <div class="pr" style="border-top:1px solid color-mix(in srgb,var(--brand) 20%,transparent);padding-top:6px;margin-top:4px;"><span style="font-weight:900">Net</span><strong style="color:var(--good);">${fmtQ(rev)} QAR</strong></div>
       <div class="muted" style="font-size:calc(10px * var(--ui-scale,1));margin-top:6px;">FIFO stock is off for this trade, preview shows gross proceeds only.</div>`;
     return;
   }
@@ -2333,11 +2358,27 @@ function updateSalePreview(){
     <div class="pr"><span>Sell Price</span><strong>${fmtRateQARFixed(sell)}</strong></div>
     ${Number.isFinite(calc?.avgBuyQAR)?`<div class="pr"><span>Avg Buy</span><strong style="color:var(--bad)">${fmtRateQARFixed(calc.avgBuyQAR)}</strong></div>`:""}
     <div class="pr"><span>Qty</span><strong>${fmtU(amt)} USDT</strong></div>
-    <div class="pr"><span>Revenue</span><strong>${fmtMoneyQAR(rev)}</strong></div>
-    <div class="pr"><span>Cost (FIFO)</span><strong>${ok?fmtMoneyQAR(cost):"—"}</strong></div>
-    <div class="pr" style="border-top:1px solid color-mix(in srgb,var(--brand) 20%,transparent);padding-top:6px;margin-top:4px;"><span style="font-weight:900">Net</span><strong style="color:${Number.isFinite(net)?(net>=0?"var(--good)":"var(--bad)"):"var(--muted)"};">${Number.isFinite(net)?((net>=0?"+":"")+fmtMoneyQAR(net)):"—"}</strong></div>
+    <div class="pr"><span>Volume</span><strong>${fmtQ(rev)} QAR</strong></div>
+    <div class="pr"><span>Cost (FIFO)</span><strong>${ok?fmtQ(cost)+" QAR":"—"}</strong></div>
+    <div class="pr" style="border-top:1px solid color-mix(in srgb,var(--brand) 20%,transparent);padding-top:6px;margin-top:4px;"><span style="font-weight:900">Net</span><strong style="color:${Number.isFinite(net)?(net>=0?"var(--good)":"var(--bad)"):"var(--muted)"};">${Number.isFinite(net)?((net>=0?"+":"")+fmtQ(net)+" QAR"):"—"}</strong></div>
     ${ok?"":`<div class="muted" style="font-size:calc(10px * var(--ui-scale,1));margin-top:6px;">No FIFO preview available, ${esc(calc?.reason||"insufficient stock")}.</div>`}`;
 }
+function updateBatchPreview(){
+  const d=syncBatchDraftFromInputs();
+  const box=$("#batchPreview");if(!box)return;
+  const qty=num(d.amountUSDT),buy=num(d.buyPriceQAR),total=(qty>0&&buy>0)?qty*buy:NaN;
+  const cur=normalizeCurrency(d.currency);
+  if(!(qty>0)||!(buy>0)){
+    box.innerHTML=`<div class="pt">Batch Preview</div><div class="muted" style="font-size:calc(11px * var(--ui-scale,1));">Total stays in USDT, volume stays in QAR, buy price stays in QAR.</div>`;
+    return;
+  }
+  box.innerHTML=`<div class="pt">Batch Preview</div>
+    <div class="pr"><span>Total</span><strong>${fmtU(qty)} USDT</strong></div>
+    <div class="pr"><span>Buy Price</span><strong>${fmtRateQARFixed(buy)}</strong></div>
+    <div class="pr"><span>Volume</span><strong>${fmtQ(total)} QAR</strong></div>
+    <div class="muted" style="font-size:calc(10px * var(--ui-scale,1));margin-top:6px;">Toggle helper, ${cur==="USDT"?"USDT estimate "+fmtMoneyQARIn(total,"USDT"):"QAR volume locked for accounting"}.</div>`;
+}
+
 function toggleVoidTrade(id){const t=state.trades.find(x=>x.id===id);if(!t)return;t.voided=!t.voided;saveRecompute(t.voided?"Trade voided":"Trade restored",t.voided?"warn":"good");}
 function deleteTrade(id, skipConfirm){
   const t=state.trades.find(x=>x.id===id);if(!t)return;
@@ -2967,10 +3008,11 @@ function renderLedger(){
   const saleDraft=getSaleDraft();
   if(!Number.isFinite(saleDraft.sellPriceQAR)&&wacop)saleDraft.sellPriceQAR=wacop;
   const saleMode=saleDraft.mode==="QAR"?"QAR":"USDT";
+  const saleCur=normalizeCurrency(saleDraft.currency);
   const saleTs=Number.isFinite(saleDraft.ts)?saleDraft.ts:Date.now();
   const saleAmtValue=saleMode==="USDT"
     ?(Number.isFinite(saleDraft.amountUSDT)?num(saleDraft.amountUSDT).toFixed(2):"")
-    :inputMoneyQAR(saleDraft.amountQAR,2);
+    :inputMoneyQARIn(saleDraft.amountQAR,saleCur,2);
   const saleSellValue=Number.isFinite(saleDraft.sellPriceQAR)?inputRateQARFixed(saleDraft.sellPriceQAR,4):(wacop?inputRateQARFixed(wacop,4):"");
   const saleCustomerId=saleDraft.customerId||"";
   const saleUsesStock=saleDraft.usesStock!==false;
@@ -3001,7 +3043,7 @@ function renderLedger(){
           <div class="card" style="padding:10px;"><div class="kpi-lbl">BEST SELL</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--good);">${bestSell!==null?fmtP(bestSell):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
           <div class="card" style="padding:10px;"><div class="kpi-lbl">SELL AVG</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--t1);">${avgSell!==null?fmtP(avgSell):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
           <div class="card" style="padding:10px;"><div class="kpi-lbl">BEST NET</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:${bestNet!==null&&bestNet>=0?"var(--good)":"var(--bad)"};">${bestNet!==null?((bestNet>=0?"+":"")+fmtQ(bestNet)):"—"} ${curLabel()}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">Top trade P/L</div></div>
-          <div class="card" style="padding:10px;"><div class="kpi-lbl">VOLUME</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;">${fmtQ(totalVolQAR)} ${curLabel()}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">In ${esc(rl())}</div></div>
+          <div class="card" style="padding:10px;"><div class="kpi-lbl">VOLUME</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;">${fmtQ(totalVolQAR)} QAR</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">In ${esc(rl())}</div></div>
           <div class="card" style="padding:10px;"><div class="kpi-lbl">TODAY HIGH SELL</div><div style="font-size:calc(18px * var(--ui-scale,1));font-weight:900;color:var(--good);">${todayHigh!==null?fmtP(todayHigh):"—"}</div><div class="muted" style="font-size:calc(10px * var(--ui-scale,1));">QAR/USDT</div></div>
         </div>
         ${tableHtml}
@@ -3009,14 +3051,14 @@ function renderLedger(){
       <div>
         <div class="formPanel salePanel"><div class="hdr">New Sale</div><div class="inner">
           ${wacop?`<div class="bannerRow"><span class="bLbl">WACOP</span><span class="bVal">${fmtRateQARFixed(wacop)}</span><span class="bSpacer"></span><span class="bPill">QAR</span></div>`:""}
-          <div class="field2"><div class="lbl">Currency</div><div class="seg" data-tip="Display and form currency"><button type="button" data-formcur="QAR" class="${state.currency==="QAR"?"active":""}">QAR</button><button type="button" data-formcur="USDT" class="${state.currency==="USDT"?"active":""}">USDT</button></div></div>
+          <div class="field2"><div class="lbl">Currency</div><div class="seg" data-tip="Form amount helper only, trade qty stays USDT and volume stays QAR"><button type="button" data-salecur="QAR" class="${saleCur==="QAR"?"active":""}">QAR</button><button type="button" data-salecur="USDT" class="${saleCur==="USDT"?"active":""}">USDT</button></div><input id="t_formcur" type="hidden" value="${saleCur}"/></div>
           <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="t_dt" type="datetime-local" style="padding-right:0" value="${dtToInput(saleTs)}"/></div></div>
           <div class="field2"><div class="lbl">Input Mode</div>
             <div class="modeToggle"><button id="modeUSDT" class="${saleMode==="USDT"?"active":""}" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9 7h6M9 17h6M12 7v10" stroke-linecap="round"/></svg>Qty</button><button id="modeQAR" class="${saleMode==="QAR"?"active":""}" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>Amt</button></div>
             <input type="hidden" id="t_mode_val" value="${saleMode}"/>
           </div>
           <div class="g2tight">
-            <div class="field2"><div class="lbl" id="t_amt_lbl">${saleMode==="USDT"?"Quantity":"Amount ("+(state.currency==="USDT"?"USDT":"QAR")+")"}</div><div class="inputBox"><input id="t_amt" inputmode="decimal" placeholder="0.00" value="${saleAmtValue}"/><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9h4.5a2.5 2.5 0 0 1 0 5H9" stroke-linecap="round"/></svg></div></div>
+            <div class="field2"><div class="lbl" id="t_amt_lbl">${saleMode==="USDT"?"Quantity (USDT)":"Amount ("+saleCur+")"}</div><div class="inputBox"><input id="t_amt" inputmode="decimal" placeholder="0.00" value="${saleAmtValue}"/><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9h4.5a2.5 2.5 0 0 1 0 5H9" stroke-linecap="round"/></svg></div></div>
             <div class="field2"><div class="lbl">Sell Price (QAR)</div><div class="inputBox" style="display:flex;gap:5px;padding-right:5px;"><input id="t_sell" inputmode="decimal" placeholder="${wacop?inputRateQARFixed(wacop,4):"0.00"}" value="${saleSellValue}"/><button class="sideAction" id="t_p2p" title="P2P rate" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 7h8M6 11h12M8 15h8" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0"/></svg></button></div></div>
           </div>
 <div class="field2" data-tip="Link this trade to a CRM customer&#10;Tracks volume and P&amp;L per customer">
@@ -3039,7 +3081,7 @@ function renderLedger(){
 
   if(window._pendingSelectCustomerId&&$("#t_cust")){$("#t_cust").value=window._pendingSelectCustomerId;const d=getSaleDraft();d.customerId=window._pendingSelectCustomerId;window._pendingSelectCustomerId="";}
   $("#t_cust_add")?.addEventListener("click",()=>openAddCustomerModal());
-  $$("[data-formcur]").forEach(b=>b.addEventListener("click",()=>setCurrency(b.dataset.formcur)));
+  $$("[data-salecur]").forEach(b=>b.addEventListener("click",()=>setSaleCurrency(b.dataset.salecur)));
   $("#modeUSDT")?.addEventListener("click",()=>setMode("USDT"));
   $("#modeQAR")?.addEventListener("click",()=>setMode("QAR"));
   $("#t_add")?.addEventListener("click",addTrade);
@@ -3115,6 +3157,7 @@ function renderStock(){
   setHeader("Stock Batches","FIFO layers · progress = remaining");
   const q=state.q.trim().toLowerCase(),wacop=getWACOP();
   const batchDraft=getBatchDraft();
+  const batchCur=normalizeCurrency(batchDraft.currency);
   const batchTs=Number.isFinite(batchDraft.ts)?batchDraft.ts:Date.now();
   const batchAmtValue=Number.isFinite(batchDraft.amountUSDT)?num(batchDraft.amountUSDT).toFixed(2):"";
   const batchPxValue=Number.isFinite(batchDraft.buyPriceQAR)?num(batchDraft.buyPriceQAR).toFixed(4):"";
@@ -3141,10 +3184,10 @@ function renderStock(){
       <div>
         <div class="formPanel salePanel"><div class="hdr">Add Batch</div><div class="inner">
           ${wacop?`<div class="bannerRow"><span class="bLbl">Current WACOP</span><span class="bVal">${fmtRateQARFixed(wacop)}</span><span class="bSpacer"></span><span class="bPill">QAR</span></div>`:""}
-          <div class="field2"><div class="lbl">Currency</div><div class="seg" data-tip="Display and form currency"><button type="button" data-formcur="QAR" class="${state.currency==="QAR"?"active":""}">QAR</button><button type="button" data-formcur="USDT" class="${state.currency==="USDT"?"active":""}">USDT</button></div></div>
+          <div class="field2"><div class="lbl">Currency</div><div class="seg" data-tip="Local helper only, stock total stays USDT and volume stays QAR"><button type="button" data-batchcur="QAR" class="${batchCur==="QAR"?"active":""}">QAR</button><button type="button" data-batchcur="USDT" class="${batchCur==="USDT"?"active":""}">USDT</button></div><input id="b_formcur" type="hidden" value="${batchCur}"/></div>
           <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="b_dt" type="datetime-local" style="padding-right:0" value="${dtToInput(batchTs)}"/></div></div>
           <div class="g2tight">
-            <div class="field2"><div class="lbl">Quantity</div><div class="inputBox"><input id="b_amt" inputmode="decimal" placeholder="1000.00" value="${batchAmtValue}"/></div></div>
+            <div class="field2"><div class="lbl">Total (USDT)</div><div class="inputBox"><input id="b_amt" inputmode="decimal" placeholder="1000.00" value="${batchAmtValue}"/></div></div>
             <div class="field2"><div class="lbl">Buy Price (QAR)</div><div class="inputBox"><input id="b_px" inputmode="decimal" placeholder="${wacop?num(wacop).toFixed(4):"3.5900"}" value="${batchPxValue}"/></div></div>
           </div>
           <div class="g2tight">
@@ -3157,6 +3200,7 @@ function renderStock(){
             </div>
             <div class="field2"><div class="lbl">Note</div><div class="inputBox"><input id="b_note" placeholder="optional" style="padding-right:0" value="${esc(batchDraft.note||"")}"/></div></div>
           </div>
+          <div class="previewBox" id="batchPreview" style="margin-top:8px;"></div>
           <div class="formActions"><button class="btn" id="b_add" type="button">Add Batch</button></div>
           <div class="msg" id="b_msg"></div>
         </div></div>
@@ -3165,7 +3209,7 @@ function renderStock(){
 
   if(window._pendingSupplierName&&$("#b_src")){$("#b_src").value=window._pendingSupplierName;const d=getBatchDraft();d.source=window._pendingSupplierName;window._pendingSupplierName="";}
   $("#b_sup_add")?.addEventListener("click",()=>openAddSupplierModal($("#b_src")?.value||""));
-  $$("[data-formcur]").forEach(b=>b.addEventListener("click",()=>setCurrency(b.dataset.formcur)));
+  $$("[data-batchcur]").forEach(b=>b.addEventListener("click",()=>setBatchCurrency(b.dataset.batchcur)));
   // Suppliers list
   const suppliers=[...new Set(state.batches.map(b=>b.source.trim()).filter(Boolean))];
   if(suppliers.length){
@@ -3173,7 +3217,8 @@ function renderStock(){
     const pb3=document.getElementById("pageBody");if(pb3)pb3.insertAdjacentHTML("beforeend",suppHtml);
   }
   $("#b_add")?.addEventListener("click",addBatch);
-  ["b_dt","b_amt","b_px","b_src","b_note"].forEach(id=>document.getElementById(id)?.addEventListener("input",syncBatchDraftFromInputs));
+  ["b_dt","b_amt","b_px","b_src","b_note"].forEach(id=>document.getElementById(id)?.addEventListener("input",()=>{syncBatchDraftFromInputs();updateBatchPreview();}));
+  updateBatchPreview();
   // Inject supplier datalist for autocomplete
   {const existing=document.getElementById("supplierSuggestions");if(existing)existing.remove();const dl=document.createElement("datalist");dl.id="supplierSuggestions";[...new Set(state.batches.map(b=>b.source.trim()).filter(Boolean))].forEach(s=>{const opt=document.createElement("option");opt.value=s;dl.appendChild(opt);});document.body.appendChild(dl);}
   const pb=$("#pageBody");if(pb)pb.addEventListener("click",e=>{const btn=e.target.closest("button[data-act]");if(!btn)return;if(btn.dataset.act==="editB")editBatch(btn.dataset.id);if(btn.dataset.act==="deleteB")deleteBatch(btn.dataset.id);});
@@ -3189,16 +3234,16 @@ function renderBatchTable(batches){
     return`<tr>
       <td class="mono">${esc(fmtDate(b.ts))}</td>
       <td>${esc(b.source||"—")}</td>
-      <td class="mono r">${fmtU(b.initialUSDT)}</td>
-      <td class="mono r">${fmtP(b.buyPriceQAR)}</td>
-      <td class="mono r">${fmtQRaw(b.initialUSDT*b.buyPriceQAR)} QAR</td>
+      <td class="mono r">${fmtU(b.initialUSDT)} USDT</td>
+      <td class="mono r">${fmtP(b.buyPriceQAR)} QAR</td>
+      <td class="mono r">${fmtQ(b.initialUSDT*b.buyPriceQAR)} QAR</td>
       <td class="mono r">${fmtU(rem)} USDT</td>
       <td><div class="prog"><span style="width:${prog.toFixed(0)}%"></span></div><div class="muted" style="font-size:calc(9px * var(--ui-scale,1));margin-top:2px;">${prog.toFixed(0)}% remaining</div></td>
       <td class="mono r" style="color:${(b.profit||0)>=0?"var(--good)":"var(--bad)"};font-weight:700;">${(b.profit||0)>=0?"+":""}${fmtQ(b.profit||0)}</td>
       <td><div class="statusInline"><span class="pill ${stCls}">${st}</span>${ct!==null?`<span class="cycle-badge">${fmtDur(ct)}</span>`:""}<button class="rowBtn" data-act="editB" data-id="${esc(b.id)}">Edit</button></div></td>
     </tr>`;
   }).join("");
-  return`<div class="tableWrap"><table><thead><tr><th>Date</th><th>Source</th><th class="r">Total</th><th class="r">Buy</th><th class="r">Rem</th><th>Usage</th><th class="r">Profit</th><th>Status · Edit</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return`<div class="tableWrap"><table><thead><tr><th>Date</th><th>Source</th><th class="r">Total</th><th class="r">Buy</th><th class="r">Volume</th><th class="r">Rem</th><th>Usage</th><th class="r">Profit</th><th>Status · Edit</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 // ── P2P ──────────────────────────────────────────────────────────
@@ -5329,11 +5374,11 @@ function renderVault(){
 
 // ── RENDER ────────────────────────────────────────────────────────
 function render(){
+  state.currency="QAR";
   applyLayout();
   try{ if (typeof applyLayoutPreview_ === "function" && typeof _settingsDraft !== "undefined" && _settingsDraft) applyLayoutPreview_(); }catch(e){}
   $$("[data-go]").forEach(b=>b.classList.toggle("active",b.dataset.go===state.page));
   $$("#rangeSeg button[data-range]").forEach(b=>b.classList.toggle("active",b.dataset.range===state.range));
-  $$("button[data-cur]").forEach(b=>b.classList.toggle("active",b.dataset.cur===state.currency));
   const tai=document.getElementById("topAlertPct");if(tai&&!document.activeElement?.isSameNode(tai))tai.value=num(state.settings?.priceAlertThreshold,2);
   // Low stock banner
   const lb=$("#lowStockBanner");
@@ -6278,7 +6323,6 @@ function authBootstrap() {
 function init(){
   load();recompute();applyLayout();initGasBackup();renderTopbarUser();updateSyncBadge("saved");
   $$("[data-go]").forEach(b=>b.addEventListener("click",()=>navTo(b.dataset.go)));
-  $$("button[data-cur]").forEach(b=>b.addEventListener("click",()=>setCurrency(b.dataset.cur)));
   $("#langBtn")?.addEventListener("click",()=>{state.lang=state.lang==="ar"?"en":"ar";save();render();});
   // Topbar alert input
   const syncAlertInput=()=>{const el=document.getElementById("topAlertPct");if(el)el.value=num(state.settings?.priceAlertThreshold,2);};
