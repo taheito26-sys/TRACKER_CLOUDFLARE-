@@ -1,16 +1,18 @@
-name            = "p2p-monitor"
-main            = "src/index.js"
-compatibility_date = "2025-01-01"
+name = "p2p-monitor"
+main = "src/index.js"
+compatibility_date = "2026-03-10"
 
-# ── Cron Trigger — every 2 minutes ─────────────────────────────────
-# Minimum on free plan is */1 (every 1 min) but that uses 1440 KV writes/day.
-# */2 uses 720 writes/day — comfortably inside the free 1000/day limit.
-# Change to */1 if you upgrade to Workers Paid ($5/mo).
 [triggers]
 crons = ["*/2 * * * *"]
 
-# ── KV Namespace binding ────────────────────────────────────────────
-# IMPORTANT: Replace PLACEHOLDER_KV_ID with the real ID from Step 3 below.
 [[kv_namespaces]]
 binding = "P2P_KV"
-id      = "00e9cb0899964d34a89b8b41376682ed"
+id = "00e9cb0899964d34a89b8b41376682ed"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "crypto-tracker"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[vars]
+ALLOWED_ORIGINS = "https://p2p-tracker.pages.dev,https://tracker.pages.dev,https://lovable.dev"
