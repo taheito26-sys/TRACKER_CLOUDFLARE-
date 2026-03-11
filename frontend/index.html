@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Taheito Pro X</title>
+<title>P2P Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Fira+Code:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap"/>
@@ -13,6 +13,7 @@
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer>
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/big.js/6.2.1/big.min.js" defer></script>
 <style>
 /* ═══════════════════════ LAYOUT TEMPLATE SYSTEM ═══════════════════
    5 completely different layout templates, each with 5 theme colors
@@ -451,6 +452,7 @@ body {
 .seg button { border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: calc(var(--lt-radius-sm) - 2px); padding: 4px 8px; font-size: calc(10px * var(--ui-scale,1)); cursor: pointer; font-family: var(--app-font, var(--lt-font, inherit)); font-weight: 700; transition: all var(--lt-tr); }
 .seg button:hover { color: var(--text); }
 .seg button.active { background: var(--brand); color: white; box-shadow: 0 2px 8px var(--glow); }
+#curSeg button,#langSeg button{min-width:74px;height:30px;padding:6px 12px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:calc(10px * var(--ui-scale,1));line-height:1;}
 
 /* ── ICON BUTTON ── */
 .iconBtn { border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--muted); border-radius: var(--lt-radius-sm); padding: 6px; cursor: pointer; display: grid; place-items: center; transition: all var(--lt-tr); }
@@ -644,6 +646,20 @@ tbody tr { transition: background var(--lt-tr); }
 .modalHead h3 { margin: 0; font-size: calc(13px * var(--ui-scale,1)); font-weight: 700; }
 .modalBody { padding: 14px; color: var(--text); font-size: calc(12px * var(--ui-scale,1)); max-height: 60vh; overflow-y: auto; }
 .modalActions { padding: 10px 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ── CASH BOX MODAL (Dark + Emerald) ── */
+.cashbox-grid{display:grid;gap:10px;}
+.cashbox-label{font-size:12px;font-weight:700;color:#6dd48e;letter-spacing:.01em;}
+.cashbox-balance,.cashbox-total{background:#1b1b1b;border:1px solid #262626;border-radius:10px;padding:12px 14px;color:#E0E0E0;font-weight:800;font-size:24px;line-height:1.1;}
+.cashbox-total{font-size:20px;}
+.cashbox-input,.cashbox-textarea{width:100%;background:#171717;border:1px solid #333;color:#e7e7e7;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s;}
+.cashbox-input:focus,.cashbox-textarea:focus{border-color:#00FF88;box-shadow:0 0 0 3px rgba(0,255,136,.18);}
+.cashbox-textarea{min-height:70px;resize:vertical;}
+.cashbox-help{font-size:12px;color:#71b786;}
+.cashbox-actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;width:100%;}
+.cashbox-cancel{background:transparent;border:1px solid transparent;color:#9fb5a6;text-decoration:underline;text-underline-offset:2px;box-shadow:none;}
+.cashbox-clear{background:transparent;border:1px solid #FF4D4D;color:#FF4D4D;}
+.cashbox-add{background:#00C853;border:1px solid #00C853;color:#fff;box-shadow:0 8px 18px rgba(0,200,83,.32);font-weight:800;}
 
 /* ── DASH LAYOUT ── */
 .dash-bottom { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: start; }
@@ -1746,22 +1762,22 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
   <!-- LOGIN CARD: compact, premium, readable -->
   <div style="position:relative;z-index:10;width:92%;max-width:380px;margin-bottom:3vh;">
     <div style="
-      background:rgba(10,4,24,0.82);
+      background:linear-gradient(155deg,rgba(10,20,36,.94),rgba(15,23,42,.90) 48%,rgba(6,24,22,.90));
       backdrop-filter:blur(28px) saturate(155%);
       -webkit-backdrop-filter:blur(28px) saturate(155%);
-      border:1px solid rgba(201,168,76,0.2);
-      border-radius:22px;
+      border:1px solid rgba(34,211,238,.26);
+      border-radius:24px;
       padding:28px 32px 26px;
-      box-shadow:0 32px 80px rgba(0,0,0,.75), inset 0 1px 0 rgba(201,168,76,.1), inset 0 -1px 0 rgba(0,0,0,.4);
+      box-shadow:0 42px 98px rgba(2,6,23,.74), inset 0 1px 0 rgba(56,189,248,.18), inset 0 -1px 0 rgba(2,6,23,.48);
     ">
 
       <!-- Brand: horizontal layout, compact -->
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid rgba(201,168,76,.12);">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid rgba(56,189,248,.2);">
         <div style="
           width:50px;height:50px;border-radius:14px;flex-shrink:0;
-          background:linear-gradient(145deg,#8B1538 0%,#b82846 50%,#C9A84C 100%);
+          background:linear-gradient(145deg,#0ea5e9 0%,#14b8a6 45%,#22c55e 100%);
           display:flex;align-items:center;justify-content:center;
-          box-shadow:0 8px 24px rgba(139,21,56,.5),0 2px 8px rgba(201,168,76,.25);
+          box-shadow:0 10px 26px rgba(2,132,199,.45),0 2px 8px rgba(34,197,94,.28);
         ">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="rgba(255,255,255,.12)" stroke="white" stroke-width="1.5"/>
@@ -1769,24 +1785,24 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
           </svg>
         </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:18px;font-weight:900;color:#fff;letter-spacing:-.025em;line-height:1.1;">Taheito Pro X</div>
-          <div style="font-size:10px;color:rgba(201,168,76,.8);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;">USDT · QAR Tracker</div>
+          <div style="font-size:18px;font-weight:900;color:#fff;letter-spacing:-.025em;line-height:1.1;">P2P Tracker</div>
+          <div style="font-size:10px;color:rgba(201,168,76,.8);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;">Google Nano · Banana · Work Together</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-          <span style="font-size:8.5px;font-weight:800;color:#C9A84C;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.28);border-radius:999px;padding:3px 8px;letter-spacing:.05em;">🇶🇦 QAR</span>
-          <span style="font-size:8.5px;font-weight:800;color:rgba(255,255,255,.45);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:3px 8px;letter-spacing:.05em;">☁ SYNC</span>
+          <span style="font-size:8.5px;font-weight:800;color:#22c55e;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.28);border-radius:999px;padding:3px 8px;letter-spacing:.05em;">🇶🇦 QAR</span>
+          <span style="font-size:8.5px;font-weight:800;color:rgba(255,255,255,.45);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:3px 8px;letter-spacing:.05em;">🤝 TEAM</span>
         </div>
       </div>
 
       <!-- Mode toggle -->
       <div style="display:flex;gap:4px;margin-bottom:16px;background:rgba(255,255,255,.05);padding:3px;border-radius:11px;">
-        <button id="authModeLoginBtn" type="button" style="flex:1;padding:8px 10px;border-radius:9px;border:none;background:linear-gradient(135deg,#8B1538,#C9A84C);color:#fff;font-weight:900;font-size:11.5px;cursor:pointer;box-shadow:0 3px 10px rgba(139,21,56,.4);transition:all .2s;">Sign In</button>
+        <button id="authModeLoginBtn" type="button" style="flex:1;padding:8px 10px;border-radius:9px;border:none;background:linear-gradient(135deg,#0ea5e9,#22c55e);color:#fff;font-weight:900;font-size:11.5px;cursor:pointer;box-shadow:0 3px 12px rgba(14,165,233,.38);transition:all .2s;">Sign In</button>
         <button id="authModeRegisterBtn" type="button" style="flex:1;padding:8px 10px;border-radius:9px;border:none;background:transparent;color:rgba(255,255,255,.4);font-weight:900;font-size:11.5px;cursor:pointer;transition:all .2s;">Register</button>
       </div>
 
       <!-- Advanced toggle -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <span style="font-size:9.5px;color:rgba(255,255,255,.32);">Cloud pre-configured · Advanced to change</span>
+        <span style="font-size:9.5px;color:rgba(255,255,255,.32);">Cloud pre-configured · Advanced settings</span>
         <button id="cloudAdvancedToggleBtn" type="button" style="padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.04);color:rgba(255,255,255,.45);font-weight:800;font-size:9.5px;cursor:pointer;">Advanced</button>
       </div>
 
@@ -1813,7 +1829,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
           <label style="font-size:9.5px;font-weight:800;color:rgba(201,168,76,.8);display:block;margin-bottom:4px;">Password</label>
           <input id="loginPass" type="password" placeholder="Your password" autocomplete="current-password" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);font-size:13px;box-sizing:border-box;outline:none;color:#fff;transition:border .15s;" onfocus="this.style.borderColor='rgba(201,168,76,.6)'" onblur="this.style.borderColor='rgba(255,255,255,.14)'"/>
         </div>
-        <button id="loginBtn" style="width:100%;background:linear-gradient(135deg,#8B1538 0%,#a8223e 55%,#C9A84C 100%);color:#fff;border:none;border-radius:11px;padding:12px 14px;font-weight:900;font-size:13.5px;cursor:pointer;box-shadow:0 8px 22px rgba(139,21,56,.48);letter-spacing:.02em;transition:all .18s;" onmouseover="this.style.boxShadow='0 12px 28px rgba(139,21,56,.6)';this.style.transform='translateY(-1px)'" onmouseout="this.style.boxShadow='0 8px 22px rgba(139,21,56,.48)';this.style.transform=''">Sign In →</button>
+        <button id="loginBtn" style="width:100%;background:linear-gradient(135deg,#0ea5e9 0%,#14b8a6 55%,#22c55e 100%);color:#fff;border:none;border-radius:11px;padding:12px 14px;font-weight:900;font-size:13.5px;cursor:pointer;box-shadow:0 8px 22px rgba(14,165,233,.38);letter-spacing:.02em;transition:all .18s;" onmouseover="this.style.boxShadow='0 12px 28px rgba(14,165,233,.52)';this.style.transform='translateY(-1px)'" onmouseout="this.style.boxShadow='0 8px 22px rgba(14,165,233,.38)';this.style.transform=''">Sign In →</button>
       </div>
 
       <!-- Register form -->
@@ -1834,7 +1850,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
           <label style="font-size:9.5px;font-weight:800;color:rgba(201,168,76,.8);display:block;margin-bottom:4px;">Confirm Password</label>
           <input id="regPass2" type="password" placeholder="Repeat password" autocomplete="new-password" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);font-size:13px;box-sizing:border-box;outline:none;color:#fff;transition:border .15s;" onfocus="this.style.borderColor='rgba(201,168,76,.6)'" onblur="this.style.borderColor='rgba(255,255,255,.14)'"/>
         </div>
-        <button id="registerBtn" style="width:100%;background:linear-gradient(135deg,#0e0520 0%,#8B1538 45%,#C9A84C 100%);color:#fff;border:none;border-radius:11px;padding:12px 14px;font-weight:900;font-size:13.5px;cursor:pointer;box-shadow:0 8px 22px rgba(139,21,56,.42);transition:all .18s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">Create Account →</button>
+        <button id="registerBtn" style="width:100%;background:linear-gradient(135deg,#0f172a 0%,#0ea5e9 45%,#22c55e 100%);color:#fff;border:none;border-radius:11px;padding:12px 14px;font-weight:900;font-size:13.5px;cursor:pointer;box-shadow:0 8px 22px rgba(14,165,233,.35);transition:all .18s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">Create Account →</button>
       </div>
 
       <div id="loginErr" style="display:none;margin-top:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5;border-radius:9px;padding:9px 11px;font-size:10.5px;text-align:left;line-height:1.4;"></div>
@@ -1872,12 +1888,12 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 2.5c4.7 0 8.5 3.8 8.5 8.5S16.7 19.5 12 19.5 3.5 15.7 3.5 11 7.3 2.5 12 2.5Z" stroke="rgba(255,255,255,.9)" stroke-width="1.5"/><path d="M7 12h10M12 7v10" stroke="rgba(255,255,255,.9)" stroke-width="1.5" stroke-linecap="round"/></svg>
       </div>
       <div>
-        <div class="brand-name">Taheito Pro X</div>
+        <div class="brand-name">P2P Tracker</div>
         <div class="brand-ver" id="brandVer">v13 · FIFO · <span id="brandCur">QAR</span></div>
       </div>
     </div>
     <nav class="nav">
-      <button class="navBtn" data-go="dashboard" data-tip="Main dashboard&#10;KPIs · WACOP · Cash position · Trend chart"><svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V11h-7v9ZM4 20h7v-5H4v5Zm9-11h7V4h-7v5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><div><div>Dashboard</div><small>KPIs · trend</small></div></button>
+      <button class="navBtn" data-go="dashboard" data-tip="Main dashboard&#10;KPIs · Av Price · Cash position · Trend chart"><svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V11h-7v9ZM4 20h7v-5H4v5Zm9-11h7V4h-7v5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><div><div>Dashboard</div><small>KPIs · trend</small></div></button>
       <button class="navBtn" data-go="orders" data-tip="Orders&#10;Log USDT sales · FIFO cost basis · margin"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10M7 8h10M7 12h10M7 16h10M7 20h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><div><div>Orders</div><small>FIFO · trades</small></div></button>
       <button class="navBtn" data-go="stock" data-tip="Manage USDT batches&#10;FIFO layers · suppliers auto-tracked"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.5"/></svg><div><div>Stock</div><small>Batches</small></div></button>
 <button class="navBtn" data-go="calendar" data-tip="Trade calendar&#10;Visual daily activity · click a day for detail"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="1.5"/></svg><div><div>Calendar</div><small>Trade view</small></div></button>
@@ -1917,13 +1933,13 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
           <button data-range="today">1D</button><button data-range="7d" class="active">7D</button>
           <button data-range="30d">30D</button><button data-range="all">ALL</button>
         </div>
-        <div class="seg" id="curSeg" data-tip="Display currency&#10;Auto-converts amounts using WACOP">
+        <div class="seg" id="curSeg" data-tip="Display currency&#10;Auto-converts amounts using Av Price">
           <button data-cur="QAR" class="active">QAR</button><button data-cur="USDT">USDT</button>
         </div>
         <div class="seg" id="langSeg" data-tip="Language">
           <button data-lang="ar" data-label-en="Arabic" data-label-ar="العربية">Arabic</button><button data-lang="en" data-label-en="English" data-label-ar="الإنجليزية" class="active">English</button>
         </div>
-        <div style="display:flex;align-items:center;gap:4px;background:var(--card-bg);border:1px solid var(--line);border-radius:var(--lt-radius-sm);padding:3px 8px;" data-tip="Price alert threshold&#10;Notifies when P2P moves this % from WACOP">
+        <div style="display:flex;align-items:center;gap:4px;background:var(--card-bg);border:1px solid var(--line);border-radius:var(--lt-radius-sm);padding:3px 8px;" data-tip="Price alert threshold&#10;Notifies when P2P moves this % from Av Price">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;color:var(--warn);flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <input id="topAlertPct" type="number" step="0.5" value="" style="width:36px;border:none;background:transparent;color:var(--text);font-size:calc(10px * var(--ui-scale,1));font-family:var(--lt-font);outline:none;padding:0;" placeholder="2%"/>
           <span style="font-size:calc(9px * var(--ui-scale,1));color:var(--muted);">%</span>
@@ -1947,7 +1963,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
 
 <!-- MOBILE NAV -->
 <nav class="mobileNav"><div class="row">
-  <button class="mBtn" data-go="dashboard" data-tip="Main dashboard&#10;KPIs · WACOP · Cash position · Trend chart"><svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V11h-7v9Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Home</button>
+  <button class="mBtn" data-go="dashboard" data-tip="Main dashboard&#10;KPIs · Av Price · Cash position · Trend chart"><svg viewBox="0 0 24 24" fill="none"><path d="M4 13h7V4H4v9Zm9 7h7V11h-7v9Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>Home</button>
   <button class="mBtn" data-go="orders" data-tip="Trade ledger&#10;Log USDT sales · FIFO cost basis · margin"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10M7 8h10M7 12h10M7 16h10M7 20h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Trade</button>
   <button class="mBtn" data-go="stock"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.5"/></svg>Stock</button>
   <button class="mBtn" data-go="p2p" data-tip="Live P2P rates&#10;Binance QAR buy &amp; sell offers"><svg viewBox="0 0 24 24" fill="none"><path d="M8 7h8M6 11h12M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0" stroke="currentColor" stroke-width="1.5"/></svg>P2P</button>
@@ -2178,30 +2194,48 @@ window.addEventListener("DOMContentLoaded", () => {
   try { _i18nMo.observe(document.body, { childList:true, subtree:true }); } catch(e){}
 });
 
-const trunc0 = n => { n = num(n); if(!Number.isFinite(n)) return NaN; return n < 0 ? Math.ceil(n) : Math.floor(n); };
-const fmt0=n=>Number.isFinite(num(n))?trunc0(n).toLocaleString(uiLocale(),{maximumFractionDigits:0}):"—";
-// Totals (QAR, KPIs) are shown with no decimals (truncated display)
+// Decimal-safe helpers (Big.js when available)
+const hasBig=()=>typeof Big!=="undefined";
+const dNum=v=>{ const n=num(v); return Number.isFinite(n)?n:NaN; };
+const dDiv=(a,b)=>{
+  const x=dNum(a), y=dNum(b);
+  if(!Number.isFinite(x)||!Number.isFinite(y)||y===0) return NaN;
+  if(hasBig()){ try{return Number(new Big(String(x)).div(String(y)).toString());}catch(e){} }
+  return x/y;
+};
+const roundHalfUpInt=n=>{
+  const x=dNum(n); if(!Number.isFinite(x)) return NaN;
+  if(hasBig()){ try{return Number(new Big(String(x)).round(0,1).toString());}catch(e){} }
+  return Math.round(x);
+};
+
+const fmt0=n=>{
+  const r=roundHalfUpInt(n);
+  return Number.isFinite(r)?r.toLocaleString(uiLocale(),{maximumFractionDigits:0}):"—";
+};
+// Totals (QAR, KPIs) are shown as whole integers at presentation layer (ROUND_HALF_UP)
 const fmtQRaw=n=>fmt0(n);
 // Currency-aware amount formatter used throughout UI
 const fmtQ=n=>{
-  const q=num(n);
+  const q=dNum(n);
   if(!Number.isFinite(q))return "—";
   if(state?.currency==="USDT"){
-    const w=(typeof getWACOP==="function")?getWACOP():null;
-    if(w&&w>0)return fmtU(q/w);
+    const w=(typeof getWACOP==="function")?dNum(getWACOP()):NaN;
+    const conv=dDiv(q,w);
+    if(Number.isFinite(conv))return fmtU(conv);
   }
   return fmtQRaw(q);
 };
 
 function curUnit(){ return (state && state.currency==="USDT") ? "USDT" : "QAR"; }
 // QAR-amount formatter with unit that respects the currency toggle.
-// If user selects USDT but WACOP is missing, we fall back to QAR display (same behavior as before).
 function fmtQWithUnit(qarAmount){
-  const q = num(qarAmount);
+  const q = dNum(qarAmount);
   if(!Number.isFinite(q)) return "—";
-  const w = (typeof getWACOP==="function") ? getWACOP() : null;
+  const w = (typeof getWACOP==="function") ? dNum(getWACOP()) : NaN;
   if(state && state.currency==="USDT"){
-    if(w && w>0) return fmtU(q/w)+" USDT";
+    const conv=dDiv(q,w);
+    if(Number.isFinite(conv)) return fmtU(conv)+" USDT";
     return fmtQRaw(q)+" QAR";
   }
   return fmtQRaw(q)+" QAR";
@@ -2209,16 +2243,20 @@ function fmtQWithUnit(qarAmount){
 
 
 // Quantities (USDT) keep up to 2 decimals for readability
-const fmtU=n=>Number.isFinite(num(n))?num(n).toLocaleString(uiLocale(),{minimumFractionDigits:0,maximumFractionDigits:2}):"—";
-// Prices show decimals (default 2)
-const fmtP=(n,d=2)=>Number.isFinite(num(n))?num(n).toLocaleString(uiLocale(),{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
+const fmtU=(n,d=2)=>{ const x=dNum(n); return Number.isFinite(x)?x.toLocaleString(uiLocale(),{minimumFractionDigits:0,maximumFractionDigits:Math.max(0,Number.isFinite(Number(d))?Number(d):2)}):"—"; };
+// Prices: show entered precision without forced trailing zeros
+const fmtP=n=>{
+  const x=dNum(n);
+  if(!Number.isFinite(x)) return "—";
+  return x.toLocaleString(uiLocale(),{minimumFractionDigits:0,maximumFractionDigits:8});
+};
 const fmtPct=n=>Number.isFinite(num(n))?(((num(n)>=0?"+":"")+Math.trunc(num(n)).toLocaleString(uiLocale(),{maximumFractionDigits:0}))+(uiIsAr()?"٪":"%")):"—";
 const fmtDur=ms=>{if(!ms||ms<0)return"—";const m=Math.floor(ms/60000),h=Math.floor(m/60),d=Math.floor(h/24);if(d>0)return d+"d "+(h%24)+"h";if(h>0)return h+"h "+(m%60)+"m";return m+"m";};
 const fmtDate=ts=>new Date(ts).toLocaleDateString();
 const isToday=ts=>ts>=startOfDay(Date.now());
 
 // ── STATE ──────────────────────────────────────────────────────
-const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
+const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cashOwner:"",cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
 let state=dflt(), derived={batches:[],tradeCalc:new Map(),health:{ok:true,issues:[]}};
 let charts={}, p2p={
   ts:0, buyAvg:null, sellAvg:null, buyOffers:[], sellOffers:[],
@@ -2252,6 +2290,7 @@ function sanitize(s){
   out.currency=["QAR","USDT"].includes(out.currency)?out.currency:"QAR";
   out.q=String(out.q||"");
   out.cashQAR=num(out.cashQAR,0);
+  out.cashOwner=String(out.cashOwner||"").slice(0,160);
   out.prefs={...d.prefs,...(out.prefs||{})};
   out.settings={...d.settings,...(out.settings||{})};
   out.checksDone=typeof out.checksDone==="object"?out.checksDone:{};
@@ -3069,7 +3108,7 @@ async function refreshP2P(){
     // Price alert check
     if(p2p.sellAvg){
       const w=getWACOP();
-      if(w){const spPct=Math.abs((p2p.sellAvg-w)/w*100);const thr=num(state.settings?.priceAlertThreshold,2);if(thr>0&&spPct>thr)setTimeout(()=>toast("⚠ Price alert: "+String(Math.trunc(spPct))+"% from WACOP","warn"),900);}
+      if(w){const spPct=Math.abs((p2p.sellAvg-w)/w*100);const thr=num(state.settings?.priceAlertThreshold,2);if(thr>0&&spPct>thr)setTimeout(()=>toast("⚠ Price alert: "+String(Math.trunc(spPct))+"% from Av Price","warn"),900);}
     }
     if(state.page==="p2p")render();
   }
@@ -3123,33 +3162,33 @@ function renderDashboard(){
       <div class="kpi-head"><span class="kpi-badge ${isLow?"bad":"good"}" style="color:var(--${isLow?"bad":"good"});border-color:color-mix(in srgb,var(--${isLow?"bad":"good"}) 30%,transparent);background:color-mix(in srgb,var(--${isLow?"bad":"good"}) 10%,transparent)">${isLow?"⚠ Low":"OK"}</span></div>
       <div class="kpi-lbl">AVAILABLE USDT</div><div class="kpi-val ${isLow?"bad":"good"}" style="${isLow?"animation:blink 1.5s infinite":""}">${fmtU(stk,0)}</div><div class="kpi-sub">Liquid USDT ready for deployment</div>
     </div>
-    <div class="kpi-card" data-tip="WACOP = Weighted Avg Cost Of Purchase&#10;Formula: Σ(remaining×price)/Σ(remaining)&#10;Spread shown vs current P2P sell rate">
-      <div class="kpi-head"><span class="kpi-badge" style="color:var(--brand);border-color:color-mix(in srgb,var(--brand) 30%,transparent);background:var(--brand3)">WACOP</span></div>
-      <div class="kpi-lbl">WACOP + SPREAD</div><div class="kpi-val" style="font-size:16px;color:var(--t2)">${wacop?fmtP(wacop)+" QAR":"No stock"}</div>
-      <div class="kpi-sub">${(()=>{const sp=wacop&&p2p.sellAvg?((p2p.sellAvg-wacop)/wacop*100).toFixed(2):null;return sp!==null?`<span class="${+sp>=0?"good":"bad"}" style="font-weight:700;">${+sp>=0?"+":""}${sp}% vs P2P</span>`:"Sell above WACOP to profit";})()}</div>
+    <div class="kpi-card" data-tip="Av Price = Weighted Avg Cost Of Purchase&#10;Formula: Σ(remaining×price)/Σ(remaining)&#10;Spread shown vs current P2P sell rate">
+      <div class="kpi-head"><span class="kpi-badge" style="color:var(--brand);border-color:color-mix(in srgb,var(--brand) 30%,transparent);background:var(--brand3)">Av Price</span></div>
+      <div class="kpi-lbl">Av Price + SPREAD</div><div class="kpi-val" style="font-size:16px;color:var(--t2)">${wacop?fmtP(wacop)+" QAR":"No stock"}</div>
+      <div class="kpi-sub">${(()=>{const sp=wacop&&p2p.sellAvg?((p2p.sellAvg-wacop)/wacop*100).toFixed(2):null;return sp!==null?`<span class="${+sp>=0?"good":"bad"}" style="font-weight:700;">${+sp>=0?"+":""}${sp}% vs P2P</span>`:"Sell above Av Price to profit";})()}</div>
     </div>
   </div>
   <!-- CASH POSITION KPIs -->
   <div class="kpis" style="margin-top:0;">
     <div class="kpi-card" data-tip="Physical QAR cash you hold&#10;Click Update to set the amount&#10;Used to calculate Buying Power">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Cash</span></div>
-      <div class="kpi-lbl">CASH AVAILABLE</div><div class="kpi-val" style="color:var(--warn)">${fmtQ(num(state.cashQAR,0))} QAR</div>
-      <div class="kpi-sub"><button class="rowBtn" id="setCashBtn" style="font-size:9px;padding:2px 6px;">Update ↗</button></div>
+      <div class="kpi-lbl">CASH AVAILABLE</div><div class="kpi-val" style="color:var(--warn)">${fmtQWithUnit(num(state.cashQAR,0))}</div>
+      <div class="kpi-sub" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><button class="rowBtn" id="setCashBtn" style="font-size:9px;padding:3px 8px;background:color-mix(in srgb,var(--t5) 14%,var(--panel));border-color:color-mix(in srgb,var(--t5) 50%,transparent);color:var(--t5);font-weight:800;box-shadow:0 0 0 1px color-mix(in srgb,var(--t5) 18%,transparent) inset;"><svg viewBox="0 0 24 24" style="width:11px;height:11px;display:block;" fill="none" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h11A2.5 2.5 0 0 1 20 8.5v7A2.5 2.5 0 0 1 17.5 18h-11A2.5 2.5 0 0 1 4 15.5v-7Z" stroke="currentColor" stroke-width="1.7"/><path d="M14.5 12h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="11" cy="12" r="1.8" stroke="currentColor" stroke-width="1.5"/></svg><span>Manage Cash</span></button><span class="muted" style="font-size:10px;">${state.cashOwner?`Owner: ${esc(state.cashOwner)}`:"Owner: —"}</span></div>
     </div>
-    <div class="kpi-card" data-tip="How many USDT you could buy with cash&#10;Formula: Cash ÷ WACOP&#10;Assumes you buy at current avg cost">
-      <div class="kpi-head"><span class="kpi-badge" style="color:var(--t5);border-color:color-mix(in srgb,var(--t5) 30%,transparent);background:color-mix(in srgb,var(--t5) 10%,transparent)">${wacop?"@WACOP":"—"}</span></div>
+    <div class="kpi-card" data-tip="How many USDT you could buy with cash&#10;Formula: Cash ÷ Av Price&#10;Assumes you buy at current avg cost">
+      <div class="kpi-head"><span class="kpi-badge" style="color:var(--t5);border-color:color-mix(in srgb,var(--t5) 30%,transparent);background:color-mix(in srgb,var(--t5) 10%,transparent)">${wacop?"@Av Price":"—"}</span></div>
       <div class="kpi-lbl">BUYING POWER</div><div class="kpi-val" style="color:var(--t5)">${(wacop&&num(state.cashQAR,0)>0)?fmtU(num(state.cashQAR,0)/wacop,0)+" USDT":"Set cash →"}</div>
       <div class="kpi-sub">${wacop?"@ "+fmtP(wacop)+" QAR":"Add batches first"}</div>
     </div>
     <div class="kpi-card" data-tip="Total deployable capital&#10;Formula: USDT stock cost + Cash&#10;Your full book position">
       <div class="kpi-head"><span class="kpi-badge good" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">Net</span></div>
-      <div class="kpi-lbl">NET POSITION</div><div class="kpi-val good">${fmtQ(stCost+num(state.cashQAR,0))} QAR</div>
-      <div class="kpi-sub">Stock ${fmtQ(stCost)} + Cash ${fmtQ(num(state.cashQAR,0))}</div>
+      <div class="kpi-lbl">NET POSITION</div><div class="kpi-val good">${fmtQWithUnit(stCost+num(state.cashQAR,0))}</div>
+      <div class="kpi-sub">Stock ${fmtQWithUnit(stCost)} + Cash ${fmtQWithUnit(num(state.cashQAR,0))}</div>
     </div>
-    <div class="kpi-card" data-tip="Estimated cost of remaining USDT stock&#10;WACOP × remaining quantity&#10;Not market value — cost basis only">
+    <div class="kpi-card" data-tip="Estimated cost of remaining USDT stock&#10;Av Price × remaining quantity&#10;Not market value — cost basis only">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--muted);border-color:var(--line)">${state.batches.length} batch</span></div>
       <div class="kpi-lbl">STOCK COST EST.</div><div class="kpi-val" style="font-size:17px;">${fmtQWithUnit(stCost)}</div>
-      <div class="kpi-sub">WACOP ${wacop?fmtP(wacop)+" QAR":"—"}</div>
+      <div class="kpi-sub">Av Price ${wacop?fmtP(wacop)+" QAR":"—"}</div>
     </div>
   </div>
   <div class="dash-bottom">
@@ -3170,11 +3209,31 @@ function renderDashboard(){
 
   // Cash update handler
   $("#setCashBtn")?.addEventListener("click",()=>{
-    openModal("Update Cash on Hand",`<div class="form-field"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Physical QAR cash ready to deploy</label><input id="m_cash" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" placeholder="0.00"/></div><div style="margin-top:6px;color:var(--muted);font-size:10px;">Used to calculate Buying Power and Net Position on the dashboard.</div>`,
-      `<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_s">Save Cash</button>`);
+    openModal("Cash Box Manager",`<div class="cashbox-grid"><div><div class="cashbox-label">Current cash balance (QAR)</div><div id="m_cash_current" class="cashbox-balance">${fmtQRaw(state.cashQAR||0)} QAR</div></div><div><div class="cashbox-label">Add cash amount (QAR)</div><input id="m_cash_add" class="cashbox-input" type="number" min="0" step="0.0001" value="" placeholder="e.g. 20000"/></div><div><div class="cashbox-label">Total after add (QAR)</div><div id="m_cash_total" class="cashbox-total">${fmtQRaw(state.cashQAR||0)} QAR</div></div><div><div class="cashbox-label">Cash owner / source description</div><textarea id="m_cash_owner" class="cashbox-textarea" rows="3" placeholder="Example: This cash belongs to Ahmad (investment capital)">${esc(state.cashOwner||"")}</textarea></div><div class="cashbox-help">Use Add Cash to increase balance, or Clear Cash when funds were used to buy USDT.</div></div>`,
+      `<div class="cashbox-actions"><button class="btn secondary cashbox-cancel" id="m_c">Cancel</button><button class="btn secondary cashbox-clear" id="m_clear_cash">Clear Cash</button><button class="btn cashbox-add" id="m_s">Add Cash</button></div>`);
     setTimeout(()=>{
+      const current=num(state.cashQAR,0);
+      const addInput=$("#m_cash_add"), totalInput=$("#m_cash_total"), ownerInput=$("#m_cash_owner");
+      const refreshTotal=()=>{
+        const addVal=Math.max(0,num(addInput?.value,0));
+        if(totalInput) totalInput.textContent=`${fmtQRaw(current+addVal)} QAR`;
+      };
+      addInput?.addEventListener("input",refreshTotal);
+      refreshTotal();
       $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_s")?.addEventListener("click",()=>{state.cashQAR=num($("#m_cash")?.value,0);saveRecompute("Cash updated ✓","good");closeModal();});
+      $("#m_clear_cash")?.addEventListener("click",()=>{
+        state.cashQAR=0;
+        state.cashOwner=String(ownerInput?.value||"").trim();
+        saveRecompute("Cash cleared ✓","warn");
+        closeModal();
+      });
+      $("#m_s")?.addEventListener("click",()=>{
+        const addVal=Math.max(0,num(addInput?.value,0));
+        state.cashQAR=+(current+addVal).toFixed(2);
+        state.cashOwner=String(ownerInput?.value||"").trim();
+        saveRecompute("Cash added ✓","good");
+        closeModal();
+      });
     },0);
   });
   destroyChart("dashTrend");
@@ -3251,7 +3310,7 @@ function renderLedger(){
       </div>
       <div>
         <div class="formPanel salePanel"><div class="hdr">New Sale</div><div class="inner">
-          ${wacop?`<div class="bannerRow"><span class="bLbl">WACOP</span><span class="bVal">${fmtP(wacop)}</span><span class="bSpacer"></span><span class="bPill">FIFO</span></div>`:""}
+          ${wacop?`<div class="bannerRow"><span class="bLbl">Av Price</span><span class="bVal">${fmtP(wacop)}</span><span class="bSpacer"></span><span class="bPill">FIFO</span></div>`:""}
           <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="t_dt" type="datetime-local" style="padding-right:0"/></div></div>
           <div class="field2"><div class="lbl">Input Mode</div>
             <div class="modeToggle"><button id="modeUSDT" class="active" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9 7h6M9 17h6M12 7v10" stroke-linecap="round"/></svg>USDT</button><button id="modeQAR" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>QAR</button></div>
@@ -3369,7 +3428,7 @@ function renderStock(){
       </div>
       <div>
         <div class="formPanel salePanel"><div class="hdr">Add Batch</div><div class="inner">
-          ${wacop?`<div class="bannerRow"><span class="bLbl">Current WACOP</span><span class="bVal">${fmtP(wacop)}</span><span class="bSpacer"></span><span class="bPill">Avg</span></div>`:""}
+          ${wacop?`<div class="bannerRow"><span class="bLbl">Current Av Price</span><span class="bVal">${fmtP(wacop)}</span><span class="bSpacer"></span><span class="bPill">Avg</span></div>`:""}
           <div class="field2"><div class="lbl">Date &amp; Time</div><div class="inputBox"><input id="b_dt" type="datetime-local" style="padding-right:0"/></div></div>
           <div class="field2"><div class="lbl">Currency Mode</div>
             <div class="modeToggle"><button id="batchQAR" class="active" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>QAR</button><button id="batchUSDT" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9 7h6M9 17h6M12 7v10" stroke-linecap="round"/></svg>USDT</button></div>
@@ -3515,12 +3574,12 @@ function renderP2P(){
     <div class="card" style="padding:12px;">
       <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Sell Avg (top 5)</div>
       <div style="font-size:20px;font-weight:900;color:var(--good);">${p2p.sellAvg?fmtP(p2p.sellAvg):"-"}</div>
-      ${wacop?`<div style="font-size:9px;font-weight:700;color:var(--${p2p.sellAvg&&p2p.sellAvg>wacop?"good":"bad"});">${p2p.sellAvg?(((p2p.sellAvg-wacop)/wacop*100)>=0?"+":"")+((p2p.sellAvg-wacop)/wacop*100).toFixed(2)+"% vs WACOP":""}</div>`:``}
+      ${wacop?`<div style="font-size:9px;font-weight:700;color:var(--${p2p.sellAvg&&p2p.sellAvg>wacop?"good":"bad"});">${p2p.sellAvg?(((p2p.sellAvg-wacop)/wacop*100)>=0?"+":"")+((p2p.sellAvg-wacop)/wacop*100).toFixed(2)+"% vs Av Price":""}</div>`:``}
     </div>
     <div class="card" style="padding:12px;">
       <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Best Restock</div>
       <div style="font-size:20px;font-weight:900;color:var(--bad);">${p2p.bestBuy?fmtP(p2p.bestBuy):"-"}</div>
-      ${wacop?`<div style="font-size:9px;font-weight:700;color:var(--${restockIsGood?"good":"warn"});">${p2p.buyAvg?(restockIsGood?"✓ Below WACOP":"Above WACOP"):""}</div>`:""}
+      ${wacop?`<div style="font-size:9px;font-weight:700;color:var(--${restockIsGood?"good":"warn"});">${p2p.buyAvg?(restockIsGood?"✓ Below Av Price":"Above Av Price"):""}</div>`:""}
     </div>
     <div class="card" style="padding:12px;">
       <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Profit if Sold Now</div>
@@ -3581,7 +3640,7 @@ function renderP2P(){
         <div style="display:grid;gap:6px;font-size:11px;">
           ${wacop?`
           <div style="display:flex;justify-content:space-between;padding:6px 8px;border-radius:8px;background:var(--panel2);">
-            <span style="color:var(--muted);">Your WACOP</span><span class="mono" style="font-weight:700;">${fmtP(wacop)} QAR</span>
+            <span style="color:var(--muted);">Your Av Price</span><span class="mono" style="font-weight:700;">${fmtP(wacop)} QAR</span>
           </div>
           ${targetSell?`<div style="display:flex;justify-content:space-between;padding:6px 8px;border-radius:8px;background:var(--panel2);">
             <span style="color:var(--muted);">Target (${targetMargin}% margin)</span><span class="mono" style="font-weight:700;color:var(--brand);">${fmtP(targetSell)} QAR</span>
@@ -3592,8 +3651,8 @@ function renderP2P(){
             <div style="font-size:10px;color:var(--muted);margin-top:3px;">${sellIsGood?`Avg ${fmtP(p2p.sellAvg)} ≥ target ${fmtP(targetSell)}`:`Gap: ${fmtP(targetSell&&p2p.sellAvg?targetSell-p2p.sellAvg:0)} · need ${fmtP(targetSell)}`}</div>
           </div>`:""}
           ${p2p.buyAvg&&wacop?`<div style="padding:8px;border-radius:8px;background:color-mix(in srgb,var(--${restockIsGood?"good":"warn"}) 10%,transparent);border:1px solid color-mix(in srgb,var(--${restockIsGood?"good":"warn"}) 30%,transparent);">
-            <div style="font-weight:800;color:var(--${restockIsGood?"good":"warn"});">${restockIsGood?"✓ Good restock opportunity":"⚠ Restock above WACOP"}</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:3px;">${restockIsGood?`Buy avg ${fmtP(p2p.buyAvg)} < WACOP — improves cost base`:`Would raise avg cost`}</div>
+            <div style="font-weight:800;color:var(--${restockIsGood?"good":"warn"});">${restockIsGood?"✓ Good restock opportunity":"⚠ Restock above Av Price"}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px;">${restockIsGood?`Buy avg ${fmtP(p2p.buyAvg)} < Av Price — improves cost base`:`Would raise avg cost`}</div>
           </div>`:""}
         </div>`}
         <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
@@ -3641,7 +3700,7 @@ function renderP2P(){
       `:""}
       ${calcMode==="margin"?`
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
-          <div class="field"><div class="label">Buy price (WACOP)</div><input class="input" id="c_buy_px" value="${wacop?wacop.toFixed(4):""}"/></div>
+          <div class="field"><div class="label">Buy price (Av Price)</div><input class="input" id="c_buy_px" value="${wacop?wacop.toFixed(4):""}"/></div>
           <div class="field"><div class="label">Target margin %</div><input class="input" id="c_mpct" value="${targetMargin}"/></div>
           <div class="field"><div class="label">Amount USDT</div><input class="input" id="c_musdt" value="${stock>0?stock.toFixed(0):""}"/></div>
         </div>
@@ -3652,7 +3711,7 @@ function renderP2P(){
 
   // ── Wire events ──────────────────────────────────────────────────
   $("#p_refresh")?.addEventListener("click",refreshP2P);
-  $("#p_setup_link")?.addEventListener("click",e=>{e.preventDefault();toast("Set P2P_API_URL in index.html after deploying the Worker","warn");});
+  $("#p_setup_link")?.addEventListener("click",e=>{e.preventDefault();toast("Set P2P_API_URL in frontend/index.html after deploying the Worker","warn");});
   $("#p_apply_sell")?.addEventListener("click",()=>{if(p2p.sellAvg){navTo("orders");setTimeout(()=>{if($("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();}},80);}});
   $("#p_apply_buy")?.addEventListener("click",()=>{if(p2p.buyAvg){toast(`Restock rate ${fmtP(p2p.buyAvg)} — navigate to Stock to add batch`,"good");navTo("stock");}});
   document.querySelectorAll("[data-calcmode]").forEach(b=>b.addEventListener("click",()=>{p2p._calcMode=b.dataset.calcmode;renderP2P();}));
@@ -3669,7 +3728,7 @@ function renderP2P(){
   if(calcMode==="buy"){
     if(p2p.buyAvg&&$("#c_brate"))$("#c_brate").value=p2p.buyAvg.toFixed(2);
     if(cash>0&&$("#c_qar"))$("#c_qar").value=cash.toFixed(0);
-    const upd=()=>{const q=num($("#c_qar")?.value),r=num($("#c_brate")?.value);const out=$("#c_out");if(!out)return;if(q>0&&r>0){const usdt=q/r,nw=wacop&&stock>0?((stock*wacop)+(usdt*r))/(stock+usdt):r;out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="pill">${fmtQ(q)} ÷ ${fmtP(r)} = <strong>${fmtU(usdt)} USDT</strong></span>${wacop&&stock>0?`<span class="pill warn">New WACOP: ${fmtP(nw)}</span>`:""}</div>`;}else{out.textContent="Enter QAR and rate";}};
+    const upd=()=>{const q=num($("#c_qar")?.value),r=num($("#c_brate")?.value);const out=$("#c_out");if(!out)return;if(q>0&&r>0){const usdt=q/r,nw=wacop&&stock>0?((stock*wacop)+(usdt*r))/(stock+usdt):r;out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="pill">${fmtQ(q)} ÷ ${fmtP(r)} = <strong>${fmtU(usdt)} USDT</strong></span>${wacop&&stock>0?`<span class="pill warn">New Av Price: ${fmtP(nw)}</span>`:""}</div>`;}else{out.textContent="Enter QAR and rate";}};
     ["c_qar","c_brate"].forEach(id=>document.getElementById(id)?.addEventListener("input",upd));
     $("#c_fill_buy")?.addEventListener("click",()=>{if(p2p.buyAvg&&$("#c_brate")){$("#c_brate").value=p2p.buyAvg.toFixed(2);upd();}});
     upd();
@@ -6554,7 +6613,7 @@ function showLoginScreen() {
   // Helpful warning: Google sign-in does not work well from file://. Use http://localhost:8000.
   try {
     if (location && location.protocol === "file:") {
-      showLoginError("Open this file via http://localhost:8000 (not file://). Local test: run 'python -m http.server 8000' in the folder, then open http://localhost:8000/" + (location.pathname.split('/').pop() || "index.html"));
+      showLoginError("Open this file via http://localhost:8000 (not file://). Local test: run 'python -m http.server 8000' in the folder, then open http://localhost:8000/" + "frontend/index.html");
     }
   } catch(e) {}
 
@@ -6961,7 +7020,7 @@ function init(){
     openModal("Export","<div class='muted' style='margin-bottom:8px;'>Choose format:</div>",`<button class="btn secondary" id="m_c">Cancel</button><button class="btn secondary" id="m_j">JSON</button><button class="btn secondary" id="m_x">Excel</button><button class="btn" id="m_v">CSV</button>`);
     setTimeout(()=>{$("#m_c")?.addEventListener("click",closeModal);$("#m_j")?.addEventListener("click",()=>{saveToFile();closeModal();});$("#m_x")?.addEventListener("click",()=>{exportExcel();closeModal();});$("#m_v")?.addEventListener("click",()=>{exportCsv();closeModal();});},0);
   });
-  $("#diagBtn")?.addEventListener("click",()=>{const iss=derived.health?.issues||[];openModal("Diagnostics",`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><span class="pill ${storageOk?"good":"warn"}">${storageOk?"Storage OK":"Error"}</span><span class="pill">Trades ${state.trades.length}</span><span class="pill">Batches ${state.batches.length}</span><span class="pill">Stock ${totalStock().toFixed(0)} USDT</span><span class="pill">WACOP ${getWACOP()?getWACOP().toFixed(2):"—"}</span></div>${iss.length?`<div class="msg err">${esc(iss.join("\n"))}</div>`:`<div class="msg ok">✓ No FIFO issues</div>`}`);});
+  $("#diagBtn")?.addEventListener("click",()=>{const iss=derived.health?.issues||[];openModal("Diagnostics",`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;"><span class="pill ${storageOk?"good":"warn"}">${storageOk?"Storage OK":"Error"}</span><span class="pill">Trades ${state.trades.length}</span><span class="pill">Batches ${state.batches.length}</span><span class="pill">Stock ${totalStock().toFixed(0)} USDT</span><span class="pill">Av Price ${getWACOP()?getWACOP().toFixed(2):"—"}</span></div>${iss.length?`<div class="msg err">${esc(iss.join("\n"))}</div>`:`<div class="msg ok">✓ No FIFO issues</div>`}`);});
   $("#addBtn")?.addEventListener("click",()=>navTo("orders"));
   $("#modalClose")?.addEventListener("click",closeModal);
   $("#modalBg")?.addEventListener("click",e=>{if(e.target.id==="modalBg")closeModal();});
