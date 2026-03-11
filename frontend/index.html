@@ -648,6 +648,20 @@ tbody tr { transition: background var(--lt-tr); }
 .modalBody { padding: 14px; color: var(--text); font-size: calc(12px * var(--ui-scale,1)); max-height: 60vh; overflow-y: auto; }
 .modalActions { padding: 10px 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
 
+/* ── CASH BOX MODAL (Dark + Emerald) ── */
+.cashbox-grid{display:grid;gap:10px;}
+.cashbox-label{font-size:12px;font-weight:700;color:#6dd48e;letter-spacing:.01em;}
+.cashbox-balance,.cashbox-total{background:#1b1b1b;border:1px solid #262626;border-radius:10px;padding:12px 14px;color:#E0E0E0;font-weight:800;font-size:24px;line-height:1.1;}
+.cashbox-total{font-size:20px;}
+.cashbox-input,.cashbox-textarea{width:100%;background:#171717;border:1px solid #333;color:#e7e7e7;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s;}
+.cashbox-input:focus,.cashbox-textarea:focus{border-color:#00FF88;box-shadow:0 0 0 3px rgba(0,255,136,.18);}
+.cashbox-textarea{min-height:70px;resize:vertical;}
+.cashbox-help{font-size:12px;color:#71b786;}
+.cashbox-actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;width:100%;}
+.cashbox-cancel{background:transparent;border:1px solid transparent;color:#9fb5a6;text-decoration:underline;text-underline-offset:2px;box-shadow:none;}
+.cashbox-clear{background:transparent;border:1px solid #FF4D4D;color:#FF4D4D;}
+.cashbox-add{background:#00C853;border:1px solid #00C853;color:#fff;box-shadow:0 8px 18px rgba(0,200,83,.32);font-weight:800;}
+
 /* ── DASH LAYOUT ── */
 .dash-bottom { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: start; }
 .input { border: 1px solid var(--line); background: var(--input-bg); color: var(--text); border-radius: var(--lt-radius-sm); padding: 6px 9px; font-size: calc(11px * var(--ui-scale,1)); outline: none; font-family: var(--app-font, var(--lt-font)); transition: border-color var(--lt-tr); width: 100%; }
@@ -3207,14 +3221,14 @@ function renderDashboard(){
 
   // Cash update handler
   $("#setCashBtn")?.addEventListener("click",()=>{
-    openModal("Cash Box Manager",`<div class="form-field"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Current cash balance (QAR)</label><input id="m_cash_current" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" readonly/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Add cash amount (QAR)</label><input id="m_cash_add" class="inp-field" type="number" min="0" step="0.01" value="" placeholder="e.g. 20000"/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Total after add (QAR)</label><input id="m_cash_total" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" readonly/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Cash owner / source description</label><textarea id="m_cash_owner" class="inp-field" rows="2" placeholder="Example: This cash belongs to Ahmad (investment capital)">${esc(state.cashOwner||"")}</textarea></div><div style="margin-top:6px;color:var(--muted);font-size:10px;">Use Add Cash to increase balance, or Clear Cash when funds were used to buy USDT.</div>`,
-      `<button class="btn secondary" id="m_c">Cancel</button><button class="btn secondary" id="m_clear_cash" style="border-color:color-mix(in srgb,var(--bad) 40%,transparent);color:var(--bad);">Clear Cash</button><button class="btn" id="m_s">Add Cash</button>`);
+    openModal("Cash Box Manager",`<div class="cashbox-grid"><div><div class="cashbox-label">Current cash balance (QAR)</div><div id="m_cash_current" class="cashbox-balance">${fmtQRaw(state.cashQAR||0)} QAR</div></div><div><div class="cashbox-label">Add cash amount (QAR)</div><input id="m_cash_add" class="cashbox-input" type="number" min="0" step="0.0001" value="" placeholder="e.g. 20000"/></div><div><div class="cashbox-label">Total after add (QAR)</div><div id="m_cash_total" class="cashbox-total">${fmtQRaw(state.cashQAR||0)} QAR</div></div><div><div class="cashbox-label">Cash owner / source description</div><textarea id="m_cash_owner" class="cashbox-textarea" rows="3" placeholder="Example: This cash belongs to Ahmad (investment capital)">${esc(state.cashOwner||"")}</textarea></div><div class="cashbox-help">Use Add Cash to increase balance, or Clear Cash when funds were used to buy USDT.</div></div>`,
+      `<div class="cashbox-actions"><button class="btn secondary cashbox-cancel" id="m_c">Cancel</button><button class="btn secondary cashbox-clear" id="m_clear_cash">Clear Cash</button><button class="btn cashbox-add" id="m_s">Add Cash</button></div>`);
     setTimeout(()=>{
       const current=num(state.cashQAR,0);
       const addInput=$("#m_cash_add"), totalInput=$("#m_cash_total"), ownerInput=$("#m_cash_owner");
       const refreshTotal=()=>{
         const addVal=Math.max(0,num(addInput?.value,0));
-        if(totalInput) totalInput.value=(current+addVal).toFixed(2);
+        if(totalInput) totalInput.textContent=`${fmtQRaw(current+addVal)} QAR`;
       };
       addInput?.addEventListener("input",refreshTotal);
       refreshTotal();
