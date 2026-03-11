@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Taheito Pro X</title>
+<title>P2P Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Fira+Code:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap"/>
@@ -451,6 +451,7 @@ body {
 .seg button { border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: calc(var(--lt-radius-sm) - 2px); padding: 4px 8px; font-size: calc(10px * var(--ui-scale,1)); cursor: pointer; font-family: var(--app-font, var(--lt-font, inherit)); font-weight: 700; transition: all var(--lt-tr); }
 .seg button:hover { color: var(--text); }
 .seg button.active { background: var(--brand); color: white; box-shadow: 0 2px 8px var(--glow); }
+#curSeg button,#langSeg button{min-width:74px;height:30px;padding:6px 12px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:calc(10px * var(--ui-scale,1));line-height:1;}
 
 /* ── ICON BUTTON ── */
 .iconBtn { border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--muted); border-radius: var(--lt-radius-sm); padding: 6px; cursor: pointer; display: grid; place-items: center; transition: all var(--lt-tr); }
@@ -1746,22 +1747,22 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
   <!-- LOGIN CARD: compact, premium, readable -->
   <div style="position:relative;z-index:10;width:92%;max-width:380px;margin-bottom:3vh;">
     <div style="
-      background:rgba(10,4,24,0.82);
+      background:linear-gradient(155deg,rgba(10,20,36,.94),rgba(15,23,42,.90) 48%,rgba(6,24,22,.90));
       backdrop-filter:blur(28px) saturate(155%);
       -webkit-backdrop-filter:blur(28px) saturate(155%);
-      border:1px solid rgba(201,168,76,0.2);
-      border-radius:22px;
+      border:1px solid rgba(34,211,238,.26);
+      border-radius:24px;
       padding:28px 32px 26px;
-      box-shadow:0 32px 80px rgba(0,0,0,.75), inset 0 1px 0 rgba(201,168,76,.1), inset 0 -1px 0 rgba(0,0,0,.4);
+      box-shadow:0 42px 98px rgba(2,6,23,.74), inset 0 1px 0 rgba(56,189,248,.18), inset 0 -1px 0 rgba(2,6,23,.48);
     ">
 
       <!-- Brand: horizontal layout, compact -->
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid rgba(201,168,76,.12);">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid rgba(56,189,248,.2);">
         <div style="
           width:50px;height:50px;border-radius:14px;flex-shrink:0;
-          background:linear-gradient(145deg,#8B1538 0%,#b82846 50%,#C9A84C 100%);
+          background:linear-gradient(145deg,#0ea5e9 0%,#14b8a6 45%,#22c55e 100%);
           display:flex;align-items:center;justify-content:center;
-          box-shadow:0 8px 24px rgba(139,21,56,.5),0 2px 8px rgba(201,168,76,.25);
+          box-shadow:0 10px 26px rgba(2,132,199,.45),0 2px 8px rgba(34,197,94,.28);
         ">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="rgba(255,255,255,.12)" stroke="white" stroke-width="1.5"/>
@@ -1769,24 +1770,24 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
           </svg>
         </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:18px;font-weight:900;color:#fff;letter-spacing:-.025em;line-height:1.1;">Taheito Pro X</div>
-          <div style="font-size:10px;color:rgba(201,168,76,.8);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;">USDT · QAR Tracker</div>
+          <div style="font-size:18px;font-weight:900;color:#fff;letter-spacing:-.025em;line-height:1.1;">P2P Tracker</div>
+          <div style="font-size:10px;color:rgba(201,168,76,.8);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:2px;">Google Nano · Banana · Work Together</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-          <span style="font-size:8.5px;font-weight:800;color:#C9A84C;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.28);border-radius:999px;padding:3px 8px;letter-spacing:.05em;">🇶🇦 QAR</span>
-          <span style="font-size:8.5px;font-weight:800;color:rgba(255,255,255,.45);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:3px 8px;letter-spacing:.05em;">☁ SYNC</span>
+          <span style="font-size:8.5px;font-weight:800;color:#22c55e;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.28);border-radius:999px;padding:3px 8px;letter-spacing:.05em;">🇶🇦 QAR</span>
+          <span style="font-size:8.5px;font-weight:800;color:rgba(255,255,255,.45);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:3px 8px;letter-spacing:.05em;">🤝 TEAM</span>
         </div>
       </div>
 
       <!-- Mode toggle -->
       <div style="display:flex;gap:4px;margin-bottom:16px;background:rgba(255,255,255,.05);padding:3px;border-radius:11px;">
-        <button id="authModeLoginBtn" type="button" style="flex:1;padding:8px 10px;border-radius:9px;border:none;background:linear-gradient(135deg,#8B1538,#C9A84C);color:#fff;font-weight:900;font-size:11.5px;cursor:pointer;box-shadow:0 3px 10px rgba(139,21,56,.4);transition:all .2s;">Sign In</button>
+        <button id="authModeLoginBtn" type="button" style="flex:1;padding:8px 10px;border-radius:9px;border:none;background:linear-gradient(135deg,#0ea5e9,#22c55e);color:#fff;font-weight:900;font-size:11.5px;cursor:pointer;box-shadow:0 3px 12px rgba(14,165,233,.38);transition:all .2s;">Sign In</button>
         <button id="authModeRegisterBtn" type="button" style="flex:1;padding:8px 10px;border-radius:9px;border:none;background:transparent;color:rgba(255,255,255,.4);font-weight:900;font-size:11.5px;cursor:pointer;transition:all .2s;">Register</button>
       </div>
 
       <!-- Advanced toggle -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <span style="font-size:9.5px;color:rgba(255,255,255,.32);">Cloud pre-configured · Advanced to change</span>
+        <span style="font-size:9.5px;color:rgba(255,255,255,.32);">Cloud pre-configured · Advanced settings</span>
         <button id="cloudAdvancedToggleBtn" type="button" style="padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.04);color:rgba(255,255,255,.45);font-weight:800;font-size:9.5px;cursor:pointer;">Advanced</button>
       </div>
 
@@ -1813,7 +1814,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
           <label style="font-size:9.5px;font-weight:800;color:rgba(201,168,76,.8);display:block;margin-bottom:4px;">Password</label>
           <input id="loginPass" type="password" placeholder="Your password" autocomplete="current-password" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);font-size:13px;box-sizing:border-box;outline:none;color:#fff;transition:border .15s;" onfocus="this.style.borderColor='rgba(201,168,76,.6)'" onblur="this.style.borderColor='rgba(255,255,255,.14)'"/>
         </div>
-        <button id="loginBtn" style="width:100%;background:linear-gradient(135deg,#8B1538 0%,#a8223e 55%,#C9A84C 100%);color:#fff;border:none;border-radius:11px;padding:12px 14px;font-weight:900;font-size:13.5px;cursor:pointer;box-shadow:0 8px 22px rgba(139,21,56,.48);letter-spacing:.02em;transition:all .18s;" onmouseover="this.style.boxShadow='0 12px 28px rgba(139,21,56,.6)';this.style.transform='translateY(-1px)'" onmouseout="this.style.boxShadow='0 8px 22px rgba(139,21,56,.48)';this.style.transform=''">Sign In →</button>
+        <button id="loginBtn" style="width:100%;background:linear-gradient(135deg,#0ea5e9 0%,#14b8a6 55%,#22c55e 100%);color:#fff;border:none;border-radius:11px;padding:12px 14px;font-weight:900;font-size:13.5px;cursor:pointer;box-shadow:0 8px 22px rgba(14,165,233,.38);letter-spacing:.02em;transition:all .18s;" onmouseover="this.style.boxShadow='0 12px 28px rgba(14,165,233,.52)';this.style.transform='translateY(-1px)'" onmouseout="this.style.boxShadow='0 8px 22px rgba(14,165,233,.38)';this.style.transform=''">Sign In →</button>
       </div>
 
       <!-- Register form -->
@@ -1834,7 +1835,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
           <label style="font-size:9.5px;font-weight:800;color:rgba(201,168,76,.8);display:block;margin-bottom:4px;">Confirm Password</label>
           <input id="regPass2" type="password" placeholder="Repeat password" autocomplete="new-password" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);font-size:13px;box-sizing:border-box;outline:none;color:#fff;transition:border .15s;" onfocus="this.style.borderColor='rgba(201,168,76,.6)'" onblur="this.style.borderColor='rgba(255,255,255,.14)'"/>
         </div>
-        <button id="registerBtn" style="width:100%;background:linear-gradient(135deg,#0e0520 0%,#8B1538 45%,#C9A84C 100%);color:#fff;border:none;border-radius:11px;padding:12px 14px;font-weight:900;font-size:13.5px;cursor:pointer;box-shadow:0 8px 22px rgba(139,21,56,.42);transition:all .18s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">Create Account →</button>
+        <button id="registerBtn" style="width:100%;background:linear-gradient(135deg,#0f172a 0%,#0ea5e9 45%,#22c55e 100%);color:#fff;border:none;border-radius:11px;padding:12px 14px;font-weight:900;font-size:13.5px;cursor:pointer;box-shadow:0 8px 22px rgba(14,165,233,.35);transition:all .18s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''">Create Account →</button>
       </div>
 
       <div id="loginErr" style="display:none;margin-top:12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5;border-radius:9px;padding:9px 11px;font-size:10.5px;text-align:left;line-height:1.4;"></div>
@@ -1872,7 +1873,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 2.5c4.7 0 8.5 3.8 8.5 8.5S16.7 19.5 12 19.5 3.5 15.7 3.5 11 7.3 2.5 12 2.5Z" stroke="rgba(255,255,255,.9)" stroke-width="1.5"/><path d="M7 12h10M12 7v10" stroke="rgba(255,255,255,.9)" stroke-width="1.5" stroke-linecap="round"/></svg>
       </div>
       <div>
-        <div class="brand-name">Taheito Pro X</div>
+        <div class="brand-name">P2P Tracker</div>
         <div class="brand-ver" id="brandVer">v13 · FIFO · <span id="brandCur">QAR</span></div>
       </div>
     </div>
@@ -2218,7 +2219,7 @@ const fmtDate=ts=>new Date(ts).toLocaleDateString();
 const isToday=ts=>ts>=startOfDay(Date.now());
 
 // ── STATE ──────────────────────────────────────────────────────
-const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
+const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cashOwner:"",cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
 let state=dflt(), derived={batches:[],tradeCalc:new Map(),health:{ok:true,issues:[]}};
 let charts={}, p2p={
   ts:0, buyAvg:null, sellAvg:null, buyOffers:[], sellOffers:[],
@@ -2252,6 +2253,7 @@ function sanitize(s){
   out.currency=["QAR","USDT"].includes(out.currency)?out.currency:"QAR";
   out.q=String(out.q||"");
   out.cashQAR=num(out.cashQAR,0);
+  out.cashOwner=String(out.cashOwner||"").slice(0,160);
   out.prefs={...d.prefs,...(out.prefs||{})};
   out.settings={...d.settings,...(out.settings||{})};
   out.checksDone=typeof out.checksDone==="object"?out.checksDone:{};
@@ -3133,18 +3135,18 @@ function renderDashboard(){
   <div class="kpis" style="margin-top:0;">
     <div class="kpi-card" data-tip="Physical QAR cash you hold&#10;Click Update to set the amount&#10;Used to calculate Buying Power">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Cash</span></div>
-      <div class="kpi-lbl">CASH AVAILABLE</div><div class="kpi-val" style="color:var(--warn)">${fmtQ(num(state.cashQAR,0))} QAR</div>
-      <div class="kpi-sub"><button class="rowBtn" id="setCashBtn" style="font-size:9px;padding:2px 6px;">Update ↗</button></div>
+      <div class="kpi-lbl">CASH AVAILABLE</div><div class="kpi-val" style="color:var(--warn)">${fmtQWithUnit(num(state.cashQAR,0))}</div>
+      <div class="kpi-sub" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><button class="rowBtn" id="setCashBtn" style="font-size:9px;padding:2px 6px;">Manage Cash ↗</button><span class="muted" style="font-size:10px;">${state.cashOwner?`Owner: ${esc(state.cashOwner)}`:"Owner: —"}</span></div>
     </div>
     <div class="kpi-card" data-tip="How many USDT you could buy with cash&#10;Formula: Cash ÷ WACOP&#10;Assumes you buy at current avg cost">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--t5);border-color:color-mix(in srgb,var(--t5) 30%,transparent);background:color-mix(in srgb,var(--t5) 10%,transparent)">${wacop?"@WACOP":"—"}</span></div>
-      <div class="kpi-lbl">BUYING POWER</div><div class="kpi-val" style="color:var(--t5)">${(wacop&&num(state.cashQAR,0)>0)?fmtU(num(state.cashQAR,0)/wacop,0)+" USDT":"Set cash →"}</div>
+      <div class="kpi-lbl">BUYING POWER</div><div class="kpi-val" style="color:var(--t5)">${(wacop&&num(state.cashQAR,0)>0)?fmtU(num(state.cashQAR,0)/wacop)+" USDT":"Set cash →"}</div>
       <div class="kpi-sub">${wacop?"@ "+fmtP(wacop)+" QAR":"Add batches first"}</div>
     </div>
     <div class="kpi-card" data-tip="Total deployable capital&#10;Formula: USDT stock cost + Cash&#10;Your full book position">
       <div class="kpi-head"><span class="kpi-badge good" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">Net</span></div>
-      <div class="kpi-lbl">NET POSITION</div><div class="kpi-val good">${fmtQ(stCost+num(state.cashQAR,0))} QAR</div>
-      <div class="kpi-sub">Stock ${fmtQ(stCost)} + Cash ${fmtQ(num(state.cashQAR,0))}</div>
+      <div class="kpi-lbl">NET POSITION</div><div class="kpi-val good">${fmtQWithUnit(stCost+num(state.cashQAR,0))}</div>
+      <div class="kpi-sub">Stock ${fmtQWithUnit(stCost)} + Cash ${fmtQWithUnit(num(state.cashQAR,0))}</div>
     </div>
     <div class="kpi-card" data-tip="Estimated cost of remaining USDT stock&#10;WACOP × remaining quantity&#10;Not market value — cost basis only">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--muted);border-color:var(--line)">${state.batches.length} batch</span></div>
@@ -3170,11 +3172,31 @@ function renderDashboard(){
 
   // Cash update handler
   $("#setCashBtn")?.addEventListener("click",()=>{
-    openModal("Update Cash on Hand",`<div class="form-field"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Physical QAR cash ready to deploy</label><input id="m_cash" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" placeholder="0.00"/></div><div style="margin-top:6px;color:var(--muted);font-size:10px;">Used to calculate Buying Power and Net Position on the dashboard.</div>`,
-      `<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_s">Save Cash</button>`);
+    openModal("Cash Box Manager",`<div class="form-field"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Current cash balance (QAR)</label><input id="m_cash_current" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" readonly/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Add cash amount (QAR)</label><input id="m_cash_add" class="inp-field" type="number" min="0" step="0.01" value="" placeholder="e.g. 20000"/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Total after add (QAR)</label><input id="m_cash_total" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" readonly/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Cash owner / source description</label><textarea id="m_cash_owner" class="inp-field" rows="2" placeholder="Example: This cash belongs to Ahmad (investment capital)">${esc(state.cashOwner||"")}</textarea></div><div style="margin-top:6px;color:var(--muted);font-size:10px;">Use Add Cash to increase balance, or Clear Cash when funds were used to buy USDT.</div>`,
+      `<button class="btn secondary" id="m_c">Cancel</button><button class="btn secondary" id="m_clear_cash" style="border-color:color-mix(in srgb,var(--bad) 40%,transparent);color:var(--bad);">Clear Cash</button><button class="btn" id="m_s">Add Cash</button>`);
     setTimeout(()=>{
+      const current=num(state.cashQAR,0);
+      const addInput=$("#m_cash_add"), totalInput=$("#m_cash_total"), ownerInput=$("#m_cash_owner");
+      const refreshTotal=()=>{
+        const addVal=Math.max(0,num(addInput?.value,0));
+        if(totalInput) totalInput.value=(current+addVal).toFixed(2);
+      };
+      addInput?.addEventListener("input",refreshTotal);
+      refreshTotal();
       $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_s")?.addEventListener("click",()=>{state.cashQAR=num($("#m_cash")?.value,0);saveRecompute("Cash updated ✓","good");closeModal();});
+      $("#m_clear_cash")?.addEventListener("click",()=>{
+        state.cashQAR=0;
+        state.cashOwner=String(ownerInput?.value||"").trim();
+        saveRecompute("Cash cleared ✓","warn");
+        closeModal();
+      });
+      $("#m_s")?.addEventListener("click",()=>{
+        const addVal=Math.max(0,num(addInput?.value,0));
+        state.cashQAR=+(current+addVal).toFixed(2);
+        state.cashOwner=String(ownerInput?.value||"").trim();
+        saveRecompute("Cash added ✓","good");
+        closeModal();
+      });
     },0);
   });
   destroyChart("dashTrend");
@@ -3652,7 +3674,7 @@ function renderP2P(){
 
   // ── Wire events ──────────────────────────────────────────────────
   $("#p_refresh")?.addEventListener("click",refreshP2P);
-  $("#p_setup_link")?.addEventListener("click",e=>{e.preventDefault();toast("Set P2P_API_URL in index.html after deploying the Worker","warn");});
+  $("#p_setup_link")?.addEventListener("click",e=>{e.preventDefault();toast("Set P2P_API_URL in frontend/index.html after deploying the Worker","warn");});
   $("#p_apply_sell")?.addEventListener("click",()=>{if(p2p.sellAvg){navTo("orders");setTimeout(()=>{if($("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();}},80);}});
   $("#p_apply_buy")?.addEventListener("click",()=>{if(p2p.buyAvg){toast(`Restock rate ${fmtP(p2p.buyAvg)} — navigate to Stock to add batch`,"good");navTo("stock");}});
   document.querySelectorAll("[data-calcmode]").forEach(b=>b.addEventListener("click",()=>{p2p._calcMode=b.dataset.calcmode;renderP2P();}));
@@ -6554,7 +6576,7 @@ function showLoginScreen() {
   // Helpful warning: Google sign-in does not work well from file://. Use http://localhost:8000.
   try {
     if (location && location.protocol === "file:") {
-      showLoginError("Open this file via http://localhost:8000 (not file://). Local test: run 'python -m http.server 8000' in the folder, then open http://localhost:8000/" + (location.pathname.split('/').pop() || "index.html"));
+      showLoginError("Open this file via http://localhost:8000 (not file://). Local test: run 'python -m http.server 8000' in the folder, then open http://localhost:8000/" + "frontend/index.html");
     }
   } catch(e) {}
 
