@@ -450,6 +450,7 @@ body {
 .searchBox input::placeholder { color: var(--muted2); }
 .seg { display: flex; gap: 2px; padding: 3px; border-radius: var(--lt-radius-sm); border: 1px solid var(--line); background: rgba(255,255,255,.02); }
 .seg button { border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: calc(var(--lt-radius-sm) - 2px); padding: 4px 8px; font-size: calc(10px * var(--ui-scale,1)); cursor: pointer; font-family: var(--app-font, var(--lt-font, inherit)); font-weight: 700; transition: all var(--lt-tr); }
+#curSeg button { font-size: calc(5px * var(--ui-scale,1)); }
 .seg button:hover { color: var(--text); }
 .seg button.active { background: var(--brand); color: white; box-shadow: 0 2px 8px var(--glow); }
 #curSeg button,#langSeg button{min-width:74px;height:30px;padding:6px 12px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:calc(10px * var(--ui-scale,1));line-height:1;}
@@ -646,6 +647,20 @@ tbody tr { transition: background var(--lt-tr); }
 .modalHead h3 { margin: 0; font-size: calc(13px * var(--ui-scale,1)); font-weight: 700; }
 .modalBody { padding: 14px; color: var(--text); font-size: calc(12px * var(--ui-scale,1)); max-height: 60vh; overflow-y: auto; }
 .modalActions { padding: 10px 12px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ── CASH BOX MODAL (Dark + Emerald) ── */
+.cashbox-grid{display:grid;gap:10px;}
+.cashbox-label{font-size:12px;font-weight:700;color:#6dd48e;letter-spacing:.01em;}
+.cashbox-balance,.cashbox-total{background:#1b1b1b;border:1px solid #262626;border-radius:10px;padding:12px 14px;color:#E0E0E0;font-weight:800;font-size:24px;line-height:1.1;}
+.cashbox-total{font-size:20px;}
+.cashbox-input,.cashbox-textarea{width:100%;background:#171717;border:1px solid #333;color:#e7e7e7;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s;}
+.cashbox-input:focus,.cashbox-textarea:focus{border-color:#00FF88;box-shadow:0 0 0 3px rgba(0,255,136,.18);}
+.cashbox-textarea{min-height:70px;resize:vertical;}
+.cashbox-help{font-size:12px;color:#71b786;}
+.cashbox-actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;width:100%;}
+.cashbox-cancel{background:transparent;border:1px solid transparent;color:#9fb5a6;text-decoration:underline;text-underline-offset:2px;box-shadow:none;}
+.cashbox-clear{background:transparent;border:1px solid #FF4D4D;color:#FF4D4D;}
+.cashbox-add{background:#00C853;border:1px solid #00C853;color:#fff;box-shadow:0 8px 18px rgba(0,200,83,.32);font-weight:800;}
 
 /* ── DASH LAYOUT ── */
 .dash-bottom { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; align-items: start; }
@@ -2334,6 +2349,17 @@ function fmtQWithUnit(qarAmount){
   return fmtQRaw(q)+" QAR";
 }
 
+
+function fmtQWithUnitSm(qarAmount){
+  const q = num(qarAmount);
+  if(!Number.isFinite(q)) return "—";
+  const w = (typeof getWACOP==="function") ? getWACOP() : null;
+  if(state && state.currency==="USDT"){
+    if(w && w>0) return `${fmtU(q/w)} <span class="unit-sm">USDT</span>`;
+    return `${fmtQRaw(q)} <span class="unit-sm">QAR</span>`;
+  }
+  return `${fmtQRaw(q)} <span class="unit-sm">QAR</span>`;
+}
 
 // Quantities (USDT) keep up to 2 decimals for readability
 const fmtU=(n,d=2)=>{ const x=dNum(n); return Number.isFinite(x)?x.toLocaleString(uiLocale(),{minimumFractionDigits:0,maximumFractionDigits:Math.max(0,Number.isFinite(Number(d))?Number(d):2)}):"—"; };
