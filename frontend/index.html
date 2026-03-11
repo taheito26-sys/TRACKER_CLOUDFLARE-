@@ -13,6 +13,7 @@
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer>
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/big.js/6.2.1/big.min.js" defer></script>
 <style>
 /* ═══════════════════════ LAYOUT TEMPLATE SYSTEM ═══════════════════
    5 completely different layout templates, each with 5 theme colors
@@ -2180,30 +2181,48 @@ window.addEventListener("DOMContentLoaded", () => {
   try { _i18nMo.observe(document.body, { childList:true, subtree:true }); } catch(e){}
 });
 
-const trunc0 = n => { n = num(n); if(!Number.isFinite(n)) return NaN; return n < 0 ? Math.ceil(n) : Math.floor(n); };
-const fmt0=n=>Number.isFinite(num(n))?trunc0(n).toLocaleString(uiLocale(),{maximumFractionDigits:0}):"—";
-// Totals (QAR, KPIs) are shown with no decimals (truncated display)
+// Decimal-safe helpers (Big.js when available)
+const hasBig=()=>typeof Big!=="undefined";
+const dNum=v=>{ const n=num(v); return Number.isFinite(n)?n:NaN; };
+const dDiv=(a,b)=>{
+  const x=dNum(a), y=dNum(b);
+  if(!Number.isFinite(x)||!Number.isFinite(y)||y===0) return NaN;
+  if(hasBig()){ try{return Number(new Big(String(x)).div(String(y)).toString());}catch(e){} }
+  return x/y;
+};
+const roundHalfUpInt=n=>{
+  const x=dNum(n); if(!Number.isFinite(x)) return NaN;
+  if(hasBig()){ try{return Number(new Big(String(x)).round(0,1).toString());}catch(e){} }
+  return Math.round(x);
+};
+
+const fmt0=n=>{
+  const r=roundHalfUpInt(n);
+  return Number.isFinite(r)?r.toLocaleString(uiLocale(),{maximumFractionDigits:0}):"—";
+};
+// Totals (QAR, KPIs) are shown as whole integers at presentation layer (ROUND_HALF_UP)
 const fmtQRaw=n=>fmt0(n);
 // Currency-aware amount formatter used throughout UI
 const fmtQ=n=>{
-  const q=num(n);
+  const q=dNum(n);
   if(!Number.isFinite(q))return "—";
   if(state?.currency==="USDT"){
-    const w=(typeof getWACOP==="function")?getWACOP():null;
-    if(w&&w>0)return fmtU(q/w);
+    const w=(typeof getWACOP==="function")?dNum(getWACOP()):NaN;
+    const conv=dDiv(q,w);
+    if(Number.isFinite(conv))return fmtU(conv);
   }
   return fmtQRaw(q);
 };
 
 function curUnit(){ return (state && state.currency==="USDT") ? "USDT" : "QAR"; }
 // QAR-amount formatter with unit that respects the currency toggle.
-// If user selects USDT but WACOP is missing, we fall back to QAR display (same behavior as before).
 function fmtQWithUnit(qarAmount){
-  const q = num(qarAmount);
+  const q = dNum(qarAmount);
   if(!Number.isFinite(q)) return "—";
-  const w = (typeof getWACOP==="function") ? getWACOP() : null;
+  const w = (typeof getWACOP==="function") ? dNum(getWACOP()) : NaN;
   if(state && state.currency==="USDT"){
-    if(w && w>0) return fmtU(q/w)+" USDT";
+    const conv=dDiv(q,w);
+    if(Number.isFinite(conv)) return fmtU(conv)+" USDT";
     return fmtQRaw(q)+" QAR";
   }
   return fmtQRaw(q)+" QAR";
@@ -2222,9 +2241,13 @@ function fmtQWithUnitSm(qarAmount){
 }
 
 // Quantities (USDT) keep up to 2 decimals for readability
-const fmtU=n=>Number.isFinite(num(n))?num(n).toLocaleString(uiLocale(),{minimumFractionDigits:0,maximumFractionDigits:2}):"—";
-// Prices show decimals (default 2)
-const fmtP=(n,d=2)=>Number.isFinite(num(n))?num(n).toLocaleString(uiLocale(),{minimumFractionDigits:d,maximumFractionDigits:d}):"—";
+const fmtU=n=>Number.isFinite(dNum(n))?dNum(n).toLocaleString(uiLocale(),{minimumFractionDigits:0,maximumFractionDigits:2}):"—";
+// Prices: show entered precision without forced trailing zeros
+const fmtP=n=>{
+  const x=dNum(n);
+  if(!Number.isFinite(x)) return "—";
+  return x.toLocaleString(uiLocale(),{minimumFractionDigits:0,maximumFractionDigits:8});
+};
 const fmtPct=n=>Number.isFinite(num(n))?(((num(n)>=0?"+":"")+Math.trunc(num(n)).toLocaleString(uiLocale(),{maximumFractionDigits:0}))+(uiIsAr()?"٪":"%")):"—";
 const fmtDur=ms=>{if(!ms||ms<0)return"—";const m=Math.floor(ms/60000),h=Math.floor(m/60),d=Math.floor(h/24);if(d>0)return d+"d "+(h%24)+"h";if(h>0)return h+"h "+(m%60)+"m";return m+"m";};
 const fmtDate=ts=>new Date(ts).toLocaleDateString();
