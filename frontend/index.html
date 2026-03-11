@@ -3686,7 +3686,7 @@ function renderP2P(){
 
   // ── Wire events ──────────────────────────────────────────────────
   $("#p_refresh")?.addEventListener("click",refreshP2P);
-  $("#p_setup_link")?.addEventListener("click",e=>{e.preventDefault();toast("Set P2P_API_URL in index.html after deploying the Worker","warn");});
+  $("#p_setup_link")?.addEventListener("click",e=>{e.preventDefault();toast("Set P2P_API_URL in frontend/index.html after deploying the Worker","warn");});
   $("#p_apply_sell")?.addEventListener("click",()=>{if(p2p.sellAvg){navTo("orders");setTimeout(()=>{if($("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();}},80);}});
   $("#p_apply_buy")?.addEventListener("click",()=>{if(p2p.buyAvg){toast(`Restock rate ${fmtP(p2p.buyAvg)} — navigate to Stock to add batch`,"good");navTo("stock");}});
   document.querySelectorAll("[data-calcmode]").forEach(b=>b.addEventListener("click",()=>{p2p._calcMode=b.dataset.calcmode;renderP2P();}));
@@ -6588,7 +6588,7 @@ function showLoginScreen() {
   // Helpful warning: Google sign-in does not work well from file://. Use http://localhost:8000.
   try {
     if (location && location.protocol === "file:") {
-      showLoginError("Open this file via http://localhost:8000 (not file://). Local test: run 'python -m http.server 8000' in the folder, then open http://localhost:8000/" + (location.pathname.split('/').pop() || "index.html"));
+      showLoginError("Open this file via http://localhost:8000 (not file://). Local test: run 'python -m http.server 8000' in the folder, then open http://localhost:8000/" + "frontend/index.html");
     }
   } catch(e) {}
 
