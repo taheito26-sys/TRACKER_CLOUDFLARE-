@@ -2218,7 +2218,7 @@ const fmtDate=ts=>new Date(ts).toLocaleDateString();
 const isToday=ts=>ts>=startOfDay(Date.now());
 
 // ── STATE ──────────────────────────────────────────────────────
-const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
+const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cashOwner:"",cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
 let state=dflt(), derived={batches:[],tradeCalc:new Map(),health:{ok:true,issues:[]}};
 let charts={}, p2p={
   ts:0, buyAvg:null, sellAvg:null, buyOffers:[], sellOffers:[],
@@ -2252,6 +2252,7 @@ function sanitize(s){
   out.currency=["QAR","USDT"].includes(out.currency)?out.currency:"QAR";
   out.q=String(out.q||"");
   out.cashQAR=num(out.cashQAR,0);
+  out.cashOwner=String(out.cashOwner||"").slice(0,160);
   out.prefs={...d.prefs,...(out.prefs||{})};
   out.settings={...d.settings,...(out.settings||{})};
   out.checksDone=typeof out.checksDone==="object"?out.checksDone:{};
@@ -3134,7 +3135,7 @@ function renderDashboard(){
     <div class="kpi-card" data-tip="Physical QAR cash you hold&#10;Click Update to set the amount&#10;Used to calculate Buying Power">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Cash</span></div>
       <div class="kpi-lbl">CASH AVAILABLE</div><div class="kpi-val" style="color:var(--warn)">${fmtQ(num(state.cashQAR,0))} QAR</div>
-      <div class="kpi-sub"><button class="rowBtn" id="setCashBtn" style="font-size:9px;padding:2px 6px;">Update ↗</button></div>
+      <div class="kpi-sub" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><button class="rowBtn" id="setCashBtn" style="font-size:9px;padding:2px 6px;">Manage Cash ↗</button><span class="muted" style="font-size:10px;">${state.cashOwner?`Owner: ${esc(state.cashOwner)}`:"Owner: —"}</span></div>
     </div>
     <div class="kpi-card" data-tip="How many USDT you could buy with cash&#10;Formula: Cash ÷ WACOP&#10;Assumes you buy at current avg cost">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--t5);border-color:color-mix(in srgb,var(--t5) 30%,transparent);background:color-mix(in srgb,var(--t5) 10%,transparent)">${wacop?"@WACOP":"—"}</span></div>
@@ -3170,11 +3171,31 @@ function renderDashboard(){
 
   // Cash update handler
   $("#setCashBtn")?.addEventListener("click",()=>{
-    openModal("Update Cash on Hand",`<div class="form-field"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Physical QAR cash ready to deploy</label><input id="m_cash" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" placeholder="0.00"/></div><div style="margin-top:6px;color:var(--muted);font-size:10px;">Used to calculate Buying Power and Net Position on the dashboard.</div>`,
-      `<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_s">Save Cash</button>`);
+    openModal("Cash Box Manager",`<div class="form-field"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Current cash balance (QAR)</label><input id="m_cash_current" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" readonly/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Add cash amount (QAR)</label><input id="m_cash_add" class="inp-field" type="number" min="0" step="0.01" value="" placeholder="e.g. 20000"/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Total after add (QAR)</label><input id="m_cash_total" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" readonly/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Cash owner / source description</label><textarea id="m_cash_owner" class="inp-field" rows="2" placeholder="Example: This cash belongs to Ahmad (investment capital)">${esc(state.cashOwner||"")}</textarea></div><div style="margin-top:6px;color:var(--muted);font-size:10px;">Use Add Cash to increase balance, or Clear Cash when funds were used to buy USDT.</div>`,
+      `<button class="btn secondary" id="m_c">Cancel</button><button class="btn secondary" id="m_clear_cash" style="border-color:color-mix(in srgb,var(--bad) 40%,transparent);color:var(--bad);">Clear Cash</button><button class="btn" id="m_s">Add Cash</button>`);
     setTimeout(()=>{
+      const current=num(state.cashQAR,0);
+      const addInput=$("#m_cash_add"), totalInput=$("#m_cash_total"), ownerInput=$("#m_cash_owner");
+      const refreshTotal=()=>{
+        const addVal=Math.max(0,num(addInput?.value,0));
+        if(totalInput) totalInput.value=(current+addVal).toFixed(2);
+      };
+      addInput?.addEventListener("input",refreshTotal);
+      refreshTotal();
       $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_s")?.addEventListener("click",()=>{state.cashQAR=num($("#m_cash")?.value,0);saveRecompute("Cash updated ✓","good");closeModal();});
+      $("#m_clear_cash")?.addEventListener("click",()=>{
+        state.cashQAR=0;
+        state.cashOwner=String(ownerInput?.value||"").trim();
+        saveRecompute("Cash cleared ✓","warn");
+        closeModal();
+      });
+      $("#m_s")?.addEventListener("click",()=>{
+        const addVal=Math.max(0,num(addInput?.value,0));
+        state.cashQAR=+(current+addVal).toFixed(2);
+        state.cashOwner=String(ownerInput?.value||"").trim();
+        saveRecompute("Cash added ✓","good");
+        closeModal();
+      });
     },0);
   });
   destroyChart("dashTrend");
