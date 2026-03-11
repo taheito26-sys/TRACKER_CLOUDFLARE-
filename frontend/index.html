@@ -449,6 +449,7 @@ body {
 .searchBox input::placeholder { color: var(--muted2); }
 .seg { display: flex; gap: 2px; padding: 3px; border-radius: var(--lt-radius-sm); border: 1px solid var(--line); background: rgba(255,255,255,.02); }
 .seg button { border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: calc(var(--lt-radius-sm) - 2px); padding: 4px 8px; font-size: calc(10px * var(--ui-scale,1)); cursor: pointer; font-family: var(--app-font, var(--lt-font, inherit)); font-weight: 700; transition: all var(--lt-tr); }
+#curSeg button { font-size: calc(5px * var(--ui-scale,1)); }
 .seg button:hover { color: var(--text); }
 .seg button.active { background: var(--brand); color: white; box-shadow: 0 2px 8px var(--glow); }
 #curSeg button{min-width:58px;text-align:center;}
@@ -2210,6 +2211,17 @@ function fmtQWithUnit(qarAmount){
 }
 
 
+function fmtQWithUnitSm(qarAmount){
+  const q = num(qarAmount);
+  if(!Number.isFinite(q)) return "—";
+  const w = (typeof getWACOP==="function") ? getWACOP() : null;
+  if(state && state.currency==="USDT"){
+    if(w && w>0) return `${fmtU(q/w)} <span class="unit-sm">USDT</span>`;
+    return `${fmtQRaw(q)} <span class="unit-sm">QAR</span>`;
+  }
+  return `${fmtQRaw(q)} <span class="unit-sm">QAR</span>`;
+}
+
 // Quantities (USDT) keep up to 2 decimals for readability
 const fmtU=n=>Number.isFinite(num(n))?num(n).toLocaleString(uiLocale(),{minimumFractionDigits:0,maximumFractionDigits:2}):"—";
 // Prices show decimals (default 2)
@@ -3151,8 +3163,8 @@ function renderDashboard(){
     </div>
     <div class="kpi-card" data-tip="Estimated cost of remaining USDT stock&#10;WACOP × remaining quantity&#10;Not market value — cost basis only">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--muted);border-color:var(--line)">${state.batches.length} batch</span></div>
-      <div class="kpi-lbl">STOCK COST EST.</div><div class="kpi-val" style="font-size:17px;">${fmtQWithUnit(stCost)}</div>
-      <div class="kpi-sub">WACOP ${wacop?fmtP(wacop)+" QAR":"—"}</div>
+      <div class="kpi-lbl">STOCK COST EST.</div><div class="kpi-val" style="font-size:17px;">${fmtQWithUnitSm(stCost)}</div>
+      <div class="kpi-sub">WACOP ${wacop?`${fmtP(wacop)} <span class="unit-sm">QAR</span>`:"—"}</div>
     </div>
   </div>
   <div class="dash-bottom">
