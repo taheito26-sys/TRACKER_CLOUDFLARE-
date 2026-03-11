@@ -3151,7 +3151,7 @@ function renderDashboard(){
     </div>
     <div class="kpi-card" data-tip="How many USDT you could buy with cash&#10;Formula: Cash ÷ WACOP&#10;Assumes you buy at current avg cost">
       <div class="kpi-head"><span class="kpi-badge" style="color:var(--t5);border-color:color-mix(in srgb,var(--t5) 30%,transparent);background:color-mix(in srgb,var(--t5) 10%,transparent)">${wacop?"@WACOP":"—"}</span></div>
-      <div class="kpi-lbl">BUYING POWER</div><div class="kpi-val" style="color:var(--t5)">${(wacop&&num(state.cashQAR,0)>0)?`${fmtU(num(state.cashQAR,0)/wacop,0)} <span class="unit-sm">USDT</span>`:"Set cash →"}</div>
+      <div class="kpi-lbl">BUYING POWER</div><div class="kpi-val" style="color:var(--t5)">${(wacop&&num(state.cashQAR,0)>0)?`${fmtU(num(state.cashQAR,0)/wacop)} <span class="unit-sm">USDT</span>`:"Set cash →"}</div>
       <div class="kpi-sub">${wacop?`@ ${fmtP(wacop)} <span class="unit-sm">QAR</span>`:"Add batches first"}</div>
     </div>
     <div class="kpi-card" data-tip="Total deployable capital&#10;Formula: USDT stock cost + Cash&#10;Your full book position">
