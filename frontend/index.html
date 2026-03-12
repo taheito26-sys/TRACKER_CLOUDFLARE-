@@ -1208,6 +1208,8 @@ body[data-page="dashboard"] #pageTitle{--ui-scale:1;}
 .crm-card { background:var(--panel); border:1px solid var(--line); border-radius:calc(var(--lt-radius) - 2px); padding:12px; cursor:default; transition:box-shadow var(--lt-tr); }
 .crm-pipeline .crm-card { max-width:260px; width:100%; min-width:0; }
 .crm-card:hover { box-shadow:var(--lt-shadow); }
+.crm-desktop-only{display:block;} .crm-mobile-only{display:none;}
+@media(max-width:860px){.crm-desktop-only{display:none;} .crm-mobile-only{display:block;} #crmSearch,#crmEntity,#crmStatus,#crmTier,#crmLocation,#crmMinVol,#crmMaxVol{font-size:12px;}}
 
 
 /* ══════════════════════════════════════════════════════════════════
@@ -2306,7 +2308,7 @@ const fmtDate=ts=>new Date(ts).toLocaleDateString();
 const isToday=ts=>ts>=startOfDay(Date.now());
 
 // ── STATE ──────────────────────────────────────────────────────
-const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cashOwner:"",cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
+const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cashOwner:"",cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11,dashboardKpis:["net_profit","avg_margin","available_usdt","av_price","cash_available","buying_power"]},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
 let state=dflt(), derived={batches:[],tradeCalc:new Map(),health:{ok:true,issues:[]}};
 let charts={}, p2p={
   ts:0, buyAvg:null, sellAvg:null, buyOffers:[], sellOffers:[],
@@ -2349,15 +2351,33 @@ function sanitize(s){
   out.trades=Array.isArray(out.trades)?out.trades.map(t=>({id:String(t.id||uid()),ts:Number.isFinite(Number(t.ts))?Number(t.ts):Date.now(),inputMode:t.inputMode==="QAR"?"QAR":"USDT",amountUSDT:num(t.amountUSDT),sellPriceQAR:num(t.sellPriceQAR),feeQAR:num(t.feeQAR),note:String(t.note||""),voided:!!t.voided,usesStock:t.usesStock!==false,revisions:Array.isArray(t.revisions)?t.revisions:[],customerId:String(t.customerId||"")})).filter(t=>t.amountUSDT>0&&t.sellPriceQAR>0):[];
   out.customers=Array.isArray(out.customers)?out.customers.map(c=>({
     id:String(c.id||uid()),
-    name:String(c.name||""),
+    name:String(c.name||c.contactPersonName||""),
+    contactPersonName:String(c.contactPersonName||c.name||""),
     phone:String(c.phone||""),
-    tier:["A","B","C","D"].includes(c.tier)?c.tier:"C",
+    tier:["VIP","Regular","New","Blocked","A","B","C","D"].includes(c.tier)?String(c.tier):"New",
+    tierMode:c.tierMode==="manual"?"manual":"auto",
+    status:["Active","Inactive"].includes(c.status)?c.status:"Active",
+    location:String(c.location||""),
     dailyLimitUSDT:num(c.dailyLimitUSDT,0),
     notes:String(c.notes||""),
-    createdAt:num(c.createdAt,Date.now())
-  })).filter(c=>c.name.trim().length>0):[];
+    createdAt:num(c.createdAt,Date.now()),
+    updatedAt:num(c.updatedAt,c.createdAt||Date.now())
+  })).filter(c=>(c.contactPersonName||c.name).trim().length>0):[];
 
-  out.suppliers=Array.isArray(out.suppliers)?out.suppliers.map(s=>({id:String(s.id||uid()),name:String(s.name||""),phone:String(s.phone||""),notes:String(s.notes||""),createdAt:num(s.createdAt,Date.now())})).filter(s=>s.name.trim().length>0):[];
+  out.suppliers=Array.isArray(out.suppliers)?out.suppliers.map(s=>({
+    id:String(s.id||uid()),
+    name:String(s.name||s.contactPersonName||""),
+    contactPersonName:String(s.contactPersonName||s.name||""),
+    phone:String(s.phone||""),
+    tier:["VIP","Regular","New","Blocked"].includes(s.tier)?String(s.tier):"New",
+    tierMode:s.tierMode==="manual"?"manual":"auto",
+    status:["Active","Inactive"].includes(s.status)?s.status:"Active",
+    location:String(s.location||""),
+    notes:String(s.notes||""),
+    typicalPrice:num(s.typicalPrice,0),
+    createdAt:num(s.createdAt,Date.now()),
+    updatedAt:num(s.updatedAt,s.createdAt||Date.now())
+  })).filter(s=>(s.contactPersonName||s.name).trim().length>0):[];
   
   out.merchants=Array.isArray(out.merchants)?out.merchants.map(m=>({
     id:String(m.id||uid()),name:String(m.name||""),phone:String(m.phone||""),email:String(m.email||""),status:m.status||"active",notes:String(m.notes||""),
@@ -3169,6 +3189,15 @@ function setHeader(t,s){if($("#pageTitle"))$("#pageTitle").textContent=t;if($("#
 
 // ── DASHBOARD ────────────────────────────────────────────────────
 
+
+function openCashModal(){
+  openModal("Manage Cash",`<div class="field"><div class="label">Cash Available (QAR)</div><input id="cash_q" class="input" inputmode="decimal" value="${num(state.cashQAR,0)}"/></div><div class="field"><div class="label">Cash Owner</div><input id="cash_owner" class="input" value="${esc(state.cashOwner||"")}" placeholder="Optional"/></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_s">Save</button>`);
+  setTimeout(()=>{
+    document.getElementById("m_c")?.addEventListener("click",closeModal);
+    document.getElementById("m_s")?.addEventListener("click",()=>{state.cashQAR=num(document.getElementById("cash_q")?.value,0);state.cashOwner=(document.getElementById("cash_owner")?.value||"").trim();saveRecompute("Cash updated","good");closeModal();});
+  },0);
+}
+
 function renderDashboard(){
   setHeader("Dashboard","FIFO · "+curUnit()+" · "+new Date().toLocaleDateString(uiLocale()));
   const d1=kpiFor("today"),d7=kpiFor("7d"),dR=kpiFor(state.range),stk=totalStock(),stCost=stockCostQAR(),wacop=getWACOP();
@@ -3182,134 +3211,67 @@ function renderDashboard(){
   const tRevs=recent.map(t=>+(t.amountUSDT*t.sellPriceQAR).toFixed(2));
   const rLabel=rl();
 
+  const totalInitial=(state.batches||[]).reduce((s,b)=>s+num(b.initialUSDT,0),0);
+  const totalRemaining=(derived.batches||[]).reduce((s,b)=>s+Math.max(0,num(b.remainingUSDT,0)),0);
+  const deployedStock=Math.max(0,totalInitial-totalRemaining);
+  const stockUtilPct=totalInitial>0?(deployedStock/totalInitial*100):0;
+  const avgP2PBuy=totalInitial>0?((state.batches||[]).reduce((s,b)=>s+num(b.initialUSDT,0)*num(b.buyPriceQAR,0),0)/totalInitial):0;
+  const soldQty=allTrades.reduce((s,t)=>s+num(t.amountUSDT,0),0);
+  const avgP2PSell=soldQty>0?(allTrades.reduce((s,t)=>s+num(t.amountUSDT,0)*num(t.sellPriceQAR,0),0)/soldQty):0;
+  const sevenDayTrades=allTrades.filter(t=>inRange(t.ts,"7d"));
+  const sevenDayNet=sevenDayTrades.reduce((s,t)=>{const c=derived.tradeCalc.get(t.id);return s+(c?.ok?num(c.netQAR,0):0);},0);
+  const sevenDayCapital=sevenDayTrades.reduce((s,t)=>{const c=derived.tradeCalc.get(t.id);return s+(c?.ok?num(c.costQAR,0):0);},0);
+  // 7D ROI formula: ROI(%) = (7-day net profit / 7-day deployed capital) × 100.
+  const sevenDayRoi=sevenDayCapital>0?(sevenDayNet/sevenDayCapital*100):null;
+  const avgTradeSize=allTrades.length?(allTrades.reduce((s,t)=>s+num(t.amountUSDT,0),0)/allTrades.length):0;
+
+  const allKpis={
+    net_profit:{label:"NET PROFIT",render:()=>`<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge ${dR.net>=0?"good":"bad"}" style="color:var(--${dR.net>=0?"good":"bad"});border-color:color-mix(in srgb,var(--${dR.net>=0?"good":"bad"}) 30%,transparent);background:color-mix(in srgb,var(--${dR.net>=0?"good":"bad"}) 10%,transparent)">${esc(rLabel)}</span></div><div class="kpi-lbl">NET PROFIT</div><div class="kpi-val ${dR.net>=0?"good":"bad"}">${fmtQWithUnit(dR.net)}</div><div class="kpi-sub">${dR.count} trades · ${fmtQ(dR.rev)} rev</div></div>`},
+    avg_margin:{label:"AVG MARGIN",render:()=>`<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge ${avgM>=1?"good":avgM>=0?"warn":"bad"}" style="color:var(--${avgM>=1?"good":avgM>=0?"warn":"bad"});border-color:color-mix(in srgb,var(--${avgM>=1?"good":avgM>=0?"warn":"bad"}) 30%,transparent);background:color-mix(in srgb,var(--${avgM>=1?"good":avgM>=0?"warn":"bad"}) 10%,transparent)">${allTrades.length} trades</span></div><div class="kpi-lbl">AVG MARGIN</div><div class="kpi-val ${avgM>=1?"good":avgM>=0?"warn":"bad"}">${fmtPct(avgM)}</div><div class="kpi-sub">${dR.count} in range · avg ${fmtPct(dR.avgMgn)}</div></div>`},
+    available_usdt:{label:"AVAILABLE USDT",render:()=>`<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge ${isLow?"bad":"good"}" style="color:var(--${isLow?"bad":"good"});border-color:color-mix(in srgb,var(--${isLow?"bad":"good"}) 30%,transparent);background:color-mix(in srgb,var(--${isLow?"bad":"good"}) 10%,transparent)">${isLow?"⚠ Low":"OK"}</span></div><div class="kpi-lbl">AVAILABLE USDT</div><div class="kpi-val ${isLow?"bad":"good"}" style="${isLow?"animation:blink 1.5s infinite":""}">${fmtU(stk,0)}</div><div class="kpi-sub">Liquid USDT ready for deployment</div></div>`},
+    av_price:{label:"Av Price + SPREAD",render:()=>`<div class="kpi-card" data-tip="Av Price = Weighted Avg Cost Of Purchase&#10;Formula: Σ(remaining×price)/Σ(remaining)&#10;Spread shown vs current P2P sell rate"><div class="kpi-head"><span class="kpi-badge" style="color:var(--brand);border-color:color-mix(in srgb,var(--brand) 30%,transparent);background:var(--brand3)">Av Price</span></div><div class="kpi-lbl">Av Price + SPREAD</div><div class="kpi-val" style="font-size:16px;color:var(--t2)">${wacop?fmtP(wacop)+" QAR":"No stock"}</div><div class="kpi-sub">${(()=>{const sp=wacop&&p2p.sellAvg?((p2p.sellAvg-wacop)/wacop*100).toFixed(2):null;return sp!==null?`<span class="${+sp>=0?"good":"bad"}" style="font-weight:700;">${+sp>=0?"+":""}${sp}% vs P2P</span>`:"Sell above Av Price to profit";})()}</div></div>`},
+    cash_available:{label:"CASH AVAILABLE",render:()=>`<div class="kpi-card" data-tip="Physical QAR cash you hold&#10;Click Update to set the amount&#10;Used to calculate Buying Power"><div class="kpi-head"><span class="kpi-badge" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Cash</span></div><div class="kpi-lbl">CASH AVAILABLE</div><div class="kpi-val" style="color:var(--warn)">${fmtQWithUnit(num(state.cashQAR,0))}</div><div class="kpi-sub" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><button class="rowBtn" id="setCashBtn" style="font-size:9px;padding:3px 8px;background:color-mix(in srgb,var(--t5) 14%,var(--panel));border-color:color-mix(in srgb,var(--t5) 50%,transparent);color:var(--t5);font-weight:800;box-shadow:0 0 0 1px color-mix(in srgb,var(--t5) 18%,transparent) inset;">Manage Cash</button><span class="muted" style="font-size:10px;">${state.cashOwner?`Owner: ${esc(state.cashOwner)}`:"Owner: —"}</span></div></div>`},
+    buying_power:{label:"BUYING POWER",render:()=>`<div class="kpi-card" data-tip="How many USDT you could buy with cash&#10;Formula: Cash ÷ Av Price&#10;Assumes you buy at current avg cost"><div class="kpi-head"><span class="kpi-badge" style="color:var(--t5);border-color:color-mix(in srgb,var(--t5) 30%,transparent);background:color-mix(in srgb,var(--t5) 10%,transparent)">${wacop?"@Av Price":"—"}</span></div><div class="kpi-lbl">BUYING POWER</div><div class="kpi-val" style="color:var(--t5)">${(wacop&&num(state.cashQAR,0)>0)?fmtU(num(state.cashQAR,0)/wacop,0)+" USDT":"Set cash →"}</div><div class="kpi-sub">${wacop?"@ "+fmtP(wacop)+" QAR":"Add batches first"}</div></div>`},
+    stock_utilization:{label:"Stock Utilization",render:()=>`<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--t3);border-color:color-mix(in srgb,var(--t3) 30%,transparent);background:color-mix(in srgb,var(--t3) 12%,transparent)">${fmtPct(stockUtilPct)}</span></div><div class="kpi-lbl">STOCK UTILIZATION</div><div class="kpi-val">${fmtPct(stockUtilPct)}</div><div class="kpi-sub">${fmtU(deployedStock,0)} deployed / ${fmtU(totalInitial,0)} total</div></div>`},
+    avg_p2p_buy:{label:"Average P2P Buy",render:()=>`<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge">Buy</span></div><div class="kpi-lbl">AVERAGE P2P BUY</div><div class="kpi-val">${avgP2PBuy?fmtP(avgP2PBuy)+" QAR":"—"}</div><div class="kpi-sub">Weighted from ${(state.batches||[]).length} completed buy batches</div></div>`},
+    avg_p2p_sell:{label:"Average P2P Sell",render:()=>`<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge">Sell</span></div><div class="kpi-lbl">AVERAGE P2P SELL</div><div class="kpi-val">${avgP2PSell?fmtP(avgP2PSell)+" QAR":"—"}</div><div class="kpi-sub">Weighted from ${allTrades.length} completed sell trades</div></div>`},
+    roi_7d:{label:"7D ROI",render:()=>`<div class="kpi-card" data-tip="Formula: (7-day net profit / 7-day deployed capital) × 100"><div class="kpi-head"><span class="kpi-badge ${sevenDayRoi===null?"warn":sevenDayRoi>=0?"good":"bad"}">${sevenDayRoi===null?"N/A":"7D"}</span></div><div class="kpi-lbl">7D ROI</div><div class="kpi-val ${sevenDayRoi===null?"":sevenDayRoi>=0?"good":"bad"}">${sevenDayRoi===null?"—":fmtPct(sevenDayRoi)}</div><div class="kpi-sub">Net ${fmtQWithUnit(sevenDayNet)} on ${fmtQWithUnit(sevenDayCapital)} deployed</div></div>`},
+    avg_trade_size:{label:"Average Trade Size",render:()=>`<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge">USDT</span></div><div class="kpi-lbl">AVERAGE TRADE SIZE</div><div class="kpi-val">${allTrades.length?fmtU(avgTradeSize,0)+" USDT":"—"}</div><div class="kpi-sub">Across ${allTrades.length} trade${allTrades.length===1?"":"s"}</div></div>`}
+  };
+
+  const defaultKpis=["net_profit","avg_margin","available_usdt","av_price","cash_available","buying_power"];
+  const selected=(Array.isArray(state.prefs?.dashboardKpis)&&state.prefs.dashboardKpis.length?state.prefs.dashboardKpis:defaultKpis).filter(k=>allKpis[k]);
+  const pickerItems=Object.entries(allKpis).map(([key,meta])=>`<label style="display:flex;gap:8px;align-items:center;font-size:11px;padding:4px 2px;cursor:pointer;"><input type="checkbox" class="dash-kpi-opt" value="${key}" ${selected.includes(key)?"checked":""} style="accent-color:var(--brand);"/>${meta.label}</label>`).join("");
+
   $("#pageBody").innerHTML=`
   <div class="kpi-band-grid">
-    <div class="kpi-band">
-      <div class="kpi-band-title" data-tip="Total QAR volume of all USDT sold&#10;Shows 1-day and 7-day comparison">📦 TRADING VOLUME</div>
-      <div class="kpi-band-cols">
-        <div><div class="kpi-period">1 DAY</div><div class="kpi-cell-val t1v">${fmtQWithUnit(d1.rev)}</div><div class="kpi-cell-sub">${d1.count} trade${d1.count!==1?"s":""} · ${fmtU(d1.qty,0)} USDT</div></div>
-        <div><div class="kpi-period">7 DAYS</div><div class="kpi-cell-val t1v">${fmtQWithUnit(d7.rev)}</div><div class="kpi-cell-sub">${d7.count} trade${d7.count!==1?"s":""} · ${fmtU(d7.qty,0)} USDT</div></div>
-      </div>
-    </div>
-    <div class="kpi-band">
-      <div class="kpi-band-title">📈 NET PROFIT</div>
-      <div class="kpi-band-cols">
-        <div><div class="kpi-period">1 DAY</div><div class="kpi-cell-val ${d1.net>=0?"good":"bad"}">${fmtQWithUnit(d1.net)}</div><div class="kpi-cell-sub">Fees ${fmtQWithUnit(d1.fee)}</div></div>
-        <div><div class="kpi-period">7 DAYS</div><div class="kpi-cell-val ${d7.net>=0?"good":"bad"}">${fmtQWithUnit(d7.net)}</div><div class="kpi-cell-sub">Fees ${fmtQWithUnit(d7.fee)}</div></div>
-      </div>
-    </div>
+    <div class="kpi-band"><div class="kpi-band-title">📦 TRADING VOLUME</div><div class="kpi-band-cols"><div><div class="kpi-period">1 DAY</div><div class="kpi-cell-val t1v">${fmtQWithUnit(d1.rev)}</div><div class="kpi-cell-sub">${d1.count} trade${d1.count!==1?"s":""} · ${fmtU(d1.qty,0)} USDT</div></div><div><div class="kpi-period">7 DAYS</div><div class="kpi-cell-val t1v">${fmtQWithUnit(d7.rev)}</div><div class="kpi-cell-sub">${d7.count} trade${d7.count!==1?"s":""} · ${fmtU(d7.qty,0)} USDT</div></div></div></div>
+    <div class="kpi-band"><div class="kpi-band-title">📈 NET PROFIT</div><div class="kpi-band-cols"><div><div class="kpi-period">1 DAY</div><div class="kpi-cell-val ${d1.net>=0?"good":"bad"}">${fmtQWithUnit(d1.net)}</div><div class="kpi-cell-sub">Fees ${fmtQWithUnit(d1.fee)}</div></div><div><div class="kpi-period">7 DAYS</div><div class="kpi-cell-val ${d7.net>=0?"good":"bad"}">${fmtQWithUnit(d7.net)}</div><div class="kpi-cell-sub">Fees ${fmtQWithUnit(d7.fee)}</div></div></div></div>
   </div>
-  <div class="kpis">
-    <div class="kpi-card">
-      <div class="kpi-head"><span class="kpi-badge ${dR.net>=0?"good":"bad"}" style="color:var(--${dR.net>=0?"good":"bad"});border-color:color-mix(in srgb,var(--${dR.net>=0?"good":"bad"}) 30%,transparent);background:color-mix(in srgb,var(--${dR.net>=0?"good":"bad"}) 10%,transparent)">${esc(rLabel)}</span></div>
-      <div class="kpi-lbl">NET PROFIT</div><div class="kpi-val ${dR.net>=0?"good":"bad"}">${fmtQWithUnit(dR.net)}</div><div class="kpi-sub">${dR.count} trades · ${fmtQ(dR.rev)} rev</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-head"><span class="kpi-badge ${avgM>=1?"good":avgM>=0?"warn":"bad"}" style="color:var(--${avgM>=1?"good":avgM>=0?"warn":"bad"});border-color:color-mix(in srgb,var(--${avgM>=1?"good":avgM>=0?"warn":"bad"}) 30%,transparent);background:color-mix(in srgb,var(--${avgM>=1?"good":avgM>=0?"warn":"bad"}) 10%,transparent)">${allTrades.length} trades</span></div>
-      <div class="kpi-lbl">AVG MARGIN</div><div class="kpi-val ${avgM>=1?"good":avgM>=0?"warn":"bad"}">${fmtPct(avgM)}</div><div class="kpi-sub">${dR.count} in range · avg ${fmtPct(dR.avgMgn)}</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-head"><span class="kpi-badge ${isLow?"bad":"good"}" style="color:var(--${isLow?"bad":"good"});border-color:color-mix(in srgb,var(--${isLow?"bad":"good"}) 30%,transparent);background:color-mix(in srgb,var(--${isLow?"bad":"good"}) 10%,transparent)">${isLow?"⚠ Low":"OK"}</span></div>
-      <div class="kpi-lbl">AVAILABLE USDT</div><div class="kpi-val ${isLow?"bad":"good"}" style="${isLow?"animation:blink 1.5s infinite":""}">${fmtU(stk,0)}</div><div class="kpi-sub">Liquid USDT ready for deployment</div>
-    </div>
-    <div class="kpi-card" data-tip="Av Price = Weighted Avg Cost Of Purchase&#10;Formula: Σ(remaining×price)/Σ(remaining)&#10;Spread shown vs current P2P sell rate">
-      <div class="kpi-head"><span class="kpi-badge" style="color:var(--brand);border-color:color-mix(in srgb,var(--brand) 30%,transparent);background:var(--brand3)">Av Price</span></div>
-      <div class="kpi-lbl">Av Price + SPREAD</div><div class="kpi-val" style="font-size:16px;color:var(--t2)">${wacop?fmtP(wacop)+" QAR":"No stock"}</div>
-      <div class="kpi-sub">${(()=>{const sp=wacop&&p2p.sellAvg?((p2p.sellAvg-wacop)/wacop*100).toFixed(2):null;return sp!==null?`<span class="${+sp>=0?"good":"bad"}" style="font-weight:700;">${+sp>=0?"+":""}${sp}% vs P2P</span>`:"Sell above Av Price to profit";})()}</div>
-    </div>
+  <div style="display:flex;justify-content:flex-end;position:relative;margin:6px 0;">
+    <button class="btn secondary" id="dashKpiPickerBtn" type="button">⚙ KPI Cards (${selected.length})</button>
+    <div id="dashKpiPicker" style="display:none;position:absolute;right:0;top:36px;z-index:12;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:240px;box-shadow:var(--lt-shadow);">${pickerItems}</div>
   </div>
-  <!-- CASH POSITION KPIs -->
-  <div class="kpis" style="margin-top:0;">
-    <div class="kpi-card" data-tip="Physical QAR cash you hold&#10;Click Update to set the amount&#10;Used to calculate Buying Power">
-      <div class="kpi-head"><span class="kpi-badge" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Cash</span></div>
-      <div class="kpi-lbl">CASH AVAILABLE</div><div class="kpi-val" style="color:var(--warn)">${fmtQWithUnit(num(state.cashQAR,0))}</div>
-      <div class="kpi-sub" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><button class="rowBtn" id="setCashBtn" style="font-size:9px;padding:3px 8px;background:color-mix(in srgb,var(--t5) 14%,var(--panel));border-color:color-mix(in srgb,var(--t5) 50%,transparent);color:var(--t5);font-weight:800;box-shadow:0 0 0 1px color-mix(in srgb,var(--t5) 18%,transparent) inset;"><svg viewBox="0 0 24 24" style="width:11px;height:11px;display:block;" fill="none" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h11A2.5 2.5 0 0 1 20 8.5v7A2.5 2.5 0 0 1 17.5 18h-11A2.5 2.5 0 0 1 4 15.5v-7Z" stroke="currentColor" stroke-width="1.7"/><path d="M14.5 12h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="11" cy="12" r="1.8" stroke="currentColor" stroke-width="1.5"/></svg><span>Manage Cash</span></button><span class="muted" style="font-size:10px;">${state.cashOwner?`Owner: ${esc(state.cashOwner)}`:"Owner: —"}</span></div>
-    </div>
-    <div class="kpi-card" data-tip="How many USDT you could buy with cash&#10;Formula: Cash ÷ Av Price&#10;Assumes you buy at current avg cost">
-      <div class="kpi-head"><span class="kpi-badge" style="color:var(--t5);border-color:color-mix(in srgb,var(--t5) 30%,transparent);background:color-mix(in srgb,var(--t5) 10%,transparent)">${wacop?"@Av Price":"—"}</span></div>
-      <div class="kpi-lbl">BUYING POWER</div><div class="kpi-val" style="color:var(--t5)">${(wacop&&num(state.cashQAR,0)>0)?fmtU(num(state.cashQAR,0)/wacop,0)+" USDT":"Set cash →"}</div>
-      <div class="kpi-sub">${wacop?"@ "+fmtP(wacop)+" QAR":"Add batches first"}</div>
-    </div>
-    <div class="kpi-card" data-tip="Total deployable capital&#10;Formula: USDT stock cost + Cash&#10;Your full book position">
-      <div class="kpi-head"><span class="kpi-badge good" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">Net</span></div>
-      <div class="kpi-lbl">NET POSITION</div><div class="kpi-val good">${fmtQWithUnit(stCost+num(state.cashQAR,0))}</div>
-      <div class="kpi-sub">Stock ${fmtQWithUnit(stCost)} + Cash ${fmtQWithUnit(num(state.cashQAR,0))}</div>
-    </div>
-    <div class="kpi-card" data-tip="Estimated cost of remaining USDT stock&#10;Av Price × remaining quantity&#10;Not market value — cost basis only">
-      <div class="kpi-head"><span class="kpi-badge" style="color:var(--muted);border-color:var(--line)">${state.batches.length} batch</span></div>
-      <div class="kpi-lbl">STOCK COST EST.</div><div class="kpi-val" style="font-size:17px;">${fmtQWithUnit(stCost)}</div>
-      <div class="kpi-sub">Av Price ${wacop?fmtP(wacop)+" QAR":"—"}</div>
-    </div>
-  </div>
-  <div class="dash-bottom">
-    <div class="panel"><div class="panel-head"><h2>Profit &amp; Revenue Trend</h2><span class="pill">Last 14 trades</span></div><div class="panel-body" style="height:190px;position:relative;"><canvas id="dashTrend"></canvas></div></div>
-    <div class="panel"><div class="panel-head"><h2>Period Stats</h2><span class="pill">${esc(rLabel)}</span></div><div class="panel-body">
-      <div class="prev-row" data-tip="Total QAR volume of USDT sold in period"><span class="muted">Volume</span><strong class="mono t1v">${fmtQWithUnit(dR.rev)}</strong></div>
-            <div class="prev-row"><span class="muted">Cost</span><strong class="mono">${fmtQWithUnit(dR.rev-dR.net-dR.fee)}</strong></div>
-            <div class="prev-row"><span class="muted">Fees</span><strong class="mono">${fmtQWithUnit(dR.fee)}</strong></div>
-            <div class="prev-row"><span class="muted">Net Profit</span><strong class="mono ${dR.net>=0?"good":"bad"}">${fmtQWithUnit(dR.net)}</strong></div>
-            <div class="prev-row"><span class="muted">Avg Margin</span><strong class="mono" style="color:var(--t3)">${fmtPct(dR.avgMgn)}</strong></div>
-            <div class="prev-row"><span class="muted">Trades</span><strong class="mono">${dR.count}</strong></div>
-    </div></div>
-  </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
-      <div class="panel"><div class="panel-head"><h2>📊 Net Profit Per Trade</h2><span class="pill muted">All time</span></div><div class="panel-body" style="height:170px;position:relative;"><canvas id="dash_netbar"></canvas></div></div>
-      <div class="panel"><div class="panel-head"><h2>📈 Daily Volume &amp; Profit</h2><span class="pill muted">By day</span></div><div class="panel-body" style="height:170px;position:relative;"><canvas id="dash_daily"></canvas></div></div>
-    </div>`;
+  <div class="kpis">${selected.map(key=>allKpis[key].render()).join("") || `<div class="empty" style="grid-column:1/-1;"><div class="empty-t">No KPI selected</div><div class="empty-s">Use KPI Cards picker to choose cards.</div></div>`}</div>
+  <div class="panel" style="margin-top:8px;"><div class="panel-head"><h2>Performance Trend</h2></div><div class="panel-body"><canvas id="dashTrend" height="120"></canvas><div style="height:8px"></div><canvas id="dash_netbar" height="110"></canvas></div></div>`;
 
-  // Cash update handler
-  $("#setCashBtn")?.addEventListener("click",()=>{
-    openModal("Cash Box Manager",`<div class="form-field"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Current cash balance (QAR)</label><div id="m_cash_current" style="padding:9px 11px;border-radius:8px;background:color-mix(in srgb,var(--panel2) 84%,black);border:1px dashed color-mix(in srgb,var(--line) 75%,transparent);color:var(--text);font-weight:800;letter-spacing:.01em;cursor:not-allowed;user-select:none;">${fmtQRaw(state.cashQAR||0)} QAR</div></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Add cash amount (QAR)</label><input id="m_cash_add" class="inp-field" type="number" min="0" step="0.01" value="" placeholder="e.g. 20000"/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Total after add (QAR)</label><input id="m_cash_total" class="inp-field" type="number" step="0.01" value="${state.cashQAR||0}" readonly/></div><div class="form-field" style="margin-top:8px;"><label class="form-label" style="font-size:10px;font-weight:700;color:var(--muted);">Cash owner / source description</label><textarea id="m_cash_owner" class="inp-field" rows="2" placeholder="Example: This cash belongs to Ahmad (investment capital)">${esc(state.cashOwner||"")}</textarea></div><div style="margin-top:6px;color:var(--muted);font-size:10px;">Use Add Cash to increase balance, or Clear Cash when funds were used to buy USDT.</div>`,
-      `<button class="btn secondary" id="m_c">Cancel</button><button class="btn secondary" id="m_clear_cash" style="border-color:color-mix(in srgb,var(--bad) 40%,transparent);color:var(--bad);">Clear Cash</button><button class="btn" id="m_s">Add Cash</button>`);
-    setTimeout(()=>{
-      const current=num(state.cashQAR,0);
-      const addInput=$("#m_cash_add"), totalInput=$("#m_cash_total"), ownerInput=$("#m_cash_owner");
-      const refreshTotal=()=>{
-        const addVal=Math.max(0,num(addInput?.value,0));
-        if(totalInput) totalInput.value=(current+addVal).toFixed(2);
-      };
-      addInput?.addEventListener("input",refreshTotal);
-      refreshTotal();
-      $("#m_c")?.addEventListener("click",closeModal);
-      $("#m_clear_cash")?.addEventListener("click",()=>{
-        state.cashQAR=0;
-        state.cashOwner=String(ownerInput?.value||"").trim();
-        saveRecompute("Cash cleared ✓","warn");
-        closeModal();
-      });
-      $("#m_s")?.addEventListener("click",()=>{
-        const addVal=Math.max(0,num(addInput?.value,0));
-        state.cashQAR=+(current+addVal).toFixed(2);
-        state.cashOwner=String(ownerInput?.value||"").trim();
-        saveRecompute("Cash added ✓","good");
-        closeModal();
-      });
-    },0);
-  });
-  destroyChart("dashTrend");
-  const ctx=$("#dashTrend");
-  if(ctx&&window.Chart&&recent.length){setTimeout(()=>{
-    const t1=getBrandColor(),t3=getT("3");
-    const g1=ctx.getContext("2d").createLinearGradient(0,0,0,180);g1.addColorStop(0,cssToRgba(t1,.18));g1.addColorStop(1,"rgba(0,0,0,0)");
-    const g2=ctx.getContext("2d").createLinearGradient(0,0,0,180);g2.addColorStop(0,cssToRgba(t3,.18));g2.addColorStop(1,"rgba(0,0,0,0)");
-    charts.dashTrend=new Chart(ctx,{type:"line",data:{labels:tLbls,datasets:[{label:"Volume",data:tRevs,borderColor:t1,backgroundColor:g1,fill:true,tension:.4,pointRadius:3,pointBackgroundColor:t1},{label:"Net Profit",data:tNets,borderColor:t3,backgroundColor:g2,fill:true,tension:.4,pointRadius:3,pointBackgroundColor:t3}]},options:chartOpts({plugins:{legend:{display:true}}})});
+  document.getElementById("dashKpiPickerBtn")?.addEventListener("click",()=>{const m=document.getElementById("dashKpiPicker");if(m)m.style.display=m.style.display==="none"?"block":"none";});
+  document.querySelectorAll(".dash-kpi-opt").forEach(cb=>cb.addEventListener("change",()=>{
+    const vals=[...document.querySelectorAll(".dash-kpi-opt:checked")].map(x=>x.value);
+    state.prefs.dashboardKpis=vals;
+    saveRecompute("Dashboard KPIs updated","good");
+  }));
+  document.addEventListener("click",(e)=>{const menu=document.getElementById("dashKpiPicker");const btn=document.getElementById("dashKpiPickerBtn");if(menu&&btn&&!menu.contains(e.target)&&!btn.contains(e.target))menu.style.display="none";},{once:true});
 
-  // ── Analytics charts injected into dashboard ──────────────────
-  if(window.Chart && state.trades?.length){
-    const _act=state.trades.filter(t=>!t.voided).slice().sort((a,b)=>a.ts-b.ts);
-    const _lbl=_act.map(t=>new Date(t.ts).toLocaleDateString("en-US",{month:"short",day:"numeric"}));
-    const _profs=_act.map(t=>{const cd=derived.tradeCalc.get(t.id);return cd?.ok?+cd.netQAR.toFixed(2):0;});
-    const _dayMap={};for(const t of _act){const d=new Date(t.ts);d.setHours(0,0,0,0);const k=d.toLocaleDateString("en-US",{month:"short",day:"numeric"});if(!_dayMap[k])_dayMap[k]={net:0,rev:0};const cd=derived.tradeCalc.get(t.id);_dayMap[k].rev+=t.amountUSDT*t.sellPriceQAR;if(cd?.ok)_dayMap[k].net+=cd.netQAR;}
-    const _dL=Object.keys(_dayMap),_dNets=_dL.map(k=>+_dayMap[k].net.toFixed(2)),_dRevs=_dL.map(k=>+_dayMap[k].rev.toFixed(2));
-    const _t1=getBrandColor(),_t3=getT("3");
-    const _cs=getComputedStyle(document.documentElement);
-    const _good=_cs.getPropertyValue("--good").trim()||"#22c55e";
-    const _bad=_cs.getPropertyValue("--bad").trim()||"#ef4444";
-    const _cfv=v=>v>=0?`${_good}bb`:`${_bad}bb`;
-    try{const _c=$("#dash_netbar");if(_c){charts.dash_netbar=new Chart(_c,{type:"bar",data:{labels:_lbl,datasets:[{label:"Net QAR",data:_profs,backgroundColor:_profs.map(_cfv),borderColor:_profs.map(v=>v>=0?_good:_bad),borderWidth:1,borderRadius:4}]},options:chartOpts({plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>"QAR "+v.raw.toFixed(2)}}}})}); }}catch(e){}
-    try{charts.dash_daily=new Chart($("#dash_daily"),{type:"bar",data:{labels:_dL,datasets:[{label:"Volume QAR",data:_dRevs,backgroundColor:_t1+"99",borderColor:_t1,borderWidth:1,borderRadius:4},{label:"Net Profit",data:_dNets,backgroundColor:_t3+"99",borderColor:_t3,borderWidth:1,borderRadius:4}]},options:chartOpts()});}catch(e){}
-  }
-  },50);}
+  document.getElementById("setCashBtn")?.addEventListener("click",()=>openCashModal());
+
+  setTimeout(()=>{
+    if(window.Chart){
+      const cs=getComputedStyle(document.documentElement),g=cs.getPropertyValue("--good").trim()||"#22c55e",b=cs.getPropertyValue("--bad").trim()||"#ef4444",t1=getBrandColor(),t3=getT("3");
+      try{charts.dashTrend=new Chart($("#dashTrend"),{type:"line",data:{labels:tLbls,datasets:[{label:"Net QAR",data:tNets,borderColor:t1,backgroundColor:t1+"33",fill:true,tension:.35},{label:"Revenue QAR",data:tRevs,borderColor:t3,backgroundColor:t3+"22",fill:false,tension:.35}]},options:chartOpts({plugins:{legend:{display:true}}})});}catch(e){}
+      try{charts.dash_netbar=new Chart($("#dash_netbar"),{type:"bar",data:{labels:tLbls,datasets:[{label:"Net QAR",data:tNets,backgroundColor:tNets.map(v=>v>=0?g+"bb":b+"bb"),borderColor:tNets.map(v=>v>=0?g:b),borderWidth:1,borderRadius:4}]},options:chartOpts({plugins:{legend:{display:false}}})});}catch(e){}
+    }
+  },50);
 }
 
 // ── LEDGER ───────────────────────────────────────────────────────
@@ -3892,469 +3854,108 @@ window.selectCalDay=d=>{state.cal.selectedDay=state.cal.selectedDay===d?null:d;s
 var _crmView = "pipeline"; // pipeline | list | suppliers
 
 function renderCRM() {
-  setHeader("CRM", "Trade Pipeline · Customer Intel · Supplier Network");
-  var q = (state.q || "").trim().toLowerCase();
+  setHeader("CRM", "Customers & Suppliers");
+  state.customers=Array.isArray(state.customers)?state.customers:[];
+  state.suppliers=Array.isArray(state.suppliers)?state.suppliers:[];
+  const ui=window._crmUI=window._crmUI||{tab:"customers",entity:"all",status:"all",tier:"all",location:"all",minVol:"",maxVol:"",sortKey:"contactPersonName",sortDir:"asc",q:""};
 
-  // ── Tier config
-  var TIER = {
-    A: { label:"VIP Client", color:"#16a34a", bg:"rgba(22,163,74,.1)", border:"rgba(22,163,74,.3)", icon:"♛" },
-    B: { label:"Verified",   color:"#2563eb", bg:"rgba(37,99,235,.1)",  border:"rgba(37,99,235,.3)",  icon:"✦" },
-    C: { label:"Standard",   color:"#d97706", bg:"rgba(217,119,6,.1)",  border:"rgba(217,119,6,.3)",  icon:"◎" },
-    D: { label:"Watch",      color:"#dc2626", bg:"rgba(220,38,38,.1)",  border:"rgba(220,38,38,.3)",  icon:"⚠" },
-  };
+  const legacyTierToModern=t=>({A:"VIP",B:"Regular",C:"New",D:"Blocked"}[t]||t||"New");
+  const tierColor=t=>({VIP:"#d4af37",Regular:"#3b82f6",New:"#94a3b8",Blocked:"#ef4444"}[t]||"#94a3b8");
+  const statusBadge=s=>s==="Inactive"?"warn":"good";
+  const normalizeCustomer=c=>({...c,contactPersonName:String(c.contactPersonName||c.name||""),name:String(c.name||c.contactPersonName||""),tier:legacyTierToModern(c.tier),tierMode:c.tierMode==="manual"?"manual":"auto",status:["Active","Inactive"].includes(c.status)?c.status:"Active",location:String(c.location||""),notes:String(c.notes||"")});
+  const normalizeSupplier=s=>({...s,contactPersonName:String(s.contactPersonName||s.name||""),name:String(s.name||s.contactPersonName||""),tier:legacyTierToModern(s.tier),tierMode:s.tierMode==="manual"?"manual":"auto",status:["Active","Inactive"].includes(s.status)?s.status:"Active",location:String(s.location||""),notes:String(s.notes||"")});
 
-  // ── Supplier map
-  state.suppliers = Array.isArray(state.suppliers) ? state.suppliers : [];
-  var suppMap = {};
-
-  // From batches (auto)
-  for (var i = 0; i < state.batches.length; i++) {
-    var b = state.batches[i];
-    var sn = (b.source || "").trim();
-    if (!sn) continue;
-    if (!suppMap[sn]) suppMap[sn] = { name:sn, usdt:0, batches:0, prices:[], lastTs:0, spent:0, phone:"", typicalPrice:0 };
-    suppMap[sn].usdt += b.initialUSDT;
-    suppMap[sn].batches++;
-    if (isFinite(b.buyPriceQAR)) suppMap[sn].prices.push(b.buyPriceQAR);
-    suppMap[sn].spent += b.initialUSDT * b.buyPriceQAR;
-    if (b.ts > suppMap[sn].lastTs) suppMap[sn].lastTs = b.ts;
-  }
-
-  // From manual suppliers (always show them in CRM even with no batches)
-  for (var si = 0; si < state.suppliers.length; si++) {
-    var sr = state.suppliers[si] || {};
-    var sn2 = String(sr.name || "").trim();
-    if (!sn2) continue;
-    if (!suppMap[sn2]) suppMap[sn2] = { name:sn2, usdt:0, batches:0, prices:[], lastTs:0, spent:0, phone:"", typicalPrice:0 };
-    if (sr.phone && !suppMap[sn2].phone) suppMap[sn2].phone = String(sr.phone);
-    var tp = num(sr.typicalPrice, 0);
-    if (tp > 0) suppMap[sn2].typicalPrice = tp;
-    // If there are no batch prices, seed with typicalPrice for a meaningful avg.
-    if (!suppMap[sn2].prices.length && suppMap[sn2].typicalPrice > 0) suppMap[sn2].prices.push(suppMap[sn2].typicalPrice);
-  }
-
-  var suppList = Object.values(suppMap).sort(function(a,b){
-    if (b.usdt !== a.usdt) return b.usdt - a.usdt;
-    if (b.batches !== a.batches) return b.batches - a.batches;
-    return String(a.name).localeCompare(String(b.name));
-  });
-  suppList.forEach(function(s){
-    s.avg = s.prices.length ? (s.prices.reduce(function(a,v){return a+v;},0)/s.prices.length) : (s.typicalPrice || 0);
+  const customerRows=state.customers.map(normalizeCustomer).map(c=>{
+    const trades=(state.trades||[]).filter(t=>!t.voided&&t.customerId===c.id).sort((a,b)=>b.ts-a.ts);
+    const usdtVolume=trades.reduce((s,t)=>s+num(t.amountUSDT,0),0);
+    const netPnL=trades.reduce((s,t)=>{const tc=derived.tradeCalc.get(t.id);return s+(tc?.ok?num(tc.netQAR,0):0);},0);
+    const suggested=usdtVolume>100000?"VIP":usdtVolume>=10000?"Regular":"New";
+    const tier=(c.tier==="Blocked")?"Blocked":(c.tierMode==="manual"?c.tier:suggested);
+    return {type:"customer",id:c.id,contactPersonName:c.contactPersonName,phone:c.phone||"",tier,status:c.status,location:c.location,notes:c.notes,tradesCount:trades.length,usdtVolume,netPnL,lastTradeDate:trades[0]?.ts||0,history:trades,suggestedTier:suggested,tierMode:c.tierMode};
   });
 
-  // ── Customer stats
-  function custStat(cu) {
-    var trades = state.trades.filter(function(t){return !t.voided && t.customerId===cu.id;});
-    var vol = trades.reduce(function(s,t){return s+t.amountUSDT;},0);
-    var net = trades.reduce(function(s,t){var cc=derived.tradeCalc.get(t.id);return s+(cc&&cc.ok?cc.netQAR:0);},0);
-    var lastTrade = trades.length ? trades.reduce(function(a,b){return a.ts>b.ts?a:b;}) : null;
-    var avgSell = trades.length ? trades.reduce(function(s,t){return s+t.sellPriceQAR;},0)/trades.length : 0;
-    return { count:trades.length, vol:vol, net:net, avgSell:avgSell,
-      lastDate:lastTrade?new Date(lastTrade.ts).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"—" };
-  }
-
-  // ── Filter customers
-  var custs = state.customers.filter(function(cu){
-    if (!q) return true;
-    return (cu.name+cu.phone+cu.notes+cu.tier).toLowerCase().indexOf(q) >= 0;
+  const supplierRows=state.suppliers.map(normalizeSupplier).map(s=>{
+    const batches=(state.batches||[]).filter(b=>String(b.source||"").trim().toLowerCase()===s.name.trim().toLowerCase()).sort((a,b)=>b.ts-a.ts);
+    const volumeSupplied=batches.reduce((x,b)=>x+num(b.initialUSDT,0),0);
+    const spent=batches.reduce((x,b)=>x+num(b.initialUSDT,0)*num(b.buyPriceQAR,0),0);
+    const avgCost=volumeSupplied>0?spent/volumeSupplied:num(s.typicalPrice,0);
+    const suggested=volumeSupplied>100000?"VIP":volumeSupplied>=10000?"Regular":"New";
+    const tier=(s.tier==="Blocked")?"Blocked":(s.tierMode==="manual"?s.tier:suggested);
+    return {type:"supplier",id:s.id,contactPersonName:s.contactPersonName,phone:s.phone||"",tier,status:s.status,location:s.location,notes:s.notes,batchCount:batches.length,volumeSupplied,avgCost,lastBatchDate:batches[0]?.ts||0,history:batches,suggestedTier:suggested,tierMode:s.tierMode,name:s.name};
   });
 
-  // ── Portfolio KPIs
-  var totalVol = 0, totalNet = 0, totalTrades = 0;
-  state.customers.forEach(function(cu){ var s=custStat(cu); totalVol+=s.vol; totalNet+=s.net; totalTrades+=s.count; });
-  var byTier = {A:0,B:0,C:0,D:0};
-  state.customers.forEach(function(cu){ byTier[cu.tier]=(byTier[cu.tier]||0)+1; });
+  const allLocations=[...new Set([...customerRows,...supplierRows].map(r=>r.location).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  let rows=ui.tab==="customers"?customerRows:supplierRows;
+  rows=rows.filter(r=>{
+    if(ui.entity!=="all"&&ui.entity!==r.type)return false;
+    if(ui.status!=="all"&&r.status!==ui.status)return false;
+    if(ui.tier!=="all"&&r.tier!==ui.tier)return false;
+    if(ui.location!=="all"&&r.location!==ui.location)return false;
+    const minV=num(ui.minVol,null),maxV=num(ui.maxVol,null),vol=r.type==="customer"?r.usdtVolume:r.volumeSupplied;
+    if(minV!==null&&isFinite(minV)&&vol<minV)return false;
+    if(maxV!==null&&isFinite(maxV)&&vol>maxV)return false;
+    if(!ui.q)return true;
+    const q=ui.q.toLowerCase();
+    return [r.contactPersonName,r.phone,r.location].join(" ").toLowerCase().includes(q);
+  });
 
-  // ─── PIPELINE VIEW ─────────────────────────────────────────────
-  function buildPipeline() {
-    var cols = {A:[], B:[], C:[], D:[]};
-    custs.forEach(function(cu){
-      var t = cu.tier || "C";
-      if (cols[t]) cols[t].push(cu);
-    });
+  const sorters={contactPersonName:(a,b)=>a.contactPersonName.localeCompare(b.contactPersonName),phone:(a,b)=>String(a.phone).localeCompare(String(b.phone)),tier:(a,b)=>String(a.tier).localeCompare(String(b.tier)),status:(a,b)=>String(a.status).localeCompare(String(b.status)),tradesCount:(a,b)=>(a.tradesCount||0)-(b.tradesCount||0),usdtVolume:(a,b)=>(a.usdtVolume||0)-(b.usdtVolume||0),netPnL:(a,b)=>(a.netPnL||0)-(b.netPnL||0),lastTradeDate:(a,b)=>(a.lastTradeDate||0)-(b.lastTradeDate||0),batchCount:(a,b)=>(a.batchCount||0)-(b.batchCount||0),volumeSupplied:(a,b)=>(a.volumeSupplied||0)-(b.volumeSupplied||0),avgCost:(a,b)=>(a.avgCost||0)-(b.avgCost||0),lastBatchDate:(a,b)=>(a.lastBatchDate||0)-(b.lastBatchDate||0)};
+  const sorter=sorters[ui.sortKey]||sorters.contactPersonName;
+  rows=rows.slice().sort((a,b)=>ui.sortDir==="asc"?sorter(a,b):sorter(b,a));
 
-    function card(cu) {
-      var s = custStat(cu);
-      var tier = TIER[cu.tier] || TIER.C;
-      var profitSign = s.net >= 0 ? "+" : "";
-      return "<div class='crm-card' data-cuid='"+esc(cu.id)+"' style='border-top:3px solid "+tier.color+";'>" +
-        "<div style='display:flex;justify-content:space-between;align-items:flex-start;gap:8px;'>" +
-          "<div style='min-width:0;'>" +
-            "<div style='font-weight:800;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>"+esc(cu.name)+"</div>" +
-            "<div style='font-size:9px;color:var(--muted);margin-top:1px;'>"+esc(cu.phone||"No contact")+"</div>" +
-          "</div>" +
-          "<span style='font-size:9px;font-weight:700;padding:2px 6px;border-radius:999px;background:"+tier.bg+";color:"+tier.color+";border:1px solid "+tier.border+";white-space:nowrap;'>"+tier.icon+" "+esc(cu.tier)+"</span>" +
-        "</div>" +
-        "<div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin:8px 0;'>" +
-          "<div style='text-align:center;background:var(--panel2);border-radius:5px;padding:5px 2px;'><div style='font-size:7px;font-weight:700;text-transform:uppercase;color:var(--muted);'>Trades</div><div style='font-weight:800;font-size:14px;'>"+s.count+"</div></div>" +
-          "<div style='text-align:center;background:var(--panel2);border-radius:5px;padding:5px 2px;'><div style='font-size:7px;font-weight:700;text-transform:uppercase;color:var(--muted);'>USDT</div><div style='font-weight:800;font-size:11px;'>"+fmtU(s.vol,0)+"</div></div>" +
-          "<div style='text-align:center;background:var(--panel2);border-radius:5px;padding:5px 2px;'><div style='font-size:7px;font-weight:700;text-transform:uppercase;color:var(--muted);'>P&L</div><div style='font-weight:800;font-size:11px;color:"+(s.net>=0?"var(--good)":"var(--bad)")+"'>"+profitSign+fmtQ(s.net)+"</div></div>" +
-        "</div>" +
-        (s.lastDate !== "—" ? "<div style='font-size:9px;color:var(--muted);margin-bottom:8px;'>Last: "+s.lastDate+(cu.dailyLimitUSDT>0?"  ·  Limit "+fmtU(cu.dailyLimitUSDT,0)+" USDT":"")+"</div>" : "") +
-        (cu.notes ? "<div style='font-size:9px;color:var(--muted);background:var(--panel2);border-radius:5px;padding:4px 6px;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' title='"+esc(cu.notes)+"'>"+esc(cu.notes)+"</div>" : "") +
-        "<div style='display:flex;gap:4px;'>" +
-          "<button class='rowBtn crm-edit-btn' data-cuid='"+esc(cu.id)+"' style='flex:1;font-size:9px;padding:3px 0;'>Edit</button>" +
-          "<button class='rowBtn crm-promote-btn' data-cuid='"+esc(cu.id)+"' title='Promote tier' style='font-size:9px;padding:3px 6px;color:var(--good);border-color:var(--good);'>▲</button>" +
-          "<button class='rowBtn crm-demote-btn' data-cuid='"+esc(cu.id)+"' title='Demote tier' style='font-size:9px;padding:3px 6px;color:var(--bad);border-color:var(--bad);'>▼</button>" +
-          "<button class='rowBtn crm-del-btn' data-cuid='"+esc(cu.id)+"' style='font-size:9px;padding:3px 6px;color:var(--bad);border-color:var(--bad);'>✕</button>" +
-        "</div>" +
-      "</div>";
-    }
+  const sortTh=(key,label)=>`<th><button class="rowBtn crm-sort" data-key="${key}" style="font-size:10px;padding:2px 6px;">${label}${ui.sortKey===key?(ui.sortDir==="asc"?" ↑":" ↓"):""}</button></th>`;
+  const rowActions=(r)=>`<div style="display:flex;gap:4px;flex-wrap:wrap;"><button class="rowBtn crm-view" data-id="${r.id}" data-type="${r.type}">View History</button><button class="rowBtn crm-edit" data-id="${r.id}" data-type="${r.type}">Edit</button><button class="rowBtn crm-quick" data-id="${r.id}" data-type="${r.type}">${r.type==="customer"?"New Trade":"New Batch"}</button><a class="rowBtn" href="tel:${esc(String(r.phone||"").replace(/\s+/g,""))}">Call</a></div>`;
 
-    var html = "<div class='crm-pipeline'>";
-    ["A","B","C","D"].forEach(function(t) {
-      var tier = TIER[t];
-      html += "<div class='crm-col'>" +
-        "<div class='crm-col-head' style='border-color:"+tier.color+";'>" +
-          "<span style='font-weight:800;font-size:11px;color:"+tier.color+"'>"+tier.icon+" "+t+" · "+tier.label+"</span>" +
-          "<span style='font-size:9px;background:"+tier.bg+";color:"+tier.color+";border:1px solid "+tier.border+";border-radius:999px;padding:1px 6px;'>"+cols[t].length+"</span>" +
-        "</div>" +
-        "<div class='crm-cards'>" +
-          (cols[t].length ? cols[t].map(card).join("") : "<div style='text-align:center;padding:20px 8px;color:var(--muted);font-size:10px;border:1px dashed var(--line);border-radius:8px;'>No "+tier.label+" clients</div>") +
-        "</div>" +
-      "</div>";
-    });
-    html += "</div>";
-    return html;
-  }
+  const desktopTable=ui.tab==="customers"
+    ?`<div class="tableWrap crm-desktop-only"><table><thead><tr>${sortTh("contactPersonName","Contact Person Name")}${sortTh("phone","Phone")}${sortTh("tier","Tier")}${sortTh("tradesCount","Trades Count")}${sortTh("usdtVolume","USDT Volume")}${sortTh("netPnL","Net P&L")}${sortTh("lastTradeDate","Last Trade Date")}${sortTh("status","Status")}<th>Actions</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.contactPersonName)}</td><td><button class="rowBtn crm-copy" data-copy="${esc(r.phone)}">${esc(r.phone||"—")}</button></td><td><span class="pill" style="color:${tierColor(r.tier)};border-color:${tierColor(r.tier)}33;background:${tierColor(r.tier)}20;">${esc(r.tier)}${r.tierMode==="manual"?" • manual":" • auto"}</span></td><td>${r.tradesCount}</td><td>${fmtU(r.usdtVolume,0)}</td><td class="${r.netPnL>=0?"good":"bad"}">${fmtQWithUnit(r.netPnL)}</td><td>${r.lastTradeDate?fmtDate(r.lastTradeDate):"—"}</td><td><span class="pill ${statusBadge(r.status)}">${r.status}</span></td><td>${rowActions(r)}</td></tr>`).join("")||`<tr><td colspan="9" class="muted" style="text-align:center;padding:16px;">No matching customers</td></tr>`}</tbody></table></div>`
+    :`<div class="tableWrap crm-desktop-only"><table><thead><tr>${sortTh("contactPersonName","Contact Person Name")}${sortTh("phone","Phone")}${sortTh("tier","Tier")}${sortTh("batchCount","Batch Count")}${sortTh("volumeSupplied","USDT Volume Supplied")}${sortTh("avgCost","Avg Cost / Typical Price")}${sortTh("lastBatchDate","Last Batch Date")}${sortTh("status","Status")}<th>Actions</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.contactPersonName)}</td><td><button class="rowBtn crm-copy" data-copy="${esc(r.phone)}">${esc(r.phone||"—")}</button></td><td><span class="pill" style="color:${tierColor(r.tier)};border-color:${tierColor(r.tier)}33;background:${tierColor(r.tier)}20;">${esc(r.tier)}${r.tierMode==="manual"?" • manual":" • auto"}</span></td><td>${r.batchCount}</td><td>${fmtU(r.volumeSupplied,0)}</td><td>${r.avgCost?fmtP(r.avgCost)+" QAR":"—"}</td><td>${r.lastBatchDate?fmtDate(r.lastBatchDate):"—"}</td><td><span class="pill ${statusBadge(r.status)}">${r.status}</span></td><td>${rowActions(r)}</td></tr>`).join("")||`<tr><td colspan="9" class="muted" style="text-align:center;padding:16px;">No matching suppliers</td></tr>`}</tbody></table></div>`;
 
-  // ─── LIST VIEW ─────────────────────────────────────────────────
-  function buildList() {
-    if (!custs.length) return "<div style='text-align:center;padding:60px;color:var(--muted);'><div style='font-size:40px'>👤</div><div style='font-weight:800;margin-top:10px;'>No customers</div><div style='font-size:11px;margin-top:4px;'>Add your first customer using the form →</div></div>";
-    var sorted = custs.slice().sort(function(a,b){return custStat(b).vol - custStat(a).vol;});
-    var rows = sorted.map(function(cu){
-      var s = custStat(cu); var tier = TIER[cu.tier]||TIER.C;
-      return "<tr>" +
-        "<td style='font-weight:700;'>"+esc(cu.name)+(cu.phone?"<div style='font-size:9px;color:var(--muted);'>"+esc(cu.phone)+"</div>":"")+"</td>" +
-        "<td><span style='padding:2px 7px;border-radius:999px;font-size:9px;font-weight:800;background:"+tier.bg+";color:"+tier.color+";border:1px solid "+tier.border+"'>"+tier.icon+" "+cu.tier+"</span></td>" +
-        "<td class='mono'>"+s.count+"</td>" +
-        "<td class='mono'>"+fmtU(s.vol,0)+"</td>" +
-        "<td class='mono' style='color:"+(s.net>=0?"var(--good)":"var(--bad)")+"'>"+(s.net>=0?"+":"")+fmtQ(s.net)+"</td>" +
-        "<td class='mono' style='font-size:9px;color:var(--muted);'>"+s.lastDate+"</td>" +
-        "<td>" +
-          "<div style='display:flex;gap:3px;'><button class='rowBtn crm-edit-btn' data-cuid='"+esc(cu.id)+"'>Edit</button><button class='rowBtn crm-del-btn' data-cuid='"+esc(cu.id)+"' style='color:var(--bad);border-color:var(--bad);'>✕</button></div>" +
-        "</td>" +
-      "</tr>";
-    }).join("");
-    return "<div class='panel'><table><thead><tr><th>Customer</th><th>Tier</th><th>Trades</th><th>USDT Vol</th><th>Net P&L</th><th>Last Trade</th><th>Action</th></tr></thead><tbody>"+rows+"</tbody></table></div>";
-  }
+  const mobileCards=`<div class="crm-mobile-cards crm-mobile-only" style="display:grid;gap:8px;margin-top:8px;">${rows.map(r=>`<div class="panel" style="padding:10px;"><div style="display:flex;justify-content:space-between;gap:8px;"><div><div style="font-weight:800;">${esc(r.contactPersonName)}</div><div class="muted" style="font-size:10px;">${esc(r.location||"No location")}</div></div><span class="pill" style="color:${tierColor(r.tier)};border-color:${tierColor(r.tier)}33;background:${tierColor(r.tier)}20;">${esc(r.tier)}</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;font-size:10px;"><div><div class="muted">Phone</div><a href="tel:${esc(String(r.phone||"").replace(/\s+/g,""))}" style="color:var(--text);">${esc(r.phone||"—")}</a></div><div><div class="muted">Status</div><div>${esc(r.status)}</div></div>${r.type==="customer"?`<div><div class="muted">Trades</div><div>${r.tradesCount}</div></div><div><div class="muted">USDT Vol</div><div>${fmtU(r.usdtVolume,0)}</div></div>`:`<div><div class="muted">Batches</div><div>${r.batchCount}</div></div><div><div class="muted">USDT Vol</div><div>${fmtU(r.volumeSupplied,0)}</div></div>`}</div><div style="margin-top:8px;">${rowActions(r)}</div></div>`).join("")||`<div class="empty"><div class="empty-t">No results</div></div>`}</div>`;
 
-  // ─── SUPPLIERS VIEW ────────────────────────────────────────────
-  function buildSuppliers() {
-    if (!suppList.length) return "<div style='text-align:center;padding:60px;color:var(--muted);'><div style='font-size:40px'>🏭</div><div style='font-weight:800;margin-top:10px;'>No suppliers yet</div><div style='font-size:11px;margin-top:4px;'>Supplier profiles auto-generate from Stock batch entries.</div></div>";
-    var topUsdt = suppList.reduce(function(max,s){return s.usdt>max?s.usdt:max;},0);
-    var cards = suppList.map(function(s){
-      var barPct = topUsdt>0?Math.round(s.usdt/topUsdt*100):0;
-      return "<div style='background:var(--card-bg);border:1px solid var(--line);border-radius:var(--lt-radius);padding:14px;'>" +
-        "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'>" +
-          "<div style='font-weight:800;font-size:13px;'>"+esc(s.name)+"</div>" +
-          "<span class='pill'>"+s.batches+" batch"+( s.batches!==1?"es":"")+"</span>" +
-        "</div>" +
-        "<div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;'>" +
-          "<div style='background:var(--panel2);border-radius:6px;padding:6px;text-align:center;'><div style='font-size:7px;font-weight:700;text-transform:uppercase;color:var(--muted);'>USDT</div><div style='font-weight:800;font-size:13px;'>"+fmtU(s.usdt,0)+"</div></div>" +
-          "<div style='background:var(--panel2);border-radius:6px;padding:6px;text-align:center;'><div style='font-size:7px;font-weight:700;text-transform:uppercase;color:var(--muted);'>Avg/USDT</div><div style='font-weight:800;font-size:13px;'>"+fmtP(s.avg)+"</div></div>" +
-          "<div style='background:var(--panel2);border-radius:6px;padding:6px;text-align:center;'><div style='font-size:7px;font-weight:700;text-transform:uppercase;color:var(--muted);'>Spent QAR</div><div style='font-weight:800;font-size:11px;'>"+fmtQ(s.spent)+"</div></div>" +
-        "</div>" +
-        "<div style='font-size:9px;color:var(--muted);margin-bottom:6px;'>Last supply: "+(s.lastTs?new Date(s.lastTs).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"—")+"</div>" +
-        "<div style='background:var(--panel2);border-radius:3px;height:4px;overflow:hidden;'><div style='height:100%;width:"+barPct+"%;background:var(--brand);border-radius:3px;transition:width .4s;'></div></div>" +
-        "<div style='font-size:8px;color:var(--muted);margin-top:2px;'>"+barPct+"% of total supply volume</div>" +
-        "<div style='display:flex;gap:4px;margin-top:10px;'>" +
-          "<button class='rowBtn supp-edit-btn' data-suppname='"+esc(s.name)+"' style='flex:1;font-size:9px;padding:3px 0;'>Edit</button>" +
-          "<button class='rowBtn supp-del-btn' data-suppname='"+esc(s.name)+"' style='font-size:9px;padding:3px 6px;color:var(--bad);border-color:var(--bad);'>Delete</button>" +
-        "</div>" +
-      "</div>";
-    }).join("");
-    return "<div style='display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;'>"+cards+"</div>";
-  }
+  const searchBar=`<div class="panel" style="position:sticky;top:8px;z-index:4;"><div class="panel-body" style="padding:10px;"><div style="display:grid;grid-template-columns:2fr repeat(3,1fr);gap:6px;"><input id="crmSearch" class="input" placeholder="Search name, phone, location" value="${esc(ui.q)}"/><select id="crmEntity" class="input"><option value="all">All</option><option value="customer" ${ui.entity==="customer"?"selected":""}>Customers</option><option value="supplier" ${ui.entity==="supplier"?"selected":""}>Suppliers</option></select><select id="crmStatus" class="input"><option value="all">All status</option><option value="Active" ${ui.status==="Active"?"selected":""}>Active</option><option value="Inactive" ${ui.status==="Inactive"?"selected":""}>Inactive</option></select><select id="crmTier" class="input"><option value="all">All tier</option>${["VIP","Regular","New","Blocked"].map(t=>`<option value="${t}" ${ui.tier===t?"selected":""}>${t}</option>`).join("")}</select></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-top:6px;"><select id="crmLocation" class="input"><option value="all">All locations</option>${allLocations.map(l=>`<option value="${esc(l)}" ${ui.location===l?"selected":""}>${esc(l)}</option>`).join("")}</select><input id="crmMinVol" class="input" placeholder="Volume min" value="${esc(String(ui.minVol||""))}"/><input id="crmMaxVol" class="input" placeholder="Volume max" value="${esc(String(ui.maxVol||""))}"/><span class="pill">${rows.length} results</span></div></div></div>`;
 
-  // ─── ADD FORM (Customer + Supplier tabs) ─────────────────────
-  var _addTab = window._crmAddTab || "customer";
-  function buildForm() {
-    var tierBtns = ["A","B","C","D"].map(function(k){
-      var t = TIER[k];
-      return "<button class='rowBtn crm-tier-btn' data-tp='"+k+"' style='flex:1;font-weight:800;font-size:10px;border-color:"+t.color+";color:"+t.color+";'>"+t.icon+" "+k+"</button>";
-    }).join("");
-    var tabActStyle = "background:var(--brand);color:#fff;border-color:var(--brand);font-weight:800;";
-    var formHtml = "<div class='form-panel'>" +
-      "<div style='display:flex;gap:4px;margin-bottom:10px;'>" +
-        "<button class='rowBtn crm-addtab-btn' data-addtab='customer' style='flex:1;"+(_addTab==="customer"?tabActStyle:"")+"'>👤 Customer</button>" +
-        "<button class='rowBtn crm-addtab-btn' data-addtab='supplier' style='flex:1;"+(_addTab==="supplier"?tabActStyle:"")+"'>🏭 Supplier</button>" +
-      "</div>";
-    if (_addTab === "customer") {
-      formHtml += "<div class='form-panel-body'>" +
-        "<div class='form-field'><label class='form-label'>Name *</label><input id='cn_name' class='inp-field' placeholder='Full name' autocomplete='off'/></div>" +
-        "<div class='form-field'><label class='form-label'>Phone</label><input id='cn_phone' class='inp-field' placeholder='+974 5XXX XXXX'/></div>" +
-        "<div class='form-field'><label class='form-label'>Trust Tier</label><div style='display:flex;gap:4px;' id='tierPicker'>"+tierBtns+"</div><input type='hidden' id='cn_tier' value='C'/></div>" +
-        "<button class='btn' id='cn_add' style='width:100%;margin-top:8px;'>Add Customer</button>" +
-        "<div class='msg' id='cn_msg'></div>" +
-      "</div>";
-    } else {
-      formHtml += "<div class='form-panel-body'>" +
-        "<div class='form-field'><label class='form-label'>Supplier Name *</label><input id='sn_name' class='inp-field' placeholder='e.g. Ahmed Crypto Exchange' autocomplete='off'/></div>" +
-        "<div class='form-field'><label class='form-label'>Phone / Contact</label><input id='sn_phone' class='inp-field' placeholder='+974 5XXX XXXX'/></div>" +
-        "<div class='form-field'><label class='form-label'>Typical Price QAR</label><input id='sn_price' class='inp-field' inputmode='decimal' placeholder='e.g. 3.678'/></div>" +
-        "<button class='btn' id='sn_add' style='width:100%;margin-top:8px;'>Add Supplier</button>" +
-        "<div class='msg' id='sn_msg'></div>" +
-      "</div>";
-    }
-    formHtml += "</div>";
-    return formHtml;
-  }
+  $("#pageBody").innerHTML=`${searchBar}<div class="panel" style="margin-top:8px;"><div class="panel-head"><div style="display:flex;gap:6px;"><button class="btn secondary crm-tab" data-tab="customers" ${ui.tab==="customers"?"style='background:var(--brand);color:#fff;border-color:var(--brand);'":""}>Customers</button><button class="btn secondary crm-tab" data-tab="suppliers" ${ui.tab==="suppliers"?"style='background:var(--brand);color:#fff;border-color:var(--brand);'":""}>Suppliers</button></div></div><div class="panel-body">${desktopTable}${mobileCards}</div></div>`;
 
-  // ─── KPI BAR ───────────────────────────────────────────────────
-  var kpiBar = "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin-bottom:10px;'>" +
-    "<div class='kpi-card' style='padding:10px 12px;'><div class='kpi-lbl'>CLIENTS</div><div class='kpi-val'>"+state.customers.length+"</div></div>" +
-    "<div class='kpi-card' style='padding:10px 12px;'><div class='kpi-lbl'>USDT VOL</div><div class='kpi-val good' style='font-size:14px;'>"+fmtU(totalVol,0)+"</div></div>" +
-    "<div class='kpi-card' style='padding:10px 12px;'><div class='kpi-lbl'>NET P&L</div><div class='kpi-val "+(totalNet>=0?"good":"bad")+'" style=\'font-size:14px;\'>'+( totalNet>=0?"+":"")+fmtQ(totalNet)+"</div></div>" +
-    "<div class='kpi-card' style='padding:10px 12px;'><div class='kpi-lbl'>LINKED TRADES</div><div class='kpi-val'>"+totalTrades+"</div></div>" +
-    "<div class='kpi-card' style='padding:10px 12px;'><div class='kpi-lbl'>SUPPLIERS</div><div class='kpi-val'>"+suppList.length+"</div></div>" +
-    ["A","B","C","D"].map(function(k){ var t=TIER[k]; return "<div class='kpi-card' style='padding:10px 12px;border-top:2px solid "+t.color+";'><div class='kpi-lbl' style='color:"+t.color+"'>"+t.icon+" "+k+"</div><div class='kpi-val' style='color:"+t.color+"'>"+byTier[k]+"</div></div>"; }).join("") +
-  "</div>";
-
-  // ─── VIEW TOGGLE ───────────────────────────────────────────────
-  var v = _crmView;
-  function vBtn(id, label, active) {
-    return "<button class='rowBtn crm-view-btn' data-view='"+id+"' style='"+(active?"background:var(--brand);color:#fff;border-color:var(--brand);font-weight:800;":"")+"'>"+label+"</button>";
-  }
-  var viewBar = "<div style='display:flex;gap:5px;margin-bottom:10px;align-items:center;flex-wrap:wrap;'>" +
-    vBtn("pipeline","⠿ Pipeline",v==="pipeline") + vBtn("list","☰ List",v==="list") + vBtn("suppliers","🏭 Suppliers",v==="suppliers") +
-    "<span style='flex:1'></span>" +
-    "<span style='font-size:9px;color:var(--muted);'>"+( state.customers.length)+" clients · "+suppList.length+" suppliers</span>" +
-  "</div>";
-
-function buildSuppliersMini(){
-  if(!suppList.length){
-    return "<div class='muted' style='font-size:11px;line-height:1.6;'>No suppliers yet. Add suppliers in the form, or log batches with a Source name to auto-build supplier intel.</div>";
-  }
-  var rows = suppList.slice(0,10).map(function(s){
-    var last = s.lastTs ? new Date(s.lastTs).toLocaleDateString("en-GB",{day:"2-digit",month:"short"}) : "—";
-    var right = (s.usdt>0 ? (fmtU(s.usdt,0)+" USDT") : (s.typicalPrice?("~"+fmtP(s.typicalPrice)):""));
-    return "<div class='crm-supp-row' title='"+esc(s.name)+"'>" +
-      "<div style='min-width:0;'>" +
-        "<div style='font-weight:800;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>"+esc(s.name)+"</div>" +
-        "<div style='font-size:9px;color:var(--muted);margin-top:1px;'>Last: "+last+(s.phone?(" · "+esc(s.phone)):"")+"</div>" +
-      "</div>" +
-      "<div style='font-family:var(--lt-font-mono,monospace);font-size:10px;font-weight:800;white-space:nowrap;'>"+esc(right)+"</div>" +
-    "</div>";
-  }).join("");
-  return "<div class='crm-supp-mini'>"+rows+"</div>" + (suppList.length>10 ? "<div class='muted' style='font-size:10px;margin-top:8px;'>+"+(suppList.length-10)+" more suppliers (use Suppliers view)</div>" : "");
+  let deb;
+  const rerender=()=>renderCRM();
+  document.getElementById("crmSearch")?.addEventListener("input",e=>{clearTimeout(deb);deb=setTimeout(()=>{ui.q=e.target.value;rerender();},300);});
+  ["crmEntity","crmStatus","crmTier","crmLocation","crmMinVol","crmMaxVol"].forEach(id=>document.getElementById(id)?.addEventListener("change",e=>{const m={crmEntity:"entity",crmStatus:"status",crmTier:"tier",crmLocation:"location",crmMinVol:"minVol",crmMaxVol:"maxVol"};ui[m[id]]=e.target.value;rerender();}));
+  document.querySelectorAll(".crm-tab").forEach(b=>b.addEventListener("click",()=>{ui.tab=b.dataset.tab;ui.entity="all";rerender();}));
+  document.querySelectorAll(".crm-sort").forEach(b=>b.addEventListener("click",()=>{if(ui.sortKey===b.dataset.key)ui.sortDir=ui.sortDir==="asc"?"desc":"asc";else{ui.sortKey=b.dataset.key;ui.sortDir="asc";}rerender();}));
+  document.querySelectorAll(".crm-copy").forEach(b=>b.addEventListener("click",()=>{navigator.clipboard?.writeText(b.dataset.copy||"");toast("Phone copied","good");}));
+  document.querySelectorAll(".crm-edit").forEach(b=>b.addEventListener("click",()=>{b.dataset.type==="customer"?editCustomer(b.dataset.id):editSupplier(b.dataset.id);}));
+  document.querySelectorAll(".crm-view").forEach(b=>b.addEventListener("click",()=>openCrmHistory(b.dataset.type,b.dataset.id,customerRows,supplierRows)));
+  document.querySelectorAll(".crm-quick").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.type==="customer"){window._pendingSelectCustomerId=b.dataset.id;navTo("orders");}else{const s=(state.suppliers||[]).find(x=>x.id===b.dataset.id);window._pendingSupplierName=s?.name||"";navTo("stock");}}));
 }
 
-function buildSupplierPanel(full){
-  var body = full ? buildSuppliers() : buildSuppliersMini();
-  return "<div class='panel crm-supp-panel'>" +
-    "<div class='panel-head'><h2>🏭 Suppliers</h2><span class='pill'>"+(full?"Full":"Top")+"</span></div>" +
-    "<div class='panel-body'>"+body+"</div>" +
-  "</div>";
-}
-
-var customerContent;
-if (v === "pipeline") customerContent = buildPipeline();
-else if (v === "list") customerContent = buildList();
-else customerContent = buildList(); // keep customers visible even on Suppliers view
-
-var supplierPanelHtml = buildSupplierPanel(v === "suppliers");
-var showForm = true; // keep Log Contact panel visible
-
-document.getElementById("pageBody").innerHTML =
-  kpiBar + viewBar +
-  "<div class='crm-main-grid'>" +
-    "<div class='crm-cust-col'>" + customerContent + "</div>" +
-    "<div class='crm-supp-col'>" + supplierPanelHtml + "</div>" +
-    (showForm ? "<div class='crm-form-col'>"+buildForm()+"</div>" : "") +
-  "</div>";
-
-
-  // ─── WIRE VIEW TOGGLE ──────────────────────────────────────────
-  document.querySelectorAll(".crm-view-btn").forEach(function(b){
-    b.addEventListener("click", function(){ _crmView=b.dataset.view; renderCRM(); });
-  });
-
-  // ─── WIRE TIER PICKER ──────────────────────────────────────────
-  var selTier = "C";
-  var tpBtns = document.querySelectorAll(".crm-tier-btn");
-  function updTp() {
-    tpBtns.forEach(function(b){
-      var active = b.dataset.tp === selTier;
-      var t = TIER[b.dataset.tp];
-      b.style.background = active ? t.bg : "";
-      b.style.fontWeight = active ? "900" : "700";
-    });
-    var ti = document.getElementById("cn_tier"); if (ti) ti.value = selTier;
-  }
-  updTp();
-  tpBtns.forEach(function(b){ b.addEventListener("click", function(){ selTier=b.dataset.tp; updTp(); }); });
-
-  // ─── WIRE ADD BUTTON ───────────────────────────────────────────
-  // ─── Wire add-tab toggle ──────────────────────────────────────
-  document.querySelectorAll(".crm-addtab-btn").forEach(function(b){
-    b.addEventListener("click", function(){
-      window._crmAddTab = b.dataset.addtab;
-      _addTab = b.dataset.addtab;
-      // Re-render just the form panel
-      var fp = document.querySelector(".form-panel");
-      if (fp && fp.parentNode) { fp.parentNode.innerHTML = buildForm(); rewireForm(); }
-    });
-  });
-
-  function rewireForm() {
-    document.querySelectorAll(".crm-addtab-btn").forEach(function(b){
-      b.addEventListener("click", function(){
-        window._crmAddTab = b.dataset.addtab;
-        _addTab = b.dataset.addtab;
-        var fp = document.querySelector(".form-panel");
-        if (fp && fp.parentNode) { fp.parentNode.innerHTML = buildForm(); rewireForm(); }
-      });
-    });
-    // Tier picker
-    var selTier2 = "C";
-    var tpBtns2 = document.querySelectorAll(".crm-tier-btn");
-    function updTp2() { tpBtns2.forEach(function(b2){ var a=b2.dataset.tp===selTier2; var t2=TIER[b2.dataset.tp]; b2.style.background=a?t2.bg:""; b2.style.fontWeight=a?"900":"700";}); var ti2=document.getElementById("cn_tier"); if(ti2) ti2.value=selTier2; }
-    updTp2();
-    tpBtns2.forEach(function(b2){ b2.addEventListener("click", function(){ selTier2=b2.dataset.tp; updTp2(); }); });
-    // Add customer
-    var addBtn2 = document.getElementById("cn_add");
-    if (addBtn2) addBtn2.addEventListener("click", function(){
-      var name = ((document.getElementById("cn_name")||{}).value||"").trim();
-      if (!name) { var msg=document.getElementById("cn_msg"); if(msg){msg.textContent="Name is required";msg.className="msg err";} return; }
-      state.customers.push({id:uid(),name:name,phone:((document.getElementById("cn_phone")||{}).value||"").trim(),tier:((document.getElementById("cn_tier")||{}).value)||"C",createdAt:Date.now()});
-      _crmView = "pipeline"; saveRecompute("Customer added","good");
-    });
-    // Add supplier
-    var snAdd = document.getElementById("sn_add");
-    if (snAdd) snAdd.addEventListener("click", function(){
-      var sname = ((document.getElementById("sn_name")||{}).value||"").trim();
-      if (!sname) { var msg=document.getElementById("sn_msg"); if(msg){msg.textContent="Supplier name required";msg.className="msg err";} return; }
-      var sp = num((document.getElementById("sn_price")||{}).value,0);
-      state.suppliers = Array.isArray(state.suppliers) ? state.suppliers : [];
-      var existing = state.suppliers.find(function(s){ return s.name.toLowerCase()===sname.toLowerCase(); });
-      if (existing) { var msg=document.getElementById("sn_msg"); if(msg){msg.textContent="Supplier already exists";msg.className="msg err";} return; }
-      state.suppliers.push({id:uid(),name:sname,phone:((document.getElementById("sn_phone")||{}).value||"").trim(),typicalPrice:sp,createdAt:Date.now()});
-      _crmView = "suppliers"; window._crmAddTab = "supplier"; saveRecompute("Supplier added","good");
-    });
-  }
-
-  var addBtn = document.getElementById("cn_add");
-  if (addBtn) addBtn.addEventListener("click", function(){
-    var name = ((document.getElementById("cn_name")||{}).value||"").trim();
-    if (!name) { var msg=document.getElementById("cn_msg"); if(msg){msg.textContent="Name is required";msg.className="msg err";} return; }
-    state.customers.push({id:uid(),name:name,phone:((document.getElementById("cn_phone")||{}).value||"").trim(),tier:((document.getElementById("cn_tier")||{}).value)||"C",createdAt:Date.now()});
-    _crmView = "pipeline";
-    saveRecompute("Customer added","good");
-  });
-  // Supplier add button
-  var snAddBtn = document.getElementById("sn_add");
-  if (snAddBtn) snAddBtn.addEventListener("click", function(){
-    var sname = ((document.getElementById("sn_name")||{}).value||"").trim();
-    if (!sname) { var msg=document.getElementById("sn_msg"); if(msg){msg.textContent="Supplier name required";msg.className="msg err";} return; }
-    var sp = num((document.getElementById("sn_price")||{}).value,0);
-    state.suppliers = Array.isArray(state.suppliers) ? state.suppliers : [];
-    state.suppliers.push({id:uid(),name:sname,phone:((document.getElementById("sn_phone")||{}).value||"").trim(),typicalPrice:sp,createdAt:Date.now()});
-    _crmView = "suppliers"; window._crmAddTab = "supplier"; saveRecompute("Supplier added","good");
-  });
-
-  // ─── WIRE EDIT/DELETE/PROMOTE/DEMOTE VIA DELEGATION ───────────
-  var pb = document.getElementById("pageBody");
-  if (pb) pb.addEventListener("click", function(e){
-    // Handle supplier buttons
-    var sb = e.target.closest("button[data-suppname]");
-    if (sb) {
-      var suppname = sb.dataset.suppname;
-      if (sb.classList.contains("supp-edit-btn")) { editSupplier(suppname); return; }
-      if (sb.classList.contains("supp-del-btn")) { deleteSupplier(suppname); return; }
-    }
-    
-    // Handle customer buttons
-    var b = e.target.closest("button[data-cuid]");
-    if (!b) return;
-    var id = b.dataset.cuid;
-    if (b.classList.contains("crm-edit-btn")) { editCustomer(id); return; }
-    if (b.classList.contains("crm-del-btn")) { deleteCustomer(id); return; }
-    var cu = state.customers.find(function(x){return x.id===id;});
-    if (!cu) return;
-    var tierOrder = ["A","B","C","D"];
-    var idx = tierOrder.indexOf(cu.tier);
-    if (b.classList.contains("crm-promote-btn") && idx > 0) { cu.tier=tierOrder[idx-1]; saveRecompute("Promoted to "+cu.tier,"good"); }
-    if (b.classList.contains("crm-demote-btn") && idx < 3) { cu.tier=tierOrder[idx+1]; saveRecompute("Moved to "+cu.tier,"warn"); }
-  });
+function openCrmHistory(type,id,customerRows,supplierRows){
+  const row=(type==="customer"?customerRows:supplierRows).find(x=>x.id===id);if(!row)return;
+  const top=type==="customer"?`Trades ${row.tradesCount} · Volume ${fmtU(row.usdtVolume,0)} USDT · Net ${fmtQWithUnit(row.netPnL)}`:`Batches ${row.batchCount} · Volume ${fmtU(row.volumeSupplied,0)} USDT · Avg Cost ${row.avgCost?fmtP(row.avgCost):"—"}`;
+  const history=(row.history||[]).map(h=>type==="customer"?`<tr><td>${fmtDate(h.ts)}</td><td>${fmtU(h.amountUSDT,0)}</td><td>${fmtP(h.sellPriceQAR)}</td><td>${fmtQWithUnit((derived.tradeCalc.get(h.id)?.netQAR)||0)}</td></tr>`:`<tr><td>${fmtDate(h.ts)}</td><td>${fmtU(h.initialUSDT,0)}</td><td>${fmtP(h.buyPriceQAR)}</td><td>${esc(h.source||"")}</td></tr>`).join("")||`<tr><td colspan="4" class="muted">No history found</td></tr>`;
+  openModal(`${type==="customer"?"Customer":"Supplier"} Details`, `<div class="muted" style="margin-bottom:8px;">${top}</div><div class="tableWrap"><table><thead><tr><th>Date</th><th>Size</th><th>Rate</th><th>${type==="customer"?"Net":"Source"}</th></tr></thead><tbody>${history}</tbody></table></div>`, `<button class="btn secondary" id="m_c">Close</button><button class="btn" id="m_jump">${type==="customer"?"New Trade":"New Batch"}</button>`);
+  setTimeout(()=>{document.getElementById("m_c")?.addEventListener("click",closeModal);document.getElementById("m_jump")?.addEventListener("click",()=>{closeModal();if(type==="customer"){window._pendingSelectCustomerId=id;navTo("orders");}else{const s=(state.suppliers||[]).find(x=>x.id===id);window._pendingSupplierName=s?.name||"";navTo("stock");}});},0);
 }
 
 function editCustomer(id){
-  var cu=state.customers.find(function(x){return x.id===id;});if(!cu)return;
-  var tierOpts=["A","B","C","D"].map(function(k){return "<option value='"+k+"'"+(cu.tier===k?" selected":"")+">"+k+" – "+{A:"VIP Client",B:"Verified",C:"Standard",D:"Watch"}[k]+"</option>";}).join("");
-  openModal("Edit Customer",
-    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;'>" +
-      "<div class='form-field'><label class='form-label'>Name</label><input id='ec_n' class='inp-field' value='"+esc(cu.name)+"'/></div>" +
-      "<div class='form-field'><label class='form-label'>Phone</label><input id='ec_p' class='inp-field' value='"+esc(cu.phone||"")+"'/></div>" +
-      "<div class='form-field' style='grid-column:span 2'><label class='form-label'>Tier</label><select id='ec_t' class='inp-field'>"+tierOpts+"</select></div>" +
-    "</div>",
-    "<button class='btn secondary' id='m_c'>Cancel</button><button class='btn' id='m_s'>Save</button>"
-  );
-  setTimeout(function(){
-    var mc=document.getElementById("m_c");if(mc)mc.addEventListener("click",closeModal);
-    var ms=document.getElementById("m_s");if(ms)ms.addEventListener("click",function(){
-      cu.name=((document.getElementById("ec_n")||{}).value||"").trim()||cu.name;
-      cu.phone=((document.getElementById("ec_p")||{}).value||"").trim();
-      cu.tier=(document.getElementById("ec_t")||{}).value||cu.tier;
-      saveRecompute("Updated","good");closeModal();
-    });
-  },0);
+  const cu=(state.customers||[]).find(x=>x.id===id);if(!cu)return;
+  openModal("Edit Customer",`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div><div class="label">Contact Person</div><input id="ec_n" class="input" value="${esc(cu.contactPersonName||cu.name||"")}"/></div><div><div class="label">Phone</div><input id="ec_p" class="input" value="${esc(cu.phone||"")}"/></div><div><div class="label">Location</div><input id="ec_l" class="input" value="${esc(cu.location||"")}"/></div><div><div class="label">Status</div><select id="ec_s" class="input"><option ${cu.status!=="Inactive"?"selected":""}>Active</option><option ${cu.status==="Inactive"?"selected":""}>Inactive</option></select></div><div><div class="label">Tier</div><select id="ec_t" class="input">${["VIP","Regular","New","Blocked"].map(t=>`<option value="${t}" ${((cu.tier||"New")===t)?"selected":""}>${t}</option>`).join("")}</select></div><div><div class="label">Tier Mode</div><select id="ec_tm" class="input"><option value="auto" ${cu.tierMode!=="manual"?"selected":""}>Suggested (auto)</option><option value="manual" ${cu.tierMode==="manual"?"selected":""}>Manual override</option></select></div><div style="grid-column:1/-1;"><div class="label">Notes</div><textarea id="ec_notes" class="input">${esc(cu.notes||"")}</textarea></div></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_s">Save</button>`);
+  setTimeout(()=>{document.getElementById("m_c")?.addEventListener("click",closeModal);document.getElementById("m_s")?.addEventListener("click",()=>{cu.contactPersonName=(document.getElementById("ec_n")?.value||"").trim();cu.name=cu.contactPersonName;cu.phone=(document.getElementById("ec_p")?.value||"").trim();cu.location=(document.getElementById("ec_l")?.value||"").trim();cu.status=document.getElementById("ec_s")?.value||"Active";cu.tier=document.getElementById("ec_t")?.value||"New";cu.tierMode=document.getElementById("ec_tm")?.value||"auto";cu.notes=(document.getElementById("ec_notes")?.value||"").trim();cu.updatedAt=Date.now();saveRecompute("Customer updated","good");closeModal();});},0);
 }
 
 function deleteCustomer(id){
-  openModal("Delete Customer","<div class='msg err'>Removes CRM profile only. Trades remain.</div>",
-    "<button class='btn secondary' id='m_c'>Cancel</button><button class='btn' style='background:var(--bad);' id='m_d'>Delete</button>");
-  setTimeout(function(){
-    var mc=document.getElementById("m_c");if(mc)mc.addEventListener("click",closeModal);
-    var md=document.getElementById("m_d");if(md)md.addEventListener("click",function(){
-      state.customers=state.customers.filter(function(x){return x.id!==id;});
-      saveRecompute("Deleted","warn");closeModal();
-    });
-  },0);
+  openModal("Delete Customer","<div class='msg err'>Removes CRM profile only. Trades remain linked by ID if restored later.</div>","<button class='btn secondary' id='m_c'>Cancel</button><button class='btn' style='background:var(--bad);' id='m_d'>Delete</button>");
+  setTimeout(()=>{document.getElementById("m_c")?.addEventListener("click",closeModal);document.getElementById("m_d")?.addEventListener("click",()=>{state.customers=(state.customers||[]).filter(x=>x.id!==id);saveRecompute("Deleted","warn");closeModal();});},0);
 }
 
-function editSupplier(suppname){
-  var supp = (state.suppliers||[]).find(function(s){return s.name===suppname;}) || {name:suppname,phone:"",typicalPrice:0};
-  openModal("Edit Supplier",
-    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;'>" +
-      "<div class='form-field'><label class='form-label'>Supplier Name</label><input id='es_n' class='inp-field' value='"+esc(supp.name)+"'/></div>" +
-      "<div class='form-field'><label class='form-label'>Phone</label><input id='es_p' class='inp-field' value='"+esc(supp.phone||"")+"'/></div>" +
-      "<div class='form-field' style='grid-column:span 2'><label class='form-label'>Typical Price (QAR)</label><input id='es_tp' class='inp-field' inputmode='decimal' value='"+(supp.typicalPrice||"")+"'/></div>" +
-    "</div>",
-    "<button class='btn secondary' id='m_c'>Cancel</button><button class='btn' id='m_s'>Save</button>"
-  );
-  setTimeout(function(){
-    var mc=document.getElementById("m_c");if(mc)mc.addEventListener("click",closeModal);
-    var ms=document.getElementById("m_s");if(ms)ms.addEventListener("click",function(){
-      var newName=((document.getElementById("es_n")||{}).value||"").trim()||supp.name;
-      var oldName=supp.name;
-      supp.name=newName;
-      supp.phone=((document.getElementById("es_p")||{}).value||"").trim();
-      supp.typicalPrice=num(document.getElementById("es_tp")?.value,0);
-      
-      // Ensure supplier is in state
-      if(!state.suppliers)state.suppliers=[];
-      var idx=state.suppliers.findIndex(function(s){return s.name===oldName;});
-      if(idx>=0){
-        state.suppliers[idx]=supp;
-      }else{
-        state.suppliers.push(supp);
-      }
-      saveRecompute("Supplier updated","good");closeModal();
-    });
-  },0);
+function editSupplier(id){
+  const supp=(state.suppliers||[]).find(s=>s.id===id);if(!supp)return;
+  openModal("Edit Supplier",`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div><div class="label">Contact Person</div><input id="es_n" class="input" value="${esc(supp.contactPersonName||supp.name||"")}"/></div><div><div class="label">Phone</div><input id="es_p" class="input" value="${esc(supp.phone||"")}"/></div><div><div class="label">Location</div><input id="es_l" class="input" value="${esc(supp.location||"")}"/></div><div><div class="label">Status</div><select id="es_s" class="input"><option ${supp.status!=="Inactive"?"selected":""}>Active</option><option ${supp.status==="Inactive"?"selected":""}>Inactive</option></select></div><div><div class="label">Tier</div><select id="es_t" class="input">${["VIP","Regular","New","Blocked"].map(t=>`<option value="${t}" ${((supp.tier||"New")===t)?"selected":""}>${t}</option>`).join("")}</select></div><div><div class="label">Typical Price (QAR)</div><input id="es_tp" class="input" value="${num(supp.typicalPrice,0)}"/></div><div style="grid-column:1/-1;"><div class="label">Notes</div><textarea id="es_notes" class="input">${esc(supp.notes||"")}</textarea></div></div>`,`<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_s">Save</button>`);
+  setTimeout(()=>{document.getElementById("m_c")?.addEventListener("click",closeModal);document.getElementById("m_s")?.addEventListener("click",()=>{const oldName=supp.name;supp.contactPersonName=(document.getElementById("es_n")?.value||"").trim();supp.name=supp.contactPersonName;supp.phone=(document.getElementById("es_p")?.value||"").trim();supp.location=(document.getElementById("es_l")?.value||"").trim();supp.status=document.getElementById("es_s")?.value||"Active";supp.tier=document.getElementById("es_t")?.value||"New";supp.typicalPrice=num(document.getElementById("es_tp")?.value,0);supp.notes=(document.getElementById("es_notes")?.value||"").trim();supp.updatedAt=Date.now();(state.batches||[]).forEach(b=>{if(String(b.source||"").trim().toLowerCase()===String(oldName||"").trim().toLowerCase())b.source=supp.name;});saveRecompute("Supplier updated","good");closeModal();});},0);
 }
 
-function deleteSupplier(suppname){
-  openModal("Delete Supplier","<div class='msg warn'>Supplier profile will be removed. Historical batch data remains.</div>",
-    "<button class='btn secondary' id='m_c'>Cancel</button><button class='btn' style='background:var(--bad);' id='m_d'>Delete</button>");
-  setTimeout(function(){
-    var mc=document.getElementById("m_c");if(mc)mc.addEventListener("click",closeModal);
-    var md=document.getElementById("m_d");if(md)md.addEventListener("click",function(){
-      state.suppliers=(state.suppliers||[]).filter(function(s){return s.name!==suppname;});
-      saveRecompute("Supplier deleted","warn");closeModal();
-    });
-  },0);
+function deleteSupplier(id){
+  openModal("Delete Supplier","<div class='msg warn'>Supplier profile will be removed. Historical batches remain.</div>","<button class='btn secondary' id='m_c'>Cancel</button><button class='btn' style='background:var(--bad);' id='m_d'>Delete</button>");
+  setTimeout(()=>{document.getElementById("m_c")?.addEventListener("click",closeModal);document.getElementById("m_d")?.addEventListener("click",()=>{state.suppliers=(state.suppliers||[]).filter(s=>s.id!==id);saveRecompute("Supplier deleted","warn");closeModal();});},0);
 }
 
 
