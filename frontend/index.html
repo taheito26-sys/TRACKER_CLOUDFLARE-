@@ -732,7 +732,7 @@ tbody tr { transition: background var(--lt-tr); }
 .empty svg { width: 32px; height: 32px; opacity: .35; margin: 0 auto 8px; display: block; }
 .empty-t { font-size: calc(13px * var(--ui-scale,1)); font-weight: 700; }
 .empty-s { font-size: calc(11px * var(--ui-scale,1)); margin-top: 3px; }
-.mobileNav { display: none; position: fixed; left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); z-index: 40; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 5px; backdrop-filter: blur(12px); }
+.mobileNav { display: none; position: fixed; left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); z-index: 40; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 5px; backdrop-filter: blur(12px); transition: opacity var(--lt-tr); }
 .mobileNav .row { display: grid; grid-template-columns: repeat(8,1fr); gap: 3px; }
 .mBtn { border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: 14px; padding: 7px 3px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; font-size: calc(8px * var(--ui-scale,1)); font-family: var(--app-font, var(--lt-font)); transition: all var(--lt-tr); }
 .mBtn svg { width: 14px; height: 14px; }
@@ -755,6 +755,18 @@ tbody tr { transition: background var(--lt-tr); }
   }
   body.sidebar-open .sidebar { transform: translateX(0); }
   body.sidebar-open .sidebarBackdrop { opacity: 1; pointer-events: auto; }
+  body.sidebar-open .topbar {
+    opacity: 0;
+    transform: translateY(-110%);
+    pointer-events: none;
+  }
+  body.sidebar-open .mobileNav {
+    opacity: 0;
+    pointer-events: none;
+  }
+  body.sidebar-open .scroll {
+    pointer-events: none;
+  }
   .mainWrap, .topbar, .scroll, #pageBody { flex: 1; }
 }
 
