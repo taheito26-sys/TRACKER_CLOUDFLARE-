@@ -58,8 +58,7 @@
     return '<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid color-mix(in srgb,'+tone+' 30%,transparent);background:color-mix(in srgb,'+tone+' 10%,transparent);color:'+tone+';font-size:9px;font-weight:800;text-transform:uppercase;">'+esc2(s.replace(/_/g,' '))+'</span>';
   }
   function ensureAuth(){
-    if (window.Clerk && window.Clerk.session && typeof window.Clerk.session.getToken === "function") return true;
-    return !!(window._authUser && window._authUser.email);
+    return !!(window._authUser && (window._authUser.id || window._authUser.email));
   }
   function guessWorkerBase(){
     var saved = localStorage.getItem("merchant_worker_url") || "";
@@ -69,15 +68,15 @@
   }
   async function getHeaders(){
     var headers = { "Content-Type": "application/json" };
-    if (window.Clerk && window.Clerk.session && typeof window.Clerk.session.getToken === "function") {
-      try {
-        var token = await window.Clerk.session.getToken();
-        if (token) headers.Authorization = "Bearer " + token;
-      } catch(_) {}
-    }
-    if (!headers.Authorization && window._authUser && window._authUser.email) {
-      headers["X-User-Email"] = String(window._authUser.email).trim().toLowerCase();
-      headers["X-User-Id"] = "compat:" + String(window._authUser.email).trim().toLowerCase();
+    if (window._authUser) {
+      var userEmail = String(window._authUser.email || "").trim().toLowerCase();
+      var userId = String(window._authUser.id || "").trim();
+      if (userEmail) headers["X-User-Email"] = userEmail;
+      if (userId) {
+        headers["X-User-Id"] = userId;
+      } else if (userEmail) {
+        headers["X-User-Id"] = "compat:" + userEmail;
+      }
     }
     return headers;
   }

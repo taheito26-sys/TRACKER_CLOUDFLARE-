@@ -349,9 +349,10 @@ async function handleMerchant(request, env) {
     if (method === "GET" && path.startsWith("/profile/")) {
       const key = decodeURIComponent(path.split("/").pop());
       const row = await d1First(db, `
-        SELECT *
+        SELECT id, merchant_id, nickname, display_name, merchant_type, region, default_currency, discoverability, bio, status, created_at
         FROM merchant_profiles
-        WHERE id = ? OR merchant_id = ?
+        WHERE (id = ? OR merchant_id = ?)
+          AND status = 'active'
         LIMIT 1
       `, key, key);
       if (!row) return bad(request, env, "Profile not found", 404);
@@ -360,20 +361,24 @@ async function handleMerchant(request, env) {
     if (method === "GET" && path === "/search") {
       const q = String(url.searchParams.get("q") || "").trim().toLowerCase();
       const my = await getMyProfile(db, user.userId);
-      if (!q) return json(request, env, { results: [] });
+      if (!q || q.length < 2) return json(request, env, { results: [] });
       const rows = await d1All(db, `
         SELECT id, merchant_id, nickname, display_name, merchant_type, region, bio, discoverability
         FROM merchant_profiles
         WHERE status = 'active'
-          AND discoverability <> 'hidden'
           AND (
-            lower(display_name) LIKE ? OR
-            lower(nickname) LIKE ? OR
-            lower(merchant_id) LIKE ?
+            merchant_id = ?
+            OR (
+              discoverability = 'public'
+              AND (
+                lower(display_name) LIKE ?
+                OR lower(nickname) LIKE ?
+              )
+            )
           )
         ORDER BY display_name ASC
         LIMIT 25
-      `, `%${q}%`, `%${q}%`, `%${q}%`);
+      `, q.toUpperCase(), `%${q}%`, `%${q}%`);
       const filtered = rows.filter(r => !my || r.id !== my.id);
       return json(request, env, { results: filtered });
     }
@@ -1175,7 +1180,7 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/close$/)) {
     if (method === "GET" && path === "/notifications") {
       const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 50), 1), 100);
       const unread = String(url.searchParams.get("unread") || "").toLowerCase();
-      const rows = unread === "true"
+      const rows = (unread === "true" || unread === "1")
         ? await d1All(db, `SELECT * FROM merchant_notifications WHERE user_id = ? AND read_at IS NULL ORDER BY created_at DESC LIMIT ?`, user.userId, limit)
         : await d1All(db, `SELECT * FROM merchant_notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?`, user.userId, limit);
       return json(request, env, { notifications: rows.map(r => ({ ...r, data_json: safeJsonParse(r.data_json, {}) })) });
