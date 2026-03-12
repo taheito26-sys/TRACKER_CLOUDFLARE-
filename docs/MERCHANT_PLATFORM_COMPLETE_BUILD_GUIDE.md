@@ -5,7 +5,7 @@
 ## 1) Architecture Overview
 
 ```text
-React + Clerk (JWT)
+React frontend (session identity)
         |
         v
 Cloudflare Worker (Hono)  -> /api/merchant/*
@@ -17,12 +17,12 @@ D1 (SQLite)
 - Frontend: React 18 + Vite + TypeScript.
 - Backend: Hono on Cloudflare Workers.
 - Database: Cloudflare D1 (SQLite).
-- Auth: Clerk RS256 JWT verification via JWKS.
+- Auth: Same as P2P Tracker compatibility auth (`X-User-Id` / `X-User-Email` headers), with optional bearer-token verification only when configured.
 - Sync: Polling-based unread counts.
 
 ## 2) Tech Stack
 
-- Frontend: `react`, `react-router-dom`, `@clerk/react`
+- Frontend: `react`, `react-router-dom`
 - Backend: `hono`, `wrangler`, `typescript`, `@cloudflare/workers-types`
 - Data: D1 + KV (`PRICE_KV`)
 
@@ -55,20 +55,16 @@ Key conventions:
 - JSON fields are stored as text.
 - `merchant_profiles.owner_user_id` is unique (one profile per user).
 
-## 4) Auth Middleware
+## 4) Authentication (P2P Tracker-Compatible)
 
-- Validate `Authorization: Bearer <JWT>`.
-- Require RS256 algorithm.
-- Fetch/import JWKS keys from `CLERK_JWKS_URL`.
-- Verify signature + claims (`sub`, `exp`, `nbf`).
-- Set `userId` in request context.
+Use the same request identity pattern as the existing P2P Tracker worker:
 
-Required secret:
-
-```bash
-wrangler secret put CLERK_JWKS_URL
-# https://<clerk-domain>/.well-known/jwks.json
-```
+- Primary compatibility mode:
+  - `X-User-Id` (preferred)
+  - fallback `X-Compat-User`
+  - fallback `X-User-Email` (normalized to lowercase, then mapped to `compat:<email>` user id)
+- Optional bearer-token mode may be supported if backend configuration enables it, but it is not required for merchant flows.
+- Merchant routes should resolve identity from request headers and operate on that `userId` (same architecture as current P2P routes).
 
 ## 5) CORS Middleware
 
@@ -83,7 +79,6 @@ wrangler secret put CLERK_JWKS_URL
 export interface Env {
   DB: D1Database;
   PRICE_KV: KVNamespace;
-  CLERK_JWKS_URL?: string;
   ALLOWED_ORIGINS?: string;
 }
 ```
@@ -93,7 +88,7 @@ export interface Env {
 All route files:
 
 1. Create Hono app with typed bindings.
-2. Apply auth middleware.
+2. Resolve request identity using P2P compatibility headers.
 3. Resolve merchant profile for current user.
 
 Modules and mount points:
@@ -130,9 +125,9 @@ Approving a pending request applies domain mutation by type:
 
 `src/lib/merchantApi.ts` expectations:
 
-- Read token via `window.Clerk.session.getToken()`.
+- Send the same compatibility identity headers used by P2P Tracker (`X-User-Id` and/or `X-User-Email`).
 - Prefix requests with `VITE_WORKER_API_URL`.
-- Set `Authorization` + JSON headers.
+- Set JSON headers (and optional auth header only if your deployment enables bearer mode).
 - Throw errors from non-2xx responses.
 - Expose typed helper functions for profiles, invites, relationships, deals, messages, approvals, audit, notifications.
 
@@ -208,7 +203,6 @@ backend/
     index.ts
     types.ts
     middleware/
-      auth.ts
       cors.ts
     routes/
       merchant-profiles.ts
