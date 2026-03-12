@@ -5545,7 +5545,7 @@ function _relTime(ts){var d=Date.now()-ts;if(d<60000)return"just now";if(d<36000
 
 function _riskBadge(level){var c={low:"good",medium:"warn",high:"bad",critical:"bad"};return'<span class="pill" style="font-size:8px;color:var(--'+(c[level]||"muted")+');border-color:color-mix(in srgb,var(--'+(c[level]||"muted")+') 30%,transparent);background:color-mix(in srgb,var(--'+(c[level]||"muted")+') 8%,transparent);">'+esc((level||"low").toUpperCase())+'</span>';}
 
-function renderMerchants(){
+function _renderMerchants_legacy_v1(){
   setHeader("Merchants & Collaboration","Partnerships \u00b7 Lending \u00b7 Arbitrage \u00b7 Capital \u00b7 Collaboration");
   state.merchants=Array.isArray(state.merchants)?state.merchants:[];
   var tab=window._mchTab||"overview";
