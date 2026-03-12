@@ -6667,16 +6667,7 @@ function render(){
   else if(p==="stock")renderStock();
   else if(p==="p2p")renderP2P();
   else if(p==="crm")renderCRM();
-  else if(p==="merchants"){
-    if(typeof renderMerchants==="function") renderMerchants();
-    else {
-      const pb=$("#pageBody");
-      if(pb){
-        pb.innerHTML = '<div class="panel"><div class="panel-head"><h2>Merchant Platform</h2></div><div class="panel-body"><div class="muted" style="padding:20px;text-align:center;">Loading merchant moduleâ€¦</div></div></div>';
-      }
-      setTimeout(()=>{ try{ if(state.page==="merchants" && typeof renderMerchants==="function") render(); }catch(e){} }, 0);
-    }
-  }
+  else if(p==="merchants")renderMerchants();
   else if(p==="calendar")renderCalendar();
   else if(p==="vault")renderVault();
   else if(p==="kpibuilder")renderKpiBuilder();
@@ -12343,10 +12334,6 @@ function runSettingsTest() {
 
   /* â”€â”€â”€ Legacy state sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   ensureAll();
-  // Recover safely if the app booted on the Merchants page before this module finished loading.
-  if(typeof state !== 'undefined' && state.page==='merchants'){
-    setTimeout(function(){ try{ if(typeof render==='function') render(); else if(typeof renderMerchants==='function') renderMerchants(); }catch(e){} }, 0);
-  }
   if(typeof state !== 'undefined' && Array.isArray(state.merchants) && state.merchants.length>0 && MS.merchants.length===0){
     MS.merchants = state.merchants;
   }
