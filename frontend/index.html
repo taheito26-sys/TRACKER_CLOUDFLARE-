@@ -11044,13 +11044,21 @@ window.renderMerchants = function(){
   var _pollTimer = null;
   var _lastPollTs = 0;
   var _syncStatus = 'idle';
+  var _pollFailCount = 0;
 
   async function _api(method, path, body) {
-    var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
+    var hasBody = body !== undefined && body !== null;
+    var opts = { method: method, headers: {} };
+    // Avoid forcing CORS preflight for GET/HEAD by not sending Content-Type unless needed.
+    if (hasBody) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
     var res = await fetch(API_BASE + path, opts);
-    var data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
+    var text = await res.text();
+    var data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch(_e) { data = { raw: text }; }
+    if (!res.ok) throw new Error(data.error || ('API error ' + res.status));
     return data;
   }
 
@@ -11125,7 +11133,12 @@ window.renderMerchants = function(){
       });
       if (changed) { save(); if (typeof render==='function') render(); }
       _syncStatus = 'ok';
-    } catch(e) { _syncStatus = 'error'; console.warn('Poll error:', e.message); }
+      _pollFailCount = 0;
+    } catch(e) {
+      _syncStatus = 'error';
+      _pollFailCount++;
+      if (_pollFailCount === 1 || _pollFailCount % 5 === 0) console.warn('Poll error:', e.message);
+    }
   }
 
   function _startPolling() {
