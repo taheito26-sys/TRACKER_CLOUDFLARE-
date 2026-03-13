@@ -99,6 +99,17 @@ export default {
       const { id, from_merchant_id, to_merchant_id, purpose, message } = body;
       if (!id || !from_merchant_id || !to_merchant_id) return err('id, from_merchant_id, to_merchant_id required');
       if (from_merchant_id === to_merchant_id) return err('Cannot invite yourself');
+      const fromProfile = await db.prepare(
+        'SELECT merchant_id FROM merchant_profiles WHERE merchant_id=?'
+      ).bind(from_merchant_id).first();
+
+      const toProfile = await db.prepare(
+        'SELECT merchant_id FROM merchant_profiles WHERE merchant_id=?'
+      ).bind(to_merchant_id).first();
+
+      if (!fromProfile) return err('Sender profile not found', 404);
+      if (!toProfile) return err('Recipient profile not found', 404);
+
       const now = Date.now();
       const expires = now + 14 * 86400000; // 14 days
       // Check for existing pending invite in either direction
@@ -123,7 +134,9 @@ export default {
         SELECT i.*, p.display_name AS from_display_name, p.nickname AS from_nickname
         FROM invites i
         LEFT JOIN merchant_profiles p ON p.merchant_id = i.from_merchant_id
-        WHERE i.to_merchant_id=? AND i.expires_at > ?
+        WHERE i.to_merchant_id=?
+          AND i.status='pending'
+          AND i.expires_at > ?
         ORDER BY i.created_at DESC
       `).bind(mid, Date.now()).all();
       return json(rows.results || []);
@@ -272,3 +285,4 @@ export default {
     return err('Not found', 404);
   },
 };
+

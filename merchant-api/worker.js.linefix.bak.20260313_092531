@@ -1,0 +1,286 @@
+/**
+ * p2p-merchant-api — Cloudflare Worker
+ * D1-backed merchant platform: profiles, invites, relationships, messages
+ * Database: p2p-merchant-db (151ab93b-271b-4b3a-a121-a4513ab6b67d)
+ */
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Merchant-ID',
+  'Content-Type': 'application/json',
+  'X-Worker-Name': 'p2p-merchant-api',
+};
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: CORS });
+}
+function err(msg, status = 400) {
+  return new Response(JSON.stringify({ error: msg }), { status, headers: CORS });
+}
+function ok(data = {}) {
+  return json({ ok: true, ...data });
+}
+
+// ── Router ────────────────────────────────────────────────────────────────────
+export default {
+  async fetch(request, env) {
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+
+    const url  = new URL(request.url);
+    const path = url.pathname.replace(/\/$/, '');
+    const method = request.method;
+    console.log('merchant-api', method, path);
+    const db = env.DB;
+    if (method === 'GET' && path === '/api/health') {
+      return json({ ok: true, worker: 'p2p-merchant-api', ts: Date.now() });
+    }
+
+
+    let body = {};
+    if (method === 'POST' || method === 'PUT') {
+      try { body = await request.json(); } catch { body = {}; }
+    }
+
+    // ── /api/profiles ─────────────────────────────────────────────────────────
+    // POST /api/profiles            → upsert your own profile (publish to directory)
+    if (method === 'POST' && path === '/api/profiles') {
+      const { merchant_id, display_name, nickname, merchant_type, region, bio, discoverability } = body;
+      if (!merchant_id || !display_name || !nickname) return err('merchant_id, display_name, nickname required');
+      const now = Date.now();
+      try {
+        await db.prepare(`
+          INSERT INTO merchant_profiles (merchant_id,display_name,nickname,merchant_type,region,bio,discoverability,status,created_at,updated_at)
+          VALUES (?,?,?,?,?,?,?,?,?,?)
+          ON CONFLICT(merchant_id) DO UPDATE SET
+            display_name=excluded.display_name, nickname=excluded.nickname,
+            merchant_type=excluded.merchant_type, region=excluded.region,
+            bio=excluded.bio, discoverability=excluded.discoverability,
+            updated_at=excluded.updated_at
+        `).bind(
+          merchant_id, display_name, nickname,
+          merchant_type || 'independent', region || '', bio || '',
+          discoverability || 'public', 'active', now, now
+        ).run();
+        return ok({ merchant_id });
+      } catch (e) {
+        return err('Nickname already taken — choose another', 409);
+      }
+    }
+
+    // GET /api/profiles/:merchant_id
+    if (method === 'GET' && path.startsWith('/api/profiles/') && !path.includes('/search')) {
+      const mid = path.split('/api/profiles/')[1];
+      if (!mid) return err('merchant_id required');
+      const row = await db.prepare('SELECT * FROM merchant_profiles WHERE merchant_id=?').bind(mid).first();
+      if (!row) return err('Profile not found', 404);
+      return json(row);
+    }
+
+    // GET /api/profiles/search?q=...&limit=20
+    if (method === 'GET' && path === '/api/profiles/search') {
+      const q     = (url.searchParams.get('q') || '').trim();
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 50);
+      if (q.length < 2) return err('q must be at least 2 characters');
+      const like = `%${q}%`;
+      const rows = await db.prepare(`
+        SELECT merchant_id, display_name, nickname, merchant_type, region
+        FROM merchant_profiles
+        WHERE discoverability != 'hidden'
+          AND (merchant_id LIKE ? OR nickname LIKE ? OR display_name LIKE ?)
+        ORDER BY updated_at DESC LIMIT ?
+      `).bind(like, like, like, limit).all();
+      return json(rows.results || []);
+    }
+
+    // ── /api/invites ──────────────────────────────────────────────────────────
+    // POST /api/invites  → send invite
+    if (method === 'POST' && path === '/api/invites') {
+      const { id, from_merchant_id, to_merchant_id, purpose, message } = body;
+      if (!id || !from_merchant_id || !to_merchant_id) return err('id, from_merchant_id, to_merchant_id required');
+      if (from_merchant_id === to_merchant_id) return err('Cannot invite yourself');
+      const fromProfile = await db.prepare(
+        'SELECT merchant_id FROM merchant_profiles WHERE merchant_id=?'
+      ).bind(from_merchant_id).first();
+
+      const toProfile = await db.prepare(
+        'SELECT merchant_id FROM merchant_profiles WHERE merchant_id=?'
+      ).bind(to_merchant_id).first();
+
+      if (!fromProfile) return err('Sender profile not found', 404);
+      if (!toProfile) return err('Recipient profile not found', 404);
+
+      const now = Date.now();
+      const expires = now + 14 * 86400000; // 14 days
+      // Check for existing pending invite in either direction
+      const existing = await db.prepare(`
+        SELECT id FROM invites
+        WHERE status='pending'
+          AND ((from_merchant_id=? AND to_merchant_id=?) OR (from_merchant_id=? AND to_merchant_id=?))
+      `).bind(from_merchant_id, to_merchant_id, to_merchant_id, from_merchant_id).first();
+      if (existing) return err('Pending invite already exists between these merchants', 409);
+      await db.prepare(`
+        INSERT INTO invites (id,from_merchant_id,to_merchant_id,status,purpose,message,created_at,updated_at,expires_at)
+        VALUES (?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(id) DO NOTHING
+      `).bind(id, from_merchant_id, to_merchant_id, 'pending', purpose || '', message || '', now, now, expires).run();
+      return ok({ id });
+    }
+
+    // GET /api/invites/inbox/:merchant_id  → pending invites received
+    if (method === 'GET' && path.startsWith('/api/invites/inbox/')) {
+      const mid = path.split('/api/invites/inbox/')[1];
+      const rows = await db.prepare(`
+        SELECT i.*, p.display_name AS from_display_name, p.nickname AS from_nickname
+        FROM invites i
+        LEFT JOIN merchant_profiles p ON p.merchant_id = i.from_merchant_id
+        WHERE i.to_merchant_id=? AND i.expires_at > ?
+        ORDER BY i.created_at DESC
+      `).bind(mid, Date.now()).all();
+      return json(rows.results || []);
+    }
+
+    // GET /api/invites/sent/:merchant_id  → invites you sent
+    if (method === 'GET' && path.startsWith('/api/invites/sent/')) {
+      const mid = path.split('/api/invites/sent/')[1];
+      const rows = await db.prepare(`
+        SELECT i.*, p.display_name AS to_display_name, p.nickname AS to_nickname
+        FROM invites i
+        LEFT JOIN merchant_profiles p ON p.merchant_id = i.to_merchant_id
+        WHERE i.from_merchant_id=?
+        ORDER BY i.created_at DESC
+      `).bind(mid).all();
+      return json(rows.results || []);
+    }
+
+    // POST /api/invites/:id/accept
+    if (method === 'POST' && path.match(/^\/api\/invites\/[^/]+\/accept$/)) {
+      const inviteId = path.split('/')[3];
+      const { accepting_merchant_id } = body;
+      const inv = await db.prepare('SELECT * FROM invites WHERE id=?').bind(inviteId).first();
+      if (!inv) return err('Invite not found', 404);
+      if (inv.status !== 'pending') return err('Invite is no longer pending');
+      if (inv.expires_at < Date.now()) return err('Invite has expired');
+      if (inv.to_merchant_id !== accepting_merchant_id) return err('Not authorised', 403);
+      const now = Date.now();
+      await db.prepare('UPDATE invites SET status=?,updated_at=? WHERE id=?').bind('accepted', now, inviteId).run();
+      // Check for existing relationship
+      const existingRel = await db.prepare(`
+        SELECT id FROM relationships
+        WHERE (merchant_a_id=? AND merchant_b_id=?) OR (merchant_a_id=? AND merchant_b_id=?)
+      `).bind(inv.from_merchant_id, inv.to_merchant_id, inv.to_merchant_id, inv.from_merchant_id).first();
+      if (existingRel) return ok({ relationship_id: existingRel.id, already_existed: true });
+      const relId = crypto.randomUUID();
+      await db.prepare(`
+        INSERT INTO relationships (id,merchant_a_id,merchant_b_id,invite_id,status,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?)
+      `).bind(relId, inv.from_merchant_id, inv.to_merchant_id, inviteId, 'active', now, now).run();
+      return ok({ relationship_id: relId });
+    }
+
+    // POST /api/invites/:id/reject
+    if (method === 'POST' && path.match(/^\/api\/invites\/[^/]+\/reject$/)) {
+      const inviteId = path.split('/')[3];
+      const { rejecting_merchant_id } = body;
+      const inv = await db.prepare('SELECT * FROM invites WHERE id=?').bind(inviteId).first();
+      if (!inv) return err('Invite not found', 404);
+      if (inv.to_merchant_id !== rejecting_merchant_id) return err('Not authorised', 403);
+      await db.prepare('UPDATE invites SET status=?,updated_at=? WHERE id=?').bind('rejected', Date.now(), inviteId).run();
+      return ok();
+    }
+
+    // POST /api/invites/:id/withdraw
+    if (method === 'POST' && path.match(/^\/api\/invites\/[^/]+\/withdraw$/)) {
+      const inviteId = path.split('/')[3];
+      const { withdrawing_merchant_id } = body;
+      const inv = await db.prepare('SELECT * FROM invites WHERE id=?').bind(inviteId).first();
+      if (!inv) return err('Invite not found', 404);
+      if (inv.from_merchant_id !== withdrawing_merchant_id) return err('Not authorised', 403);
+      await db.prepare('UPDATE invites SET status=?,updated_at=? WHERE id=?').bind('withdrawn', Date.now(), inviteId).run();
+      return ok();
+    }
+
+    // ── /api/relationships ────────────────────────────────────────────────────
+    // GET /api/relationships/:merchant_id
+    if (method === 'GET' && path.startsWith('/api/relationships/')) {
+      const mid = path.split('/api/relationships/')[1];
+      const rows = await db.prepare(`
+        SELECT r.*,
+          CASE WHEN r.merchant_a_id=? THEN r.merchant_b_id ELSE r.merchant_a_id END AS counterparty_id,
+          p.display_name AS counterparty_name, p.nickname AS counterparty_nick
+        FROM relationships r
+        LEFT JOIN merchant_profiles p
+          ON p.merchant_id = CASE WHEN r.merchant_a_id=? THEN r.merchant_b_id ELSE r.merchant_a_id END
+        WHERE (r.merchant_a_id=? OR r.merchant_b_id=?) AND r.status='active'
+        ORDER BY r.created_at DESC
+      `).bind(mid, mid, mid, mid).all();
+      return json(rows.results || []);
+    }
+
+    // ── /api/messages ─────────────────────────────────────────────────────────
+    // POST /api/messages
+    if (method === 'POST' && path === '/api/messages') {
+      const { id, relationship_id, sender_merchant_id, body: msgBody } = body;
+      if (!id || !relationship_id || !sender_merchant_id || !msgBody) return err('id, relationship_id, sender_merchant_id, body required');
+      // Verify sender is part of relationship
+      const rel = await db.prepare('SELECT * FROM relationships WHERE id=?').bind(relationship_id).first();
+      if (!rel) return err('Relationship not found', 404);
+      if (rel.merchant_a_id !== sender_merchant_id && rel.merchant_b_id !== sender_merchant_id) return err('Not authorised', 403);
+      await db.prepare(`
+        INSERT INTO messages (id,relationship_id,sender_merchant_id,body,created_at)
+        VALUES (?,?,?,?,?)
+        ON CONFLICT(id) DO NOTHING
+      `).bind(id, relationship_id, sender_merchant_id, msgBody, Date.now()).run();
+      return ok({ id });
+    }
+
+    // GET /api/messages/:relationship_id?since=ts&limit=50
+    if (method === 'GET' && path.startsWith('/api/messages/')) {
+      const relId = path.split('/api/messages/')[1];
+      const since = parseInt(url.searchParams.get('since') || '0');
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
+      const rows = await db.prepare(`
+        SELECT m.*, p.display_name AS sender_name, p.nickname AS sender_nick
+        FROM messages m
+        LEFT JOIN merchant_profiles p ON p.merchant_id = m.sender_merchant_id
+        WHERE m.relationship_id=? AND m.created_at > ?
+        ORDER BY m.created_at ASC LIMIT ?
+      `).bind(relId, since, limit).all();
+      return json(rows.results || []);
+    }
+
+    // ── /api/poll/:merchant_id  (combined inbox poll) ─────────────────────────
+    // GET /api/poll/:merchant_id  → pending invites + new messages since ts
+    if (method === 'GET' && path.startsWith('/api/poll/')) {
+      const mid = path.split('/api/poll/')[1];
+      const since = parseInt(url.searchParams.get('since') || '0');
+      const [invites, msgs] = await Promise.all([
+        db.prepare(`
+          SELECT i.*, p.display_name AS from_display_name, p.nickname AS from_nickname
+          FROM invites i
+          LEFT JOIN merchant_profiles p ON p.merchant_id = i.from_merchant_id
+          WHERE i.to_merchant_id=? AND i.status='pending' AND i.expires_at > ?
+          ORDER BY i.created_at DESC
+        `).bind(mid, Date.now()).all(),
+        db.prepare(`
+          SELECT m.*, p.display_name AS sender_name
+          FROM messages m
+          JOIN relationships r ON r.id = m.relationship_id
+          LEFT JOIN merchant_profiles p ON p.merchant_id = m.sender_merchant_id
+          WHERE (r.merchant_a_id=? OR r.merchant_b_id=?)
+            AND m.sender_merchant_id != ?
+            AND m.created_at > ?
+          ORDER BY m.created_at DESC LIMIT 50
+        `).bind(mid, mid, mid, since).all(),
+      ]);
+      return json({
+        invites: invites.results || [],
+        messages: msgs.results || [],
+        polled_at: Date.now(),
+      });
+    }
+
+    return err('Not found', 404);
+  },
+};
+
