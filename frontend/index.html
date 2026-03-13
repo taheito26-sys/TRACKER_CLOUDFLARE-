@@ -6678,11 +6678,11 @@ function render(){
   else if(p==="p2p")renderP2P();
   else if(p==="crm")renderCRM();
   else if(p==="merchants"){ try{ renderMerchants(); }catch(e){ console.error('renderMerchants error:',e); } }
-  else { if(typeof _stopPolling==='function') _stopPolling(); }
   else if(p==="calendar")renderCalendar();
   else if(p==="vault")renderVault();
   else if(p==="kpibuilder")renderKpiBuilder();
   else renderSettings();
+  if(p!=="p2p" && typeof _stopPolling==='function') _stopPolling();
   try{ applyI18n_(document.body); }catch(e){}
   const sc=$("#pageScroll");if(sc)sc.scrollTop=0;
 
@@ -8107,6 +8107,28 @@ window.navTo=navTo;
 window.renderCRM=renderCRM;
 window.save=save;
 window.toast=toast;
+window.openModal=openModal;
+window.closeModal=closeModal;
+window.kpiFor=kpiFor;
+window.totalStock=totalStock;
+window.stockCostQAR=stockCostQAR;
+window.getWACOP=getWACOP;
+window.destroyChart=destroyChart;
+window.clearCharts=clearCharts;
+window.num=num;
+window.fmtQ=fmtQ;
+window.fmtU=fmtU;
+window.fmtP=fmtP;
+window.fmtPct=fmtPct;
+window.fmtQWithUnit=fmtQWithUnit;
+window.rl=rl;
+window.dispAmt=dispAmt;
+window.dispRate=dispRate;
+window.curLabel=curLabel;
+window.renderMerchants=window.renderMerchants||function(){
+  var pb=document.getElementById('pageBody');
+  if(pb) pb.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted,#888);font-size:12px;">Merchant module loading…</div>';
+};
 try{
   Object.defineProperty(window,"state",{get:()=>state,set:v=>{state=v;}});
 }catch(e){
@@ -11022,14 +11044,56 @@ window.renderMerchants = function(){
   var _pollTimer = null;
   var _lastPollTs = 0;
   var _syncStatus = 'idle';
+  var _pollFailCount = 0;
+  var _apiBaseIdx = 0;
+  var _apiBaseFail = {};
+
+  function _normBase(u){ return String(u||'').trim().replace(/\/$/, ''); }
+  function _mkApiBases(){
+    var bases = [];
+    // Priority: explicit override → same-origin proxy route → direct workers.dev.
+    try {
+      var ov = (typeof window !== 'undefined' && window.MERCHANT_API_URL) ? window.MERCHANT_API_URL : '';
+      if(!ov && typeof localStorage !== 'undefined') ov = localStorage.getItem('merchant_api_base') || '';
+      if(ov) bases.push(_normBase(ov));
+    } catch(e){}
+    try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
+    bases.push(_normBase(API_BASE));
+    // De-duplicate while preserving order.
+    return bases.filter(function(b, i){ return b && bases.indexOf(b)===i; });
+  }
+  var _apiBases = _mkApiBases();
 
   async function _api(method, path, body) {
-    var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
-    var res = await fetch(API_BASE + path, opts);
-    var data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
-    return data;
+    var hasBody = body !== undefined && body !== null;
+    var opts = { method: method, headers: {} };
+    // Avoid forcing CORS preflight for GET/HEAD by not sending Content-Type unless needed.
+    if (hasBody) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+
+    var lastErr = null;
+    var attempts = _apiBases.length || 1;
+    for (var hop=0; hop<attempts; hop++) {
+      var idx = (_apiBaseIdx + hop) % attempts;
+      var base = _apiBases[idx] || _normBase(API_BASE);
+      if (_apiBaseFail[base] && _apiBaseFail[base] >= 2) continue;
+      try {
+        var res = await fetch(base + path, opts);
+        var text = await res.text();
+        var data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch(_e) { data = { raw: text }; }
+        if (!res.ok) throw new Error(data.error || ('API error ' + res.status));
+        _apiBaseIdx = idx; // sticky on last successful base
+        _apiBaseFail[base] = 0;
+        return data;
+      } catch(e) {
+        _apiBaseFail[base] = (_apiBaseFail[base] || 0) + 1;
+        lastErr = e;
+      }
+    }
+    throw (lastErr || new Error('API request failed'));
   }
 
   async function _publishProfile() {
@@ -11049,6 +11113,18 @@ window.renderMerchants = function(){
 
   async function _apiSearch(q) {
     return _api('GET', '/api/profiles/search?q=' + encodeURIComponent(q) + '&limit=20');
+  }
+
+  function _localDirectorySearch(q){
+    var qq = String(q||'').trim().toLowerCase();
+    if(!qq) return [];
+    var list = Array.isArray(MS.merchants) ? MS.merchants : [];
+    return list.filter(function(m){
+      var mid = String(m.merchant_id||'').toLowerCase();
+      var nick = String(m.nickname||'').toLowerCase();
+      var nm = String(m.display_name||'').toLowerCase();
+      return mid.indexOf(qq)>=0 || nick.indexOf(qq)>=0 || nm.indexOf(qq)>=0;
+    });
   }
 
   async function _apiSendInvite(inv) {
@@ -11103,7 +11179,13 @@ window.renderMerchants = function(){
       });
       if (changed) { save(); if (typeof render==='function') render(); }
       _syncStatus = 'ok';
-    } catch(e) { _syncStatus = 'error'; console.warn('Poll error:', e.message); }
+      _pollFailCount = 0;
+    } catch(e) {
+      _syncStatus = 'error';
+      _pollFailCount++;
+      if (_pollFailCount === 1 || _pollFailCount % 5 === 0) console.warn('Poll error:', e.message);
+      if (_pollFailCount >= 3) _stopPolling();
+    }
   }
 
   function _startPolling() {
@@ -11350,6 +11432,7 @@ window.renderMerchants = function(){
       _obStep=1; save();
       _publishProfile();
       if(typeof render==='function') render(); else renderMerchants();
+    });
   }
 
   function _obRow(lbl,val){
@@ -12375,7 +12458,12 @@ window.renderMerchants = function(){
       renderMerchants();
       if(!_dirResults.length && typeof toast==='function') toast('No merchants found for "'+q+'"','');
     } catch(e) {
-      if(typeof toast==='function') toast('Search failed: '+e.message,'');
+      _dirResults = _localDirectorySearch(q);
+      renderMerchants();
+      if(typeof toast==='function'){
+        if(_dirResults.length) toast('API unavailable — showing local matches only','warn');
+        else toast('Search failed (API unreachable). Set window.MERCHANT_API_URL or localStorage.merchant_api_base.','');
+      }
     } finally {
       var btn2=$('#dir_search'); if(btn2){ btn2.textContent='🔍 Search'; btn2.disabled=false; }
     }
@@ -12410,7 +12498,6 @@ window.renderMerchants = function(){
     var hash = window.location.hash || '';
     var m = hash.match(/[#&]invite=([A-Za-z0-9+/=]+)/);
     if(!m) return;
-    try{ history.replaceState(null,'',window.location.pathname+window.location.search); }catch(e){}
     var payload;
     try{ payload = JSON.parse(decodeURIComponent(escape(atob(m[1])))); }catch(e){ return; }
     if(!payload || !payload.mid) return;
@@ -12423,11 +12510,14 @@ window.renderMerchants = function(){
       return;
     }
     _showIncomingInviteDialog(payload);
+    try{ history.replaceState(null,'',window.location.pathname+window.location.search); }catch(e){}
   }
 
   function _showIncomingInviteDialog(payload){
-    if(typeof openModal !== 'function'){ setTimeout(function(){ _showIncomingInviteDialog(payload); },800); return; }
-    openModal('Merchant Invite Received',
+    var _om=(typeof openModal==='function'?openModal:(typeof window!=='undefined'&&typeof window.openModal==='function'?window.openModal:null));
+    var _cm=(typeof closeModal==='function'?closeModal:(typeof window!=='undefined'&&typeof window.closeModal==='function'?window.closeModal:null));
+    if(!_om){ setTimeout(function(){ _showIncomingInviteDialog(payload); },800); return; }
+    _om('Merchant Invite Received',
       '<div style="text-align:center;padding:12px 0;">' +
         '<div style="font-size:32px;margin-bottom:8px;">🤝</div>' +
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px;">'+esc(payload.name || payload.mid)+'</div>' +
@@ -12443,28 +12533,55 @@ window.renderMerchants = function(){
       )
     );
     setTimeout(function(){
-      $('#m_c')?.addEventListener('click', closeModal);
-      $('#inv_accept_url')?.addEventListener('click', function(){
-        if(!MS.profile){ closeModal(); return; }
+      $('#m_c')?.addEventListener('click', function(){ if(_cm) _cm(); });
+      $('#inv_accept_url')?.addEventListener('click', async function(){
+        if(!MS.profile){ if(_cm) _cm(); return; }
         var alreadyRel = MS.relationships.some(function(r){
           return (r.merchant_a_id===MS.profile.merchant_id&&r.merchant_b_id===payload.mid)||
                  (r.merchant_b_id===MS.profile.merchant_id&&r.merchant_a_id===payload.mid);
         });
-        if(alreadyRel){ if(typeof toast==='function') toast('Already connected!','good'); closeModal(); return; }
-        var inv={ id:uid(), from_merchant_id:payload.mid, to_merchant_id:MS.profile.merchant_id,
+        if(alreadyRel){ if(typeof toast==='function') toast('Already connected!','good'); if(_cm) _cm(); return; }
+
+        var inviteId = uid();
+        var relId = uid();
+        try {
+          await _apiSendInvite({
+            id: inviteId,
+            from_merchant_id: payload.mid,
+            to_merchant_id: MS.profile.merchant_id,
+            purpose: 'Via invite link',
+            message: 'Accepted via invite link'
+          });
+          var accepted = await _apiAcceptInvite(inviteId, MS.profile.merchant_id);
+          if(accepted && accepted.relationship_id) relId = accepted.relationship_id;
+        } catch(e) {
+          try {
+            var inbox = await _api('GET','/api/invites/inbox/'+encodeURIComponent(MS.profile.merchant_id));
+            var remoteInv = (inbox||[]).find(function(i){ return i.from_merchant_id===payload.mid && i.status==='pending'; });
+            if(remoteInv){
+              inviteId = remoteInv.id;
+              var accepted2 = await _apiAcceptInvite(inviteId, MS.profile.merchant_id);
+              if(accepted2 && accepted2.relationship_id) relId = accepted2.relationship_id;
+            }
+          } catch(_e){}
+        }
+
+        var inv={ id:inviteId, from_merchant_id:payload.mid, to_merchant_id:MS.profile.merchant_id,
           status:'accepted', purpose:'Via invite link', requested_role:'operator',
           message:'Accepted via invite link', created_at:payload.ts, updated_at:Date.now(), expires_at:Date.now()+14*86400000 };
-        MS.invites.push(inv);
-        var rel={ id:uid(), merchant_a_id:payload.mid, merchant_b_id:MS.profile.merchant_id,
-          invite_id:inv.id, relationship_type:'general', status:'active', created_at:Date.now(), updated_at:Date.now() };
-        MS.relationships.push(rel);
-        MS.relationshipTerms.push({ id:uid(), relationship_id:rel.id, default_ratio:MS.profile.default_profit_ratio||60,
-          loss_policy:'shared_ratio', settlement_cycle:MS.profile.default_settlement_cycle||'monthly',
-          allowed_currencies:['USDT','QAR'], allowed_deal_classes:['advance','purchase','profitshare','pool'],
-          advances_enabled:true, sales_enabled:true, funded_deals_enabled:true, pools_enabled:true, created_at:Date.now() });
+        if(!MS.invites.some(function(i){ return i.id===inv.id; })) MS.invites.push(inv);
+        if(!MS.relationships.some(function(r){ return r.id===relId || ((r.merchant_a_id===payload.mid&&r.merchant_b_id===MS.profile.merchant_id)||(r.merchant_b_id===payload.mid&&r.merchant_a_id===MS.profile.merchant_id)); })){
+          var rel={ id:relId, merchant_a_id:payload.mid, merchant_b_id:MS.profile.merchant_id,
+            invite_id:inv.id, relationship_type:'general', status:'active', created_at:Date.now(), updated_at:Date.now() };
+          MS.relationships.push(rel);
+          MS.relationshipTerms.push({ id:uid(), relationship_id:rel.id, default_ratio:MS.profile.default_profit_ratio||60,
+            loss_policy:'shared_ratio', settlement_cycle:MS.profile.default_settlement_cycle||'monthly',
+            allowed_currencies:['USDT','QAR'], allowed_deal_classes:['advance','purchase','profitshare','pool'],
+            advances_enabled:true, sales_enabled:true, funded_deals_enabled:true, pools_enabled:true, created_at:Date.now() });
+        }
         notify('invite','Connected with '+esc(payload.name||payload.mid),'Relationship active via invite link.');
         audit('invite_accepted','invite',inv.id,'Accepted via link from '+payload.mid);
-        save(); closeModal();
+        save(); if(_cm) _cm();
         _tab='relationships'; renderMerchants();
         if(typeof toast==='function') toast('Connected with '+esc(payload.name||payload.mid)+' ✓','good');
       });
@@ -12472,15 +12589,17 @@ window.renderMerchants = function(){
   }
 
   function _openInviteModal(targetMid,targetName){
-    if(typeof openModal !== 'function') return;
-    openModal('Send Invite to '+esc(targetName||targetMid), [
+    var _om=(typeof openModal==='function'?openModal:(typeof window!=='undefined'&&typeof window.openModal==='function'?window.openModal:null));
+    var _cm=(typeof closeModal==='function'?closeModal:(typeof window!=='undefined'&&typeof window.closeModal==='function'?window.closeModal:null));
+    if(!_om) return;
+    _om('Send Invite to '+esc(targetName||targetMid), [
       '<div class="form-field"><label class="form-label">Purpose</label><input id="inv_purpose" class="inp-field" placeholder="e.g. Trading collaboration"/></div>',
       '<div class="form-field"><label class="form-label">Message</label><textarea id="inv_msg" class="inp-field" style="min-height:50px;" placeholder="Introduce yourself…"></textarea></div>',
       '<div class="msg" id="inv_err"></div>',
     ].join(''),
     '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">📨 Send Invite</button>');
     setTimeout(function(){
-      $('#m_c')?.addEventListener('click',closeModal);
+      $('#m_c')?.addEventListener('click',function(){ if(_cm) _cm(); });
       $('#m_send')?.addEventListener('click',async function(){
         var purpose=($('#inv_purpose')?.value||'').trim(), msg=($('#inv_msg')?.value||'').trim();
         var errEl=$('#inv_err');
@@ -12493,7 +12612,7 @@ window.renderMerchants = function(){
           MS.invites.push(inv); // update local cache
           audit('invite_sent','invite',inv.id,'Invite to '+targetMid);
           notify('invite','Invite sent','Invite to '+targetMid+' pending.');
-          save(); closeModal(); _tab='invites'; _invTab='sent'; renderMerchants();
+          save(); if(_cm) _cm(); _tab='invites'; _invTab='sent'; renderMerchants();
           if(typeof toast==='function') toast('📨 Invite sent to '+(targetName||targetMid),'good');
         } catch(e2) {
           if(errEl){ errEl.textContent=e2.message; errEl.className='msg err'; }
@@ -12601,7 +12720,6 @@ window.renderMerchants = function(){
       if(pb) pb.innerHTML = '<div style="padding:40px;text-align:center;"><div style="font-size:24px;margin-bottom:10px;">⚠️</div><div style="font-weight:700;margin-bottom:6px;">Merchant Module Error</div><div style="color:var(--muted,#888);font-size:11px;">' + String(e.message||e) + '</div><div style="margin-top:12px;"><button class="btn" onclick="localStorage.removeItem(\'mch_platform_v3\');localStorage.removeItem(\'mch_platform_v2\');location.reload();">Reset &amp; Reload</button></div></div>';
     };
   }
-
 
   // Check for incoming invite link on load
   try {
@@ -13256,6 +13374,27 @@ window.renderMerchants = function(){
     saveRecompute('Dashboard KPIs saved ✓', 'good');
   }
 
+  function _kpiFor(range){
+    try { if (typeof kpiFor === 'function') return kpiFor(range); } catch(e){}
+    try { if (typeof window !== 'undefined' && typeof window.kpiFor === 'function') return window.kpiFor(range); } catch(e){}
+    return { rev:0, net:0, qty:0, fee:0, count:0, avgMgn:0 };
+  }
+  function _totalStock(){
+    try { if (typeof totalStock === 'function') return totalStock(); } catch(e){}
+    try { if (typeof window !== 'undefined' && typeof window.totalStock === 'function') return window.totalStock(); } catch(e){}
+    return 0;
+  }
+  function _stockCostQAR(){
+    try { if (typeof stockCostQAR === 'function') return stockCostQAR(); } catch(e){}
+    try { if (typeof window !== 'undefined' && typeof window.stockCostQAR === 'function') return window.stockCostQAR(); } catch(e){}
+    return 0;
+  }
+  function _getWACOP(){
+    try { if (typeof getWACOP === 'function') return getWACOP(); } catch(e){}
+    try { if (typeof window !== 'undefined' && typeof window.getWACOP === 'function') return window.getWACOP(); } catch(e){}
+    return 0;
+  }
+
   function computeSevenDayRoi(){
     var today = new Date();
     today.setHours(23,59,59,999);
@@ -13284,7 +13423,7 @@ window.renderMerchants = function(){
       }
     }
     var avgDeployed = deployedSeries.length ? deployedSeries.reduce(function(sum, v){ return sum + v; }, 0) / deployedSeries.length : 0;
-    var net7 = fmtMaybe(function(){ return kpiFor('7d').net || 0; }, 0);
+    var net7 = fmtMaybe(function(){ return _kpiFor('7d').net || 0; }, 0);
     return {
       netQAR: net7,
       avgDeployedQAR: avgDeployed,
@@ -13293,13 +13432,14 @@ window.renderMerchants = function(){
   }
 
   function dashboardKpiDefs(){
-    var dR = fmtMaybe(function(){ return kpiFor(state.range); }, { count:0, qty:0, rev:0, net:0, avgMgn:0 });
-    var d7 = fmtMaybe(function(){ return kpiFor('7d'); }, { count:0, qty:0, rev:0, net:0, avgMgn:0 });
+    var dR = fmtMaybe(function(){ return _kpiFor(state.range); }, { count:0, qty:0, rev:0, net:0, avgMgn:0 });
+    var d7 = fmtMaybe(function(){ return _kpiFor('7d'); }, { count:0, qty:0, rev:0, net:0, avgMgn:0 });
     var allTrades = (state.trades || []).filter(function(t){ return !t.voided; });
-    var stk = fmtMaybe(function(){ return totalStock(); }, 0);
-    var stCost = fmtMaybe(function(){ return stockCostQAR(); }, 0);
-    var wacop = fmtMaybe(function(){ return getWACOP(); }, 0);
-    var avgM = allTrades.length ? allTrades.map(function(t){ var c = derived.tradeCalc.get(t.id); return c && c.ok ? Number(c.margin) : null; }).filter(function(x){ return x != null; }).reduce(function(sum, v, _, arr){ return sum + v / arr.length; }, 0) : 0;
+    var stk = fmtMaybe(function(){ return _totalStock(); }, 0);
+    var stCost = fmtMaybe(function(){ return _stockCostQAR(); }, 0);
+    var wacop = fmtMaybe(function(){ return _getWACOP(); }, 0);
+    var _drv0 = (typeof derived !== 'undefined' && derived && derived.tradeCalc) ? derived : ((typeof window !== 'undefined' && window.derived && window.derived.tradeCalc) ? window.derived : null);
+    var avgM = allTrades.length ? allTrades.map(function(t){ var c = _drv0 ? _drv0.tradeCalc.get(t.id) : null; return c && c.ok ? Number(c.margin) : null; }).filter(function(x){ return x != null; }).reduce(function(sum, v, _, arr){ return sum + v / arr.length; }, 0) : 0;
     var p2pSpreadPct = (wacop > 0 && p2p && p2p.sellAvg) ? ((Number(p2p.sellAvg) - wacop) / wacop) * 100 : null;
     var stockUtilDen = stCost + num0(state.cashQAR);
     var stockUtilPct = stockUtilDen > 0 ? (stCost / stockUtilDen) * 100 : null;
@@ -13391,15 +13531,16 @@ window.renderMerchants = function(){
   function renderDashboardV6(){
     hideMyBoard();
     if(typeof setHeader==='function') setHeader('Dashboard', 'FIFO · ' + curUnit() + ' · ' + new Date().toLocaleDateString(uiLocale()));
-    var d1 = kpiFor('today'), d7 = kpiFor('7d'), dR = kpiFor(state.range), stk = totalStock(), stCost = stockCostQAR(), wacop = getWACOP();
+    var d1 = _kpiFor('today'), d7 = _kpiFor('7d'), dR = _kpiFor(state.range), stk = _totalStock(), stCost = _stockCostQAR(), wacop = _getWACOP();
     var allTrades = (state.trades || []).filter(function(t){ return !t.voided; });
-    var allMargins = allTrades.map(function(t){ var c = derived.tradeCalc.get(t.id); return c && c.ok ? c.margin : null; }).filter(function(x){ return x !== null; });
+    var _drv = (typeof derived !== 'undefined' && derived && derived.tradeCalc) ? derived : ((typeof window !== 'undefined' && window.derived && window.derived.tradeCalc) ? window.derived : null);
+    var allMargins = allTrades.map(function(t){ var c = _drv ? _drv.tradeCalc.get(t.id) : null; return c && c.ok ? c.margin : null; }).filter(function(x){ return x !== null; });
     var avgM = allMargins.length ? allMargins.reduce(function(s, v){ return s + v; }, 0) / allMargins.length : 0;
     var low = num0(state.settings && state.settings.lowStockThreshold) || 5000;
     var isLow = stk <= 0 || (low > 0 && stk < low);
     var recent = allTrades.slice().sort(function(a,b){ return a.ts - b.ts; }).slice(-14);
     var tLbls = recent.map(function(t){ return new Date(t.ts).toLocaleDateString('en-US', { month:'short', day:'numeric' }); });
-    var tNets = recent.map(function(t){ var c = derived.tradeCalc.get(t.id); return c && c.ok ? +c.netQAR.toFixed(2) : 0; });
+    var tNets = recent.map(function(t){ var c = _drv ? _drv.tradeCalc.get(t.id) : null; return c && c.ok ? +c.netQAR.toFixed(2) : 0; });
     var tRevs = recent.map(function(t){ return +(t.amountUSDT * t.sellPriceQAR).toFixed(2); });
     var defs = dashboardKpiDefs();
     var selectedIds = getDashboardSelection();
