@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 12/41 tasks (29%)  `███████░░░░░░░░░░░░░░░░░`
+**Progress:** 13/42 tasks (31%)  `███████░░░░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -146,14 +146,21 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 2. **Evidence:** `backend/verify-system.bat` and runbook “Backend-root launcher (easiest)” section update.
 3. **Next step (Agent):** Parse output from explicit launcher invocation and update Phase 1 gate status.
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
-5. **Required from you (User):** Run `cmd /c verify-system.cmd` from `backend/` and paste full output.
+5. **Required from you (User):** Run `cmd /c .\verify-system.cmd` from `backend/` and paste full output.
 
 ### Step 1.14 — Hardened Node verifier for Windows assertion crash
 1. **Step completed:** Updated Node verifier to avoid abrupt `process.exit(1)` and added deep diagnostics for all-404 responses.
 2. **Evidence:** `backend/scripts/verify-system-endpoints.mjs` now sets `process.exitCode` and probes `/` when all API routes return 404.
 3. **Next step (Agent):** Use new diagnostics to determine whether target URL is backend worker or mismatched deployment.
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
-5. **Required from you (User):** Pull latest code and re-run `cmd /c verify-system.cmd`; paste full output including script version line.
+5. **Required from you (User):** Pull latest code and re-run `cmd /c .\verify-system.cmd`; paste full output including script version line.
+
+### Step 1.15 — Fixed launcher invocation guidance (`cmd /c .\verify-system.cmd`)
+1. **Step completed:** Corrected Windows invocation guidance to include explicit relative path and made `verify-system.ps1` location-safe via `$MyInvocation` path.
+2. **Evidence:** `backend/migrations/README.md` command examples and updated `backend/verify-system.ps1`.
+3. **Next step (Agent):** Parse output from corrected launcher command and finalize Phase 1 endpoint checks.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Run `cmd /c .\verify-system.cmd` from `backend/` and paste output with script version line.
 
 ### Phase 1 summary
 1. **Phase status:** In Progress.

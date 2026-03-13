@@ -113,8 +113,16 @@ If `.cmd` is still not recognized in PowerShell, run one of these explicit forms
 
 ```powershell
 & ".\verify-system.cmd"
-cmd /c verify-system.cmd
+cmd /c .\verify-system.cmd
 .\verify-system.bat
+```
+
+If command discovery is still inconsistent, check resolution paths:
+
+```powershell
+Get-Location
+Get-ChildItem .\
+where verify-system.cmd
 ```
 
 ### Windows CMD/PowerShell wrapper (recommended)
