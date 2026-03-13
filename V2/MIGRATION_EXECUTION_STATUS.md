@@ -74,6 +74,13 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run the two curl commands from your machine/network and share outputs, or provide a reachable endpoint/proxy allowance for this environment.
 
+### Step 1.5 — Windows command correction for endpoint validation
+1. **Step completed:** Added PowerShell-safe endpoint verification commands and troubleshooting notes.
+2. **Evidence:** `backend/migrations/README.md` now includes `curl.exe` and `Invoke-RestMethod` examples plus Windows pitfalls.
+3. **Next step (Agent):** Validate returned JSON payloads once you run the corrected commands.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Run the new PowerShell commands and share the JSON responses for `/api/system/health` and `/api/system/migrations`.
+
 ### Phase 1 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
@@ -86,5 +93,5 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
    - [ ] `/api/system/migrations` returns applied version `001`. *(blocked in this environment: CONNECT tunnel 403)*
 4. **Next step (Agent):** Execute migration + endpoint validation commands and record output snapshots.
 5. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
-6. **Required from you (User):** Provide Worker domain and authorize target environment execution sequence.
+6. **Required from you (User):** Run corrected Windows commands from `backend/migrations/README.md` and share the JSON outputs so Phase 1 can be closed.
 

@@ -36,9 +36,37 @@ curl -s https://<worker-domain>/api/system/health
 curl -s https://<worker-domain>/api/system/migrations
 ```
 
+### PowerShell (Windows) equivalents
+
+PowerShell aliases `curl` to `Invoke-WebRequest`, so use one of these safe options:
+
+```powershell
+# Option A: use curl.exe explicitly
+curl.exe -sS "https://<worker-domain>/api/system/health"
+curl.exe -sS "https://<worker-domain>/api/system/migrations"
+
+# Option B: native PowerShell JSON fetch
+(Invoke-RestMethod "https://<worker-domain>/api/system/health") | ConvertTo-Json -Depth 10
+(Invoke-RestMethod "https://<worker-domain>/api/system/migrations") | ConvertTo-Json -Depth 10
+```
+
+### Common Windows pitfalls
+
+- Do **not** run `. $args[0] curl ...` (that syntax invokes script arguments and will not execute the endpoint check as intended).
+- If output is blank, run with verbose flags:
+
+```powershell
+curl.exe -v "https://<worker-domain>/api/system/health"
+```
+
+- For TLS/proxy issues, test with:
+
+```powershell
+Test-NetConnection p2p-tracker.taheito26.workers.dev -Port 443
+```
+
 ## Expected results
 
 - `/api/system/health` returns `ok: true` and `bindings.db: true`.
 - `/api/system/migrations` includes version `001`.
 - Running migration SQL repeatedly does not duplicate version `001`.
-
