@@ -131,6 +131,23 @@ async function d1All(db, sql, ...params) {
 async function d1Run(db, sql, ...params) {
   return await db.prepare(sql).bind(...params).run();
 }
+async function ensureSchemaMigrationsTable(db) {
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      version TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+}
+async function listSchemaMigrations(db) {
+  await ensureSchemaMigrationsTable(db);
+  return await d1All(
+    db,
+    `SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC`
+  );
+}
 function merchantId() {
   const bytes = new Uint8Array(4);
   crypto.getRandomValues(bytes);
@@ -1353,6 +1370,46 @@ async function handleP2P(request, env) {
   return null;
 }
 
+async function handleSystem(request, env) {
+  const url = new URL(request.url);
+  if (url.pathname === "/api/system/health") {
+    const health = {
+      ok: true,
+      service: "p2p-tracker",
+      timestamp: nowIso(),
+      bindings: {
+        db: !!env.DB,
+        kv: !!env.P2P_KV,
+      },
+    };
+
+    if (env.DB) {
+      try {
+        const ping = await d1First(env.DB, "SELECT 1 AS ok");
+        health.bindings.dbCheck = ping?.ok === 1;
+      } catch (err) {
+        health.ok = false;
+        health.bindings.dbCheck = false;
+        health.errors = [{ scope: "db", message: err.message || "DB check failed" }];
+      }
+    }
+
+    return json(request, env, health, health.ok ? 200 : 503);
+  }
+
+  if (url.pathname === "/api/system/migrations") {
+    if (!env.DB) return bad(request, env, "D1 binding DB is not configured", 500);
+    try {
+      const rows = await listSchemaMigrations(env.DB);
+      return json(request, env, { migrations: rows, count: rows.length });
+    } catch (err) {
+      return bad(request, env, err.message || "Failed to list migrations", 500);
+    }
+  }
+
+  return null;
+}
+
 export default {
   async scheduled(_event, env, ctx) {
     if (!env.P2P_KV) return;
@@ -1363,6 +1420,10 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
     const url = new URL(request.url);
+    if (url.pathname.startsWith("/api/system")) {
+      const system = await handleSystem(request, env);
+      if (system) return system;
+    }
     if (url.pathname.startsWith("/api/merchant")) {
       return handleMerchant(request, env);
     }
