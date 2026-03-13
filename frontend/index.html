@@ -8107,6 +8107,26 @@ window.navTo=navTo;
 window.renderCRM=renderCRM;
 window.save=save;
 window.toast=toast;
+window.kpiFor=kpiFor;
+window.totalStock=totalStock;
+window.stockCostQAR=stockCostQAR;
+window.getWACOP=getWACOP;
+window.destroyChart=destroyChart;
+window.clearCharts=clearCharts;
+window.num=num;
+window.fmtQ=fmtQ;
+window.fmtU=fmtU;
+window.fmtP=fmtP;
+window.fmtPct=fmtPct;
+window.fmtQWithUnit=fmtQWithUnit;
+window.rl=rl;
+window.dispAmt=dispAmt;
+window.dispRate=dispRate;
+window.curLabel=curLabel;
+window.renderMerchants=window.renderMerchants||function(){
+  var pb=document.getElementById('pageBody');
+  if(pb) pb.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted,#888);font-size:12px;">Merchant module loading…</div>';
+};
 try{
   Object.defineProperty(window,"state",{get:()=>state,set:v=>{state=v;}});
 }catch(e){
@@ -11351,6 +11371,7 @@ window.renderMerchants = function(){
       _publishProfile();
       if(typeof render==='function') render(); else renderMerchants();
     });
+  }
 
   function _obRow(lbl,val){
     return '<div style="padding:6px 8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:8px;">'+esc(lbl)+'</div><div style="font-weight:600;margin-top:1px;">'+esc(String(val||'—'))+'</div></div>';
