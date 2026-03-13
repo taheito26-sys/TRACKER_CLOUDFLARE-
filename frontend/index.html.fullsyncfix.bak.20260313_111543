@@ -11609,41 +11609,8 @@ window.renderMerchants = function(){
     });
     MS.relationships = Object.keys(relMap).map(function(k){ return relMap[k]; });
   }
-  async function _syncMerchantStateFromApi(){
-    if(!MS || !MS.profile || !MS.profile.merchant_id) return;
-
-    var mid = encodeURIComponent(MS.profile.merchant_id);
-
-    try{
-      var rels = [];
-      var inbox = [];
-      var sent = [];
-
-      try { rels = await _api('GET','/api/relationships/' + mid); } catch(_e) {}
-      try { inbox = await _api('GET','/api/invites/inbox/' + mid); } catch(_e) {}
-      try { sent = await _api('GET','/api/invites/sent/' + mid); } catch(_e) {}
-
-      MS.relationships = Array.isArray(rels) ? rels : [];
-
-      var pendingOnly = []
-        .concat(Array.isArray(inbox) ? inbox.filter(function(i){ return i && i.status === 'pending'; }) : [])
-        .concat(Array.isArray(sent) ? sent.filter(function(i){ return i && i.status === 'pending'; }) : []);
-
-      var byId = {};
-      pendingOnly.forEach(function(i){
-        if(!i || !i.id) return;
-        byId[i.id] = i;
-      });
-
-      MS.invites = Object.keys(byId).map(function(k){ return byId[k]; });
-
-      save();
-    }catch(_e){}
-  }
-
 
   function _tabDirectory(){
-    try{ _normalizeRelationshipsLocal(); }catch(_e){}
     _normalizeRelationshipsLocal();
     var html = '<div class="panel"><div class="panel-head"><h2>Merchant Directory</h2></div><div class="panel-body">' +
       '<div style="display:flex;gap:6px;margin-bottom:12px;">' +
@@ -11663,37 +11630,6 @@ window.renderMerchants = function(){
     }
     return html+'</div></div>';
   }
-  async function _bootSyncMerchantState(){
-    if(!MS || !MS.profile || !MS.profile.merchant_id) return;
-
-    var mid = encodeURIComponent(MS.profile.merchant_id);
-
-    try{
-      var rels = [];
-      var inbox = [];
-      var sent = [];
-
-      try { rels = await _api('GET','/api/relationships/' + mid); } catch(_e) {}
-      try { inbox = await _api('GET','/api/invites/inbox/' + mid); } catch(_e) {}
-      try { sent = await _api('GET','/api/invites/sent/' + mid); } catch(_e) {}
-
-      MS.relationships = Array.isArray(rels) ? rels : [];
-
-      var pendingOnly = []
-        .concat(Array.isArray(inbox) ? inbox.filter(function(i){ return i && i.status === 'pending'; }) : [])
-        .concat(Array.isArray(sent) ? sent.filter(function(i){ return i && i.status === 'pending'; }) : []);
-
-      var byId = {};
-      pendingOnly.forEach(function(i){
-        if(!i || !i.id) return;
-        byId[i.id] = i;
-      });
-
-      MS.invites = Object.keys(byId).map(function(k){ return byId[k]; });
-      save();
-    }catch(_e){}
-  }
-
 
   /* ═══════════════════════════════════════════════════════════════════════
      TAB: Invites
@@ -12832,12 +12768,6 @@ window.renderMerchants = function(){
   if(typeof state !== 'undefined' && Array.isArray(state.merchants) && state.merchants.length>0 && MS.merchants.length===0){
     MS.merchants = state.merchants;
   }
-
-  setTimeout(function(){
-    _bootSyncMerchantState().then(function(){
-      try{ renderMerchants(); }catch(_e){}
-    }).catch(function(){});
-  }, 0);
 
   } catch(e) {
     /* If the module fails, set up a visible error so the user sees what happened */
@@ -14215,8 +14145,6 @@ window.renderMerchants = function(){
 
 </body>
 </html>
-
-
 
 
 

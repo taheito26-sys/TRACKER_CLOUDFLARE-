@@ -2901,7 +2901,7 @@ function commitSettingsDraft_(){
   saveRecompute("Settings saved","good");
   // Ensure cloud sync happens after an explicit settings commit (if enabled)
   try {
-    if (gasAutoSaveEnabled_()) setTimeout(function(){ try{ syncSchedule(); }catch(e){ console.error("merchant sync failed", e); } }, 0);
+    if (gasAutoSaveEnabled_()) setTimeout(function(){ try{ syncSchedule(); }catch(_e){} }, 0);
   } catch(e) {}
 
   // If Auto-backup is OFF, settings are saved locally only.
@@ -3529,7 +3529,7 @@ function _applyP2PResponse(data){
 // ── Primary: fetch from your Cloudflare Worker API ───────────────
 async function p2pFetchFromAPI(){
   const url=P2P_API_URL.replace(/\/+$/,"")+"/api/p2p";
-  const r=await fetch((/^\/api\//.test(url) ? MERCHANT_API_BASE + url : url),{signal:AbortSignal.timeout(10000)});
+  const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
   if(!r.ok) throw new Error(`Worker API ${r.status}`);
   const data=await r.json();
   if(data.error) throw new Error(data.error);
@@ -4883,7 +4883,7 @@ function wireSystemHealth_(){
       if (ct) ct.textContent = String((window._logBuf && window._logBuf.length) ? window._logBuf.length : 0);
 
       // sys_logs_en change listener is wired in renderSettings(). Skip here to avoid duplicate.
-      lv?.addEventListener("change", function(e){ try{ var p=(typeof window.getUiPrefs==="function")?window.getUiPrefs():{logsEnabled:true,logLevel:"info"}; p.logLevel=String(e.target.value||"info"); if(typeof window.setUiPrefs==="function") window.setUiPrefs(p);}catch(e){ console.error("merchant sync failed", e); } });
+      lv?.addEventListener("change", function(e){ try{ var p=(typeof window.getUiPrefs==="function")?window.getUiPrefs():{logsEnabled:true,logLevel:"info"}; p.logLevel=String(e.target.value||"info"); if(typeof window.setUiPrefs==="function") window.setUiPrefs(p);}catch(_e){} });
       document.getElementById("sys_logs_open")?.addEventListener("click", function(){ if (typeof window.openLogsModal==="function") window.openLogsModal(); else toast("Logs modal not available","warn"); });
       document.getElementById("sys_logs_dl")?.addEventListener("click", function(){ if (typeof _loadLogs==="function") _loadLogs(); var txt=(_logBuf||[]).map(function(x){return JSON.stringify(x);}).join("\\n")+"\\n"; if (typeof _downloadText==="function") _downloadText("taheito-logs.jsonl", txt); });
       document.getElementById("sys_logs_clear")?.addEventListener("click", function(){ if(!confirm("Clear client logs?"))return; window._logBuf=[]; if(typeof window._saveLogs==="function") window._saveLogs(); toast("Cleared","warn"); var ct2=document.getElementById("sys_logs_count"); if(ct2) ct2.textContent="0"; });
@@ -5122,10 +5122,10 @@ function renderSettings(){
       state.prefs = state.prefs || {};
       state.prefs.autoFontDisable = !on;
       // keep draft in sync if user has pending settings
-      try{ if (_settingsDraft && _settingsDraft.prefs) _settingsDraft.prefs.autoFontDisable = state.prefs.autoFontDisable; }catch(e){ console.error("merchant sync failed", e); }
+      try{ if (_settingsDraft && _settingsDraft.prefs) _settingsDraft.prefs.autoFontDisable = state.prefs.autoFontDisable; }catch(_e){}
       applyLayout();
       saveRecompute("Auto-adjust " + (on ? "ON" : "OFF"), on ? "good" : "warn");
-    }catch(err){ try{ toast("Failed to save auto-adjust","warn"); }catch(e){ console.error("merchant sync failed", e); } }
+    }catch(err){ try{ toast("Failed to save auto-adjust","warn"); }catch(_e){} }
   });
   $("#s_xl")?.addEventListener("click",exportExcel);$("#s_js")?.addEventListener("click",saveToFile);$("#s_cv")?.addEventListener("click",exportCsv);
   $("#s_clr")?.addEventListener("click",clearAll);
@@ -11063,8 +11063,6 @@ window.renderMerchants = function(){
     return bases.filter(function(b, i){ return b && bases.indexOf(b)===i; });
   }
   var _apiBases = _mkApiBases();
-  const MERCHANT_API_BASE = "https://p2p-merchant-api.taheito26.workers.dev";
-
 
   async function _api(method, path, body) {
     var hasBody = body !== undefined && body !== null;
@@ -11597,54 +11595,7 @@ window.renderMerchants = function(){
   /* ═══════════════════════════════════════════════════════════════════════
      TAB: Directory (Section 7)
      ═══════════════════════════════════════════════════════════════════════ */
-  function _normalizeRelationshipsLocal(){
-    var relMap = {};
-    (MS.relationships || []).forEach(function(r){
-      if(!r || r.status !== 'active') return;
-      var a = String(r.merchant_a_id || '');
-      var b = String(r.merchant_b_id || '');
-      if(!a || !b) return;
-      var key = [a,b].sort().join('|');
-      if(!relMap[key] || Number(r.updated_at||0) > Number(relMap[key].updated_at||0)) relMap[key] = r;
-    });
-    MS.relationships = Object.keys(relMap).map(function(k){ return relMap[k]; });
-  }
-  async function _syncMerchantStateFromApi(){
-    if(!MS || !MS.profile || !MS.profile.merchant_id) return;
-
-    var mid = encodeURIComponent(MS.profile.merchant_id);
-
-    try{
-      var rels = [];
-      var inbox = [];
-      var sent = [];
-
-      try { rels = await _api('GET','/api/relationships/' + mid); } catch(_e) {}
-      try { inbox = await _api('GET','/api/invites/inbox/' + mid); } catch(_e) {}
-      try { sent = await _api('GET','/api/invites/sent/' + mid); } catch(_e) {}
-
-      MS.relationships = Array.isArray(rels) ? rels : [];
-
-      var pendingOnly = []
-        .concat(Array.isArray(inbox) ? inbox.filter(function(i){ return i && i.status === 'pending'; }) : [])
-        .concat(Array.isArray(sent) ? sent.filter(function(i){ return i && i.status === 'pending'; }) : []);
-
-      var byId = {};
-      pendingOnly.forEach(function(i){
-        if(!i || !i.id) return;
-        byId[i.id] = i;
-      });
-
-      MS.invites = Object.keys(byId).map(function(k){ return byId[k]; });
-
-      save();
-    }catch(_e){}
-  }
-
-
   function _tabDirectory(){
-    try{ _normalizeRelationshipsLocal(); }catch(_e){}
-    _normalizeRelationshipsLocal();
     var html = '<div class="panel"><div class="panel-head"><h2>Merchant Directory</h2></div><div class="panel-body">' +
       '<div style="display:flex;gap:6px;margin-bottom:12px;">' +
         '<input id="dir_q" class="inp-field" style="flex:1;" placeholder="Search by nickname or Merchant ID (MRC-...)"/>' +
@@ -11663,37 +11614,6 @@ window.renderMerchants = function(){
     }
     return html+'</div></div>';
   }
-  async function _bootSyncMerchantState(){
-    if(!MS || !MS.profile || !MS.profile.merchant_id) return;
-
-    var mid = encodeURIComponent(MS.profile.merchant_id);
-
-    try{
-      var rels = [];
-      var inbox = [];
-      var sent = [];
-
-      try { rels = await _api('GET','/api/relationships/' + mid); } catch(_e) {}
-      try { inbox = await _api('GET','/api/invites/inbox/' + mid); } catch(_e) {}
-      try { sent = await _api('GET','/api/invites/sent/' + mid); } catch(_e) {}
-
-      MS.relationships = Array.isArray(rels) ? rels : [];
-
-      var pendingOnly = []
-        .concat(Array.isArray(inbox) ? inbox.filter(function(i){ return i && i.status === 'pending'; }) : [])
-        .concat(Array.isArray(sent) ? sent.filter(function(i){ return i && i.status === 'pending'; }) : []);
-
-      var byId = {};
-      pendingOnly.forEach(function(i){
-        if(!i || !i.id) return;
-        byId[i.id] = i;
-      });
-
-      MS.invites = Object.keys(byId).map(function(k){ return byId[k]; });
-      save();
-    }catch(_e){}
-  }
-
 
   /* ═══════════════════════════════════════════════════════════════════════
      TAB: Invites
@@ -11728,12 +11648,8 @@ window.renderMerchants = function(){
   function _tabInvites(){
     _reconcileInviteStateLocal();
     var p = MS.profile;
-    var inbox = MS.invites.filter(function(i){
-      return i.to_merchant_id===p.merchant_id && i.status==='pending';
-    });
-    var sent = MS.invites.filter(function(i){
-      return i.from_merchant_id===p.merchant_id && i.status==='pending';
-    });
+    var inbox = MS.invites.filter(function(i){ return i.to_merchant_id===p.merchant_id; });
+    var sent = MS.invites.filter(function(i){ return i.from_merchant_id===p.merchant_id; });
     var list = _invTab==='inbox' ? inbox : sent;
     var toggle = '<div style="display:flex;gap:4px;margin-bottom:10px;">'+
       '<button class="rowBtn" id="inv_inbox" style="'+(_invTab==='inbox'?'background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;':'')+' font-size:9px;">📥 Inbox ('+inbox.filter(function(i){return i.status==='pending';}).length+')</button>'+
@@ -11749,16 +11665,7 @@ window.renderMerchants = function(){
      TAB: Relationships / Connections (Section 7)
      ═══════════════════════════════════════════════════════════════════════ */
   function _tabRelationships(){
-    var relMap = {};
-    (MS.relationships || []).forEach(function(r){
-      if(!r) return;
-      var a = String(r.merchant_a_id || '');
-      var b = String(r.merchant_b_id || '');
-      if(!a || !b) return;
-      var key = [a,b].sort().join('|');
-      if(!relMap[key] || Number(r.updated_at||0) > Number(relMap[key].updated_at||0)) relMap[key] = r;
-    });
-    var rels = Object.keys(relMap).map(function(k){ return relMap[k]; });
+    var rels = MS.relationships;
     if(!rels.length) return '<div class="panel"><div class="panel-body"><div class="muted" style="padding:30px;text-align:center;">No relationships yet. Use Directory to find and invite merchants.</div></div></div>';
     return '<div class="panel"><div class="panel-head"><h2>Connections</h2><span class="pill">'+rels.length+'</span></div><div class="panel-body">' +
       rels.map(function(r){
@@ -12684,7 +12591,7 @@ window.renderMerchants = function(){
               var accepted2 = await _apiAcceptInvite(inviteId, MS.profile.merchant_id);
               if(accepted2 && accepted2.relationship_id) relId = accepted2.relationship_id;
             }
-          } catch(e){ console.error("merchant sync failed", e); }
+          } catch(_e){}
         }
 
         var inv={ id:inviteId, from_merchant_id:payload.mid, to_merchant_id:MS.profile.merchant_id,
@@ -12832,12 +12739,6 @@ window.renderMerchants = function(){
   if(typeof state !== 'undefined' && Array.isArray(state.merchants) && state.merchants.length>0 && MS.merchants.length===0){
     MS.merchants = state.merchants;
   }
-
-  setTimeout(function(){
-    _bootSyncMerchantState().then(function(){
-      try{ renderMerchants(); }catch(_e){}
-    }).catch(function(){});
-  }, 0);
 
   } catch(e) {
     /* If the module fails, set up a visible error so the user sees what happened */
@@ -14215,12 +14116,5 @@ window.renderMerchants = function(){
 
 </body>
 </html>
-
-
-
-
-
-
-
 
 

@@ -108,8 +108,6 @@ export default {
       ).bind(to_merchant_id).first();
 
       if (!fromProfile) return err('Sender profile not found', 404);
-      if (!toProfile) return err('Recipient profile not found', 404);
-
       const existingRelationship = await db.prepare(
         "SELECT id FROM relationships WHERE status='active' AND ((merchant_a_id=? AND merchant_b_id=?) OR (merchant_a_id=? AND merchant_b_id=?))"
       ).bind(from_merchant_id, to_merchant_id, to_merchant_id, from_merchant_id).first();
@@ -291,7 +289,6 @@ export default {
     return err('Not found', 404);
   },
 };
-
 
 
 
