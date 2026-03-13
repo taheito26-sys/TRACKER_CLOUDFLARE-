@@ -88,6 +88,20 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** From `backend/`, run `./scripts/verify-system-endpoints.ps1` and paste full output.
 
+### Step 1.7 — 404 diagnostic handling for `/api/system/*`
+1. **Step completed:** Processed your verifier output showing `404 Not Found` on `/api/system/health` and updated tooling/docs to diagnose this path.
+2. **Evidence:** `backend/scripts/verify-system-endpoints.ps1` now captures HTTP status/body and checks `/api/status` fallback; `backend/migrations/README.md` documents 404 remediation.
+3. **Next step (Agent):** Confirm deployment version mismatch vs network issue based on your next verifier output.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Re-run `./scripts/verify-system-endpoints.ps1` and paste full output. If it reports old deployment, run `npx wrangler deploy` from `backend/` then rerun.
+
+### Step 1.8 — User deployment confirmation captured
+1. **Step completed:** Captured your successful `wrangler deploy` evidence for `p2p-tracker` (new Version ID and deployed URL).
+2. **Evidence:** User-provided console output shows deploy success and URL `https://p2p-tracker.taheito26.workers.dev`.
+3. **Next step (Agent):** Validate `/api/system/health` and `/api/system/migrations` outputs from your environment and mark Phase 1 gates.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Run verifier from backend root using the known-good sequence and paste full output.
+
 ### Phase 1 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
@@ -96,9 +110,9 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
    - Migration runbook added.
 3. **Exit criteria status:**
    - [ ] D1 migration registry applied in staging/prod.
-   - [ ] `/api/system/health` validated against deployed Worker. *(blocked in this environment: CONNECT tunnel 403)*
-   - [ ] `/api/system/migrations` returns applied version `001`. *(blocked in this environment: CONNECT tunnel 403)*
-4. **Next step (Agent):** Execute migration + endpoint validation commands and record output snapshots.
+   - [ ] `/api/system/health` validated against deployed Worker. *(blocked in agent environment: CONNECT tunnel 403; user-side now reports 404 indicating likely outdated deployment)*
+   - [ ] `/api/system/migrations` returns applied version `001`. *(blocked in agent environment: CONNECT tunnel 403; user-side now reports 404 indicating likely outdated deployment)*
+4. **Next step (Agent):** Parse verifier output and check off Phase 1 endpoint gates if both checks pass.
 5. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
 6. **Required from you (User):** Run `./scripts/verify-system-endpoints.ps1` from `backend/` and paste full output so Phase 1 gates can be checked off.
 

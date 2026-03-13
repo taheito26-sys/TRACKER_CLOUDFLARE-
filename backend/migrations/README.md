@@ -79,6 +79,26 @@ This script prints both JSON payloads and fails if:
 - `health.ok != true`
 - migration version `001` is not found.
 
+- If you receive `404 Not Found` on `/api/system/*`, run the verifier script. It now checks `/api/status` as a fallback and tells you whether the deployment likely runs older code.
+- If fallback `/api/status` works but `/api/system/*` is 404, redeploy latest backend Worker from this repo and rerun verification.
+
+### Known-good PowerShell sequence (copy/paste)
+
+> Run these commands exactly from a normal PowerShell prompt (no `. $args[0]` prefix):
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+npx wrangler deploy
+.\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
+```
+
+If you are currently inside `backend/scripts`, first move to backend root:
+
+```powershell
+cd ..
+.\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
+```
+
 ## Expected results
 
 - `/api/system/health` returns `ok: true` and `bindings.db: true`.
