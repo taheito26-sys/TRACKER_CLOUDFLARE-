@@ -129,6 +129,8 @@ From `backend/` run this wrapper to avoid shell syntax issues:
 
 Before running, ensure you have latest scripts from git (`git pull`) and confirm files exist with `Get-ChildItem .\scripts`.
 
+If Node shows `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` on Windows, use the latest verifier (`v3`) from this repo; it now exits via `process.exitCode` and avoids abrupt process termination.
+
 ### Known-good PowerShell sequence (copy/paste)
 
 > Run these commands exactly from a normal PowerShell prompt (no `. $args[0]` prefix):

@@ -24,6 +24,7 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Add script wrappers/banners for reliable field verification
 - [x] Add backend-root launcher scripts for field verification
 - [x] Add .bat fallback launcher for PowerShell/CMD edge cases
+- [x] Harden verifier to avoid Windows Node assertion crash
 - [ ] Apply `001_schema_migrations.sql` in staging
 - [ ] Apply `001_schema_migrations.sql` in production
 - [ ] Validate `/api/system/health`

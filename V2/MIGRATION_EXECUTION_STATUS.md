@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 11/40 tasks (28%)  `███████░░░░░░░░░░░░░░░░░`
+**Progress:** 12/41 tasks (29%)  `███████░░░░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -147,6 +147,13 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 3. **Next step (Agent):** Parse output from explicit launcher invocation and update Phase 1 gate status.
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run `cmd /c verify-system.cmd` from `backend/` and paste full output.
+
+### Step 1.14 — Hardened Node verifier for Windows assertion crash
+1. **Step completed:** Updated Node verifier to avoid abrupt `process.exit(1)` and added deep diagnostics for all-404 responses.
+2. **Evidence:** `backend/scripts/verify-system-endpoints.mjs` now sets `process.exitCode` and probes `/` when all API routes return 404.
+3. **Next step (Agent):** Use new diagnostics to determine whether target URL is backend worker or mismatched deployment.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Pull latest code and re-run `cmd /c verify-system.cmd`; paste full output including script version line.
 
 ### Phase 1 summary
 1. **Phase status:** In Progress.
