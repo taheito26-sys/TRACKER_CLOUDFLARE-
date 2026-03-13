@@ -65,6 +65,20 @@ curl.exe -v "https://<worker-domain>/api/system/health"
 Test-NetConnection p2p-tracker.taheito26.workers.dev -Port 443
 ```
 
+### One-command PowerShell validation script
+
+From `backend/` run:
+
+```powershell
+.\scripts\verify-system-endpoints.ps1
+# or with custom URL
+.\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
+```
+
+This script prints both JSON payloads and fails if:
+- `health.ok != true`
+- migration version `001` is not found.
+
 ## Expected results
 
 - `/api/system/health` returns `ok: true` and `bindings.db: true`.

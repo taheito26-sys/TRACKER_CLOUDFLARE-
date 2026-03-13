@@ -81,6 +81,13 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run the new PowerShell commands and share the JSON responses for `/api/system/health` and `/api/system/migrations`.
 
+### Step 1.6 — Added one-command Windows verifier script
+1. **Step completed:** Added a PowerShell script to validate system endpoints without manual curl syntax.
+2. **Evidence:** `backend/scripts/verify-system-endpoints.ps1` and runbook link in `backend/migrations/README.md`.
+3. **Next step (Agent):** Validate and record endpoint outputs once script output is provided.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** From `backend/`, run `./scripts/verify-system-endpoints.ps1` and paste full output.
+
 ### Phase 1 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
@@ -93,5 +100,5 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
    - [ ] `/api/system/migrations` returns applied version `001`. *(blocked in this environment: CONNECT tunnel 403)*
 4. **Next step (Agent):** Execute migration + endpoint validation commands and record output snapshots.
 5. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
-6. **Required from you (User):** Run corrected Windows commands from `backend/migrations/README.md` and share the JSON outputs so Phase 1 can be closed.
+6. **Required from you (User):** Run `./scripts/verify-system-endpoints.ps1` from `backend/` and paste full output so Phase 1 gates can be checked off.
 
