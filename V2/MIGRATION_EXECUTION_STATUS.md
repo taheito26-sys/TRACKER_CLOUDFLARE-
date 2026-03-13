@@ -102,6 +102,13 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run verifier from backend root using the known-good sequence and paste full output.
 
+### Step 1.9 — Added shell-agnostic Node verifier
+1. **Step completed:** Added Node.js verifier script to avoid PowerShell wrapper/alias issues (`. $args[0]`, `curl` aliasing, execution-policy friction).
+2. **Evidence:** `backend/scripts/verify-system-endpoints.mjs` plus runbook usage in `backend/migrations/README.md`.
+3. **Next step (Agent):** Evaluate your Node verifier output and close Phase 1 endpoint gates when checks pass.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Run from backend root: `node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.taheito26.workers.dev"` and paste full output.
+
 ### Phase 1 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
@@ -114,5 +121,5 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
    - [ ] `/api/system/migrations` returns applied version `001`. *(blocked in agent environment: CONNECT tunnel 403; user-side now reports 404 indicating likely outdated deployment)*
 4. **Next step (Agent):** Parse verifier output and check off Phase 1 endpoint gates if both checks pass.
 5. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
-6. **Required from you (User):** Run `./scripts/verify-system-endpoints.ps1` from `backend/` and paste full output so Phase 1 gates can be checked off.
+6. **Required from you (User):** Run Node verifier from `backend/` and paste full output so Phase 1 gates can be checked off.
 

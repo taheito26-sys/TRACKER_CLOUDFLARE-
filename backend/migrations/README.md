@@ -82,6 +82,17 @@ This script prints both JSON payloads and fails if:
 - If you receive `404 Not Found` on `/api/system/*`, run the verifier script. It now checks `/api/status` as a fallback and tells you whether the deployment likely runs older code.
 - If fallback `/api/status` works but `/api/system/*` is 404, redeploy latest backend Worker from this repo and rerun verification.
 
+### Shell-agnostic verifier (recommended)
+
+If PowerShell wrappers/policies are interfering, run the Node verifier:
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.taheito26.workers.dev"
+```
+
+This avoids PowerShell aliasing/dot-sourcing issues entirely and returns a non-zero exit code on failure.
+
 ### Known-good PowerShell sequence (copy/paste)
 
 > Run these commands exactly from a normal PowerShell prompt (no `. $args[0]` prefix):
