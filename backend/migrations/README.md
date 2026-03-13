@@ -96,6 +96,18 @@ node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.tahei
 
 This avoids PowerShell aliasing/dot-sourcing issues entirely and returns a non-zero exit code on failure.
 
+### Windows CMD/PowerShell wrapper (recommended)
+
+From `backend/` run this wrapper to avoid shell syntax issues:
+
+```powershell
+.\scripts\verify-system-endpoints.cmd
+# custom URL
+.\scripts\verify-system-endpoints.cmd https://p2p-tracker.taheito26.workers.dev
+```
+
+Before running, ensure you have latest scripts from git (`git pull`).
+
 ### Known-good PowerShell sequence (copy/paste)
 
 > Run these commands exactly from a normal PowerShell prompt (no `. $args[0]` prefix):

@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 8/37 tasks (22%)  `█████░░░░░░░░░░░░░░░░░░░`
+**Progress:** 9/38 tasks (24%)  `██████░░░░░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -126,6 +126,13 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 3. **Next step (Agent):** Use version endpoint response to confirm deployment freshness before evaluating health/migrations gates.
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run Node verifier and share output including `/api/system/version` response.
+
+### Step 1.11 — Script version banner + CMD wrapper
+1. **Step completed:** Added script version banners and a Windows `.cmd` wrapper to prevent PowerShell wrapper misuse.
+2. **Evidence:** `backend/scripts/verify-system-endpoints.mjs`, `backend/scripts/verify-system-endpoints.ps1`, and `backend/scripts/verify-system-endpoints.cmd`.
+3. **Next step (Agent):** Use wrapper output to validate deployed endpoint state and close Phase 1 checks.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Run `./scripts/verify-system-endpoints.cmd` from `backend/` and paste output including the script version line.
 
 ### Phase 1 summary
 1. **Phase status:** In Progress.

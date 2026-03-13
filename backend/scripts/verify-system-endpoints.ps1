@@ -4,6 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ScriptVersion = "2026-03-13-v2"
 
 function Get-JsonOrError([string]$Url) {
   try {
@@ -26,6 +27,8 @@ function Get-JsonOrError([string]$Url) {
   }
 }
 
+Write-Host "[verify] Script: verify-system-endpoints.ps1 $ScriptVersion"
+Write-Host "[verify] Tip: run directly (no `. $args[0]` wrapper)."
 Write-Host "[verify] Base URL: $BaseUrl"
 
 $healthUrl = "$BaseUrl/api/system/health"

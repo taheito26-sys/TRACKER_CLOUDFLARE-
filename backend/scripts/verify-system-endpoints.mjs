@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const args = process.argv.slice(2);
+const SCRIPT_VERSION = '2026-03-13-v2';
 let baseUrl = 'https://p2p-tracker.taheito26.workers.dev';
 for (let i = 0; i < args.length; i++) {
   if ((args[i] === '--base-url' || args[i] === '-b') && args[i + 1]) {
@@ -37,6 +38,8 @@ function printResult(name, result) {
   }
 }
 
+console.log(`[verify] Script: verify-system-endpoints.mjs ${SCRIPT_VERSION}`);
+console.log('[verify] Tip: run directly (no `. $args[0]` wrapper).');
 console.log(`[verify] Base URL: ${normalizeBase(baseUrl)}`);
 
 const health = await getJson('/api/system/health');
