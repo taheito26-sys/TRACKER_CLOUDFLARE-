@@ -11045,6 +11045,23 @@ window.renderMerchants = function(){
   var _lastPollTs = 0;
   var _syncStatus = 'idle';
   var _pollFailCount = 0;
+  var _apiBaseIdx = 0;
+
+  function _normBase(u){ return String(u||'').trim().replace(/\/$/, ''); }
+  function _mkApiBases(){
+    var bases = [];
+    // Priority: explicit override → same-origin proxy route → direct workers.dev.
+    try {
+      var ov = (typeof window !== 'undefined' && window.MERCHANT_API_URL) ? window.MERCHANT_API_URL : '';
+      if(!ov && typeof localStorage !== 'undefined') ov = localStorage.getItem('merchant_api_base') || '';
+      if(ov) bases.push(_normBase(ov));
+    } catch(e){}
+    try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
+    bases.push(_normBase(API_BASE));
+    // De-duplicate while preserving order.
+    return bases.filter(function(b, i){ return b && bases.indexOf(b)===i; });
+  }
+  var _apiBases = _mkApiBases();
 
   async function _api(method, path, body) {
     var hasBody = body !== undefined && body !== null;
@@ -11054,12 +11071,25 @@ window.renderMerchants = function(){
       opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);
     }
-    var res = await fetch(API_BASE + path, opts);
-    var text = await res.text();
-    var data = {};
-    try { data = text ? JSON.parse(text) : {}; } catch(_e) { data = { raw: text }; }
-    if (!res.ok) throw new Error(data.error || ('API error ' + res.status));
-    return data;
+
+    var lastErr = null;
+    var attempts = _apiBases.length || 1;
+    for (var hop=0; hop<attempts; hop++) {
+      var idx = (_apiBaseIdx + hop) % attempts;
+      var base = _apiBases[idx] || _normBase(API_BASE);
+      try {
+        var res = await fetch(base + path, opts);
+        var text = await res.text();
+        var data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch(_e) { data = { raw: text }; }
+        if (!res.ok) throw new Error(data.error || ('API error ' + res.status));
+        _apiBaseIdx = idx; // sticky on last successful base
+        return data;
+      } catch(e) {
+        lastErr = e;
+      }
+    }
+    throw (lastErr || new Error('API request failed'));
   }
 
   async function _publishProfile() {
