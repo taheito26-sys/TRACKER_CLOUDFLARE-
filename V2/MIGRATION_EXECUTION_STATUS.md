@@ -1,5 +1,9 @@
 # V2 Migration Execution Status
 
+<!-- PROGRESS_BAR_START -->
+**Progress:** 7/36 tasks (19%)  `█████░░░░░░░░░░░░░░░░░░░`
+<!-- PROGRESS_BAR_END -->
+
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
 
 ## Current rollout status
@@ -25,6 +29,13 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 3. **Next step (Agent):** Apply this format in all subsequent execution updates and phase logs.
 4. **Next phase:** Phase 0 (Program Setup).
 5. **Required from you (User):** Confirm this reporting format is accepted for all future migration updates.
+
+### Step 0.3 — Live progress bar introduced
+1. **Step completed:** Added a live migration progress bar driven by checklist completion.
+2. **Evidence:** `V2/MIGRATION_TASKS.md` (task source), `V2/scripts/update-migration-progress.mjs` (auto-updater), and `V2/MIGRATION_PROGRESS.md` (generated output).
+3. **Next step (Agent):** Keep progress synchronized by running updater after each completed task.
+4. **Next phase:** Phase 0 (Program Setup) and Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Mark completed checklist tasks with `[x]` when you confirm field execution, then run `node V2/scripts/update-migration-progress.mjs`.
 
 ### Phase 0 summary
 1. **Phase status:** In Progress.
