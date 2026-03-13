@@ -6678,11 +6678,11 @@ function render(){
   else if(p==="p2p")renderP2P();
   else if(p==="crm")renderCRM();
   else if(p==="merchants"){ try{ renderMerchants(); }catch(e){ console.error('renderMerchants error:',e); } }
-  else { if(typeof _stopPolling==='function') _stopPolling(); }
   else if(p==="calendar")renderCalendar();
   else if(p==="vault")renderVault();
   else if(p==="kpibuilder")renderKpiBuilder();
   else renderSettings();
+  if(p!=="p2p" && typeof _stopPolling==='function') _stopPolling();
   try{ applyI18n_(document.body); }catch(e){}
   const sc=$("#pageScroll");if(sc)sc.scrollTop=0;
 
@@ -8107,6 +8107,28 @@ window.navTo=navTo;
 window.renderCRM=renderCRM;
 window.save=save;
 window.toast=toast;
+window.openModal=openModal;
+window.closeModal=closeModal;
+window.kpiFor=kpiFor;
+window.totalStock=totalStock;
+window.stockCostQAR=stockCostQAR;
+window.getWACOP=getWACOP;
+window.destroyChart=destroyChart;
+window.clearCharts=clearCharts;
+window.num=num;
+window.fmtQ=fmtQ;
+window.fmtU=fmtU;
+window.fmtP=fmtP;
+window.fmtPct=fmtPct;
+window.fmtQWithUnit=fmtQWithUnit;
+window.rl=rl;
+window.dispAmt=dispAmt;
+window.dispRate=dispRate;
+window.curLabel=curLabel;
+window.renderMerchants=window.renderMerchants||function(){
+  var pb=document.getElementById('pageBody');
+  if(pb) pb.innerHTML='<div style="padding:40px;text-align:center;color:var(--muted,#888);font-size:12px;">Merchant module loading…</div>';
+};
 try{
   Object.defineProperty(window,"state",{get:()=>state,set:v=>{state=v;}});
 }catch(e){
@@ -11022,14 +11044,52 @@ window.renderMerchants = function(){
   var _pollTimer = null;
   var _lastPollTs = 0;
   var _syncStatus = 'idle';
+  var _pollFailCount = 0;
+  var _apiBaseIdx = 0;
+
+  function _normBase(u){ return String(u||'').trim().replace(/\/$/, ''); }
+  function _mkApiBases(){
+    var bases = [];
+    // Priority: explicit override → same-origin proxy route → direct workers.dev.
+    try {
+      var ov = (typeof window !== 'undefined' && window.MERCHANT_API_URL) ? window.MERCHANT_API_URL : '';
+      if(!ov && typeof localStorage !== 'undefined') ov = localStorage.getItem('merchant_api_base') || '';
+      if(ov) bases.push(_normBase(ov));
+    } catch(e){}
+    try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
+    bases.push(_normBase(API_BASE));
+    // De-duplicate while preserving order.
+    return bases.filter(function(b, i){ return b && bases.indexOf(b)===i; });
+  }
+  var _apiBases = _mkApiBases();
 
   async function _api(method, path, body) {
-    var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
-    if (body) opts.body = JSON.stringify(body);
-    var res = await fetch(API_BASE + path, opts);
-    var data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
-    return data;
+    var hasBody = body !== undefined && body !== null;
+    var opts = { method: method, headers: {} };
+    // Avoid forcing CORS preflight for GET/HEAD by not sending Content-Type unless needed.
+    if (hasBody) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+
+    var lastErr = null;
+    var attempts = _apiBases.length || 1;
+    for (var hop=0; hop<attempts; hop++) {
+      var idx = (_apiBaseIdx + hop) % attempts;
+      var base = _apiBases[idx] || _normBase(API_BASE);
+      try {
+        var res = await fetch(base + path, opts);
+        var text = await res.text();
+        var data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch(_e) { data = { raw: text }; }
+        if (!res.ok) throw new Error(data.error || ('API error ' + res.status));
+        _apiBaseIdx = idx; // sticky on last successful base
+        return data;
+      } catch(e) {
+        lastErr = e;
+      }
+    }
+    throw (lastErr || new Error('API request failed'));
   }
 
   async function _publishProfile() {
@@ -11103,7 +11163,12 @@ window.renderMerchants = function(){
       });
       if (changed) { save(); if (typeof render==='function') render(); }
       _syncStatus = 'ok';
-    } catch(e) { _syncStatus = 'error'; console.warn('Poll error:', e.message); }
+      _pollFailCount = 0;
+    } catch(e) {
+      _syncStatus = 'error';
+      _pollFailCount++;
+      if (_pollFailCount === 1 || _pollFailCount % 5 === 0) console.warn('Poll error:', e.message);
+    }
   }
 
   function _startPolling() {
@@ -11350,6 +11415,7 @@ window.renderMerchants = function(){
       _obStep=1; save();
       _publishProfile();
       if(typeof render==='function') render(); else renderMerchants();
+    });
   }
 
   function _obRow(lbl,val){
@@ -12410,7 +12476,6 @@ window.renderMerchants = function(){
     var hash = window.location.hash || '';
     var m = hash.match(/[#&]invite=([A-Za-z0-9+/=]+)/);
     if(!m) return;
-    try{ history.replaceState(null,'',window.location.pathname+window.location.search); }catch(e){}
     var payload;
     try{ payload = JSON.parse(decodeURIComponent(escape(atob(m[1])))); }catch(e){ return; }
     if(!payload || !payload.mid) return;
@@ -12423,11 +12488,14 @@ window.renderMerchants = function(){
       return;
     }
     _showIncomingInviteDialog(payload);
+    try{ history.replaceState(null,'',window.location.pathname+window.location.search); }catch(e){}
   }
 
   function _showIncomingInviteDialog(payload){
-    if(typeof openModal !== 'function'){ setTimeout(function(){ _showIncomingInviteDialog(payload); },800); return; }
-    openModal('Merchant Invite Received',
+    var _om=(typeof openModal==='function'?openModal:(typeof window!=='undefined'&&typeof window.openModal==='function'?window.openModal:null));
+    var _cm=(typeof closeModal==='function'?closeModal:(typeof window!=='undefined'&&typeof window.closeModal==='function'?window.closeModal:null));
+    if(!_om){ setTimeout(function(){ _showIncomingInviteDialog(payload); },800); return; }
+    _om('Merchant Invite Received',
       '<div style="text-align:center;padding:12px 0;">' +
         '<div style="font-size:32px;margin-bottom:8px;">🤝</div>' +
         '<div style="font-size:14px;font-weight:700;margin-bottom:4px;">'+esc(payload.name || payload.mid)+'</div>' +
@@ -12443,28 +12511,55 @@ window.renderMerchants = function(){
       )
     );
     setTimeout(function(){
-      $('#m_c')?.addEventListener('click', closeModal);
-      $('#inv_accept_url')?.addEventListener('click', function(){
-        if(!MS.profile){ closeModal(); return; }
+      $('#m_c')?.addEventListener('click', function(){ if(_cm) _cm(); });
+      $('#inv_accept_url')?.addEventListener('click', async function(){
+        if(!MS.profile){ if(_cm) _cm(); return; }
         var alreadyRel = MS.relationships.some(function(r){
           return (r.merchant_a_id===MS.profile.merchant_id&&r.merchant_b_id===payload.mid)||
                  (r.merchant_b_id===MS.profile.merchant_id&&r.merchant_a_id===payload.mid);
         });
-        if(alreadyRel){ if(typeof toast==='function') toast('Already connected!','good'); closeModal(); return; }
-        var inv={ id:uid(), from_merchant_id:payload.mid, to_merchant_id:MS.profile.merchant_id,
+        if(alreadyRel){ if(typeof toast==='function') toast('Already connected!','good'); if(_cm) _cm(); return; }
+
+        var inviteId = uid();
+        var relId = uid();
+        try {
+          await _apiSendInvite({
+            id: inviteId,
+            from_merchant_id: payload.mid,
+            to_merchant_id: MS.profile.merchant_id,
+            purpose: 'Via invite link',
+            message: 'Accepted via invite link'
+          });
+          var accepted = await _apiAcceptInvite(inviteId, MS.profile.merchant_id);
+          if(accepted && accepted.relationship_id) relId = accepted.relationship_id;
+        } catch(e) {
+          try {
+            var inbox = await _api('GET','/api/invites/inbox/'+encodeURIComponent(MS.profile.merchant_id));
+            var remoteInv = (inbox||[]).find(function(i){ return i.from_merchant_id===payload.mid && i.status==='pending'; });
+            if(remoteInv){
+              inviteId = remoteInv.id;
+              var accepted2 = await _apiAcceptInvite(inviteId, MS.profile.merchant_id);
+              if(accepted2 && accepted2.relationship_id) relId = accepted2.relationship_id;
+            }
+          } catch(_e){}
+        }
+
+        var inv={ id:inviteId, from_merchant_id:payload.mid, to_merchant_id:MS.profile.merchant_id,
           status:'accepted', purpose:'Via invite link', requested_role:'operator',
           message:'Accepted via invite link', created_at:payload.ts, updated_at:Date.now(), expires_at:Date.now()+14*86400000 };
-        MS.invites.push(inv);
-        var rel={ id:uid(), merchant_a_id:payload.mid, merchant_b_id:MS.profile.merchant_id,
-          invite_id:inv.id, relationship_type:'general', status:'active', created_at:Date.now(), updated_at:Date.now() };
-        MS.relationships.push(rel);
-        MS.relationshipTerms.push({ id:uid(), relationship_id:rel.id, default_ratio:MS.profile.default_profit_ratio||60,
-          loss_policy:'shared_ratio', settlement_cycle:MS.profile.default_settlement_cycle||'monthly',
-          allowed_currencies:['USDT','QAR'], allowed_deal_classes:['advance','purchase','profitshare','pool'],
-          advances_enabled:true, sales_enabled:true, funded_deals_enabled:true, pools_enabled:true, created_at:Date.now() });
+        if(!MS.invites.some(function(i){ return i.id===inv.id; })) MS.invites.push(inv);
+        if(!MS.relationships.some(function(r){ return r.id===relId || ((r.merchant_a_id===payload.mid&&r.merchant_b_id===MS.profile.merchant_id)||(r.merchant_b_id===payload.mid&&r.merchant_a_id===MS.profile.merchant_id)); })){
+          var rel={ id:relId, merchant_a_id:payload.mid, merchant_b_id:MS.profile.merchant_id,
+            invite_id:inv.id, relationship_type:'general', status:'active', created_at:Date.now(), updated_at:Date.now() };
+          MS.relationships.push(rel);
+          MS.relationshipTerms.push({ id:uid(), relationship_id:rel.id, default_ratio:MS.profile.default_profit_ratio||60,
+            loss_policy:'shared_ratio', settlement_cycle:MS.profile.default_settlement_cycle||'monthly',
+            allowed_currencies:['USDT','QAR'], allowed_deal_classes:['advance','purchase','profitshare','pool'],
+            advances_enabled:true, sales_enabled:true, funded_deals_enabled:true, pools_enabled:true, created_at:Date.now() });
+        }
         notify('invite','Connected with '+esc(payload.name||payload.mid),'Relationship active via invite link.');
         audit('invite_accepted','invite',inv.id,'Accepted via link from '+payload.mid);
-        save(); closeModal();
+        save(); if(_cm) _cm();
         _tab='relationships'; renderMerchants();
         if(typeof toast==='function') toast('Connected with '+esc(payload.name||payload.mid)+' ✓','good');
       });
@@ -12472,15 +12567,17 @@ window.renderMerchants = function(){
   }
 
   function _openInviteModal(targetMid,targetName){
-    if(typeof openModal !== 'function') return;
-    openModal('Send Invite to '+esc(targetName||targetMid), [
+    var _om=(typeof openModal==='function'?openModal:(typeof window!=='undefined'&&typeof window.openModal==='function'?window.openModal:null));
+    var _cm=(typeof closeModal==='function'?closeModal:(typeof window!=='undefined'&&typeof window.closeModal==='function'?window.closeModal:null));
+    if(!_om) return;
+    _om('Send Invite to '+esc(targetName||targetMid), [
       '<div class="form-field"><label class="form-label">Purpose</label><input id="inv_purpose" class="inp-field" placeholder="e.g. Trading collaboration"/></div>',
       '<div class="form-field"><label class="form-label">Message</label><textarea id="inv_msg" class="inp-field" style="min-height:50px;" placeholder="Introduce yourself…"></textarea></div>',
       '<div class="msg" id="inv_err"></div>',
     ].join(''),
     '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">📨 Send Invite</button>');
     setTimeout(function(){
-      $('#m_c')?.addEventListener('click',closeModal);
+      $('#m_c')?.addEventListener('click',function(){ if(_cm) _cm(); });
       $('#m_send')?.addEventListener('click',async function(){
         var purpose=($('#inv_purpose')?.value||'').trim(), msg=($('#inv_msg')?.value||'').trim();
         var errEl=$('#inv_err');
@@ -12493,7 +12590,7 @@ window.renderMerchants = function(){
           MS.invites.push(inv); // update local cache
           audit('invite_sent','invite',inv.id,'Invite to '+targetMid);
           notify('invite','Invite sent','Invite to '+targetMid+' pending.');
-          save(); closeModal(); _tab='invites'; _invTab='sent'; renderMerchants();
+          save(); if(_cm) _cm(); _tab='invites'; _invTab='sent'; renderMerchants();
           if(typeof toast==='function') toast('📨 Invite sent to '+(targetName||targetMid),'good');
         } catch(e2) {
           if(errEl){ errEl.textContent=e2.message; errEl.className='msg err'; }
@@ -12601,7 +12698,6 @@ window.renderMerchants = function(){
       if(pb) pb.innerHTML = '<div style="padding:40px;text-align:center;"><div style="font-size:24px;margin-bottom:10px;">⚠️</div><div style="font-weight:700;margin-bottom:6px;">Merchant Module Error</div><div style="color:var(--muted,#888);font-size:11px;">' + String(e.message||e) + '</div><div style="margin-top:12px;"><button class="btn" onclick="localStorage.removeItem(\'mch_platform_v3\');localStorage.removeItem(\'mch_platform_v2\');location.reload();">Reset &amp; Reload</button></div></div>';
     };
   }
-
 
   // Check for incoming invite link on load
   try {
