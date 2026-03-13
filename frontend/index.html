@@ -11111,6 +11111,18 @@ window.renderMerchants = function(){
     return _api('GET', '/api/profiles/search?q=' + encodeURIComponent(q) + '&limit=20');
   }
 
+  function _localDirectorySearch(q){
+    var qq = String(q||'').trim().toLowerCase();
+    if(!qq) return [];
+    var list = Array.isArray(MS.merchants) ? MS.merchants : [];
+    return list.filter(function(m){
+      var mid = String(m.merchant_id||'').toLowerCase();
+      var nick = String(m.nickname||'').toLowerCase();
+      var nm = String(m.display_name||'').toLowerCase();
+      return mid.indexOf(qq)>=0 || nick.indexOf(qq)>=0 || nm.indexOf(qq)>=0;
+    });
+  }
+
   async function _apiSendInvite(inv) {
     return _api('POST', '/api/invites', inv);
   }
@@ -12441,7 +12453,12 @@ window.renderMerchants = function(){
       renderMerchants();
       if(!_dirResults.length && typeof toast==='function') toast('No merchants found for "'+q+'"','');
     } catch(e) {
-      if(typeof toast==='function') toast('Search failed: '+e.message,'');
+      _dirResults = _localDirectorySearch(q);
+      renderMerchants();
+      if(typeof toast==='function'){
+        if(_dirResults.length) toast('API unavailable — showing local matches only','warn');
+        else toast('Search failed (API unreachable). Set window.MERCHANT_API_URL or localStorage.merchant_api_base.','');
+      }
     } finally {
       var btn2=$('#dir_search'); if(btn2){ btn2.textContent='🔍 Search'; btn2.disabled=false; }
     }
@@ -13489,13 +13506,14 @@ window.renderMerchants = function(){
     if(typeof setHeader==='function') setHeader('Dashboard', 'FIFO · ' + curUnit() + ' · ' + new Date().toLocaleDateString(uiLocale()));
     var d1 = kpiFor('today'), d7 = kpiFor('7d'), dR = kpiFor(state.range), stk = totalStock(), stCost = stockCostQAR(), wacop = getWACOP();
     var allTrades = (state.trades || []).filter(function(t){ return !t.voided; });
-    var allMargins = allTrades.map(function(t){ var c = derived.tradeCalc.get(t.id); return c && c.ok ? c.margin : null; }).filter(function(x){ return x !== null; });
+    var _drv = (typeof derived !== 'undefined' && derived && derived.tradeCalc) ? derived : ((typeof window !== 'undefined' && window.derived && window.derived.tradeCalc) ? window.derived : null);
+    var allMargins = allTrades.map(function(t){ var c = _drv ? _drv.tradeCalc.get(t.id) : null; return c && c.ok ? c.margin : null; }).filter(function(x){ return x !== null; });
     var avgM = allMargins.length ? allMargins.reduce(function(s, v){ return s + v; }, 0) / allMargins.length : 0;
     var low = num0(state.settings && state.settings.lowStockThreshold) || 5000;
     var isLow = stk <= 0 || (low > 0 && stk < low);
     var recent = allTrades.slice().sort(function(a,b){ return a.ts - b.ts; }).slice(-14);
     var tLbls = recent.map(function(t){ return new Date(t.ts).toLocaleDateString('en-US', { month:'short', day:'numeric' }); });
-    var tNets = recent.map(function(t){ var c = derived.tradeCalc.get(t.id); return c && c.ok ? +c.netQAR.toFixed(2) : 0; });
+    var tNets = recent.map(function(t){ var c = _drv ? _drv.tradeCalc.get(t.id) : null; return c && c.ok ? +c.netQAR.toFixed(2) : 0; });
     var tRevs = recent.map(function(t){ return +(t.amountUSDT * t.sellPriceQAR).toFixed(2); });
     var defs = dashboardKpiDefs();
     var selectedIds = getDashboardSelection();
