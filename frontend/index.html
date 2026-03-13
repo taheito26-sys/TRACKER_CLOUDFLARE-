@@ -8106,17 +8106,37 @@ window.navTo=navTo;
 window.renderCRM=renderCRM;
 window.save=save;
 window.toast=toast;
-// Expose core functions needed by dashboard/CRM scripts in separate <script> blocks
+// â”€â”€ Complete export of main-IIFE helpers needed by later <script> blocks â”€â”€
+window.uid=uid;
+window.num=num;
+window.esc=esc;
+window.openModal=openModal;
+window.closeModal=closeModal;
+window.fmtU=fmtU;
+window.fmtP=fmtP;
+window.fmtQ=fmtQ;
+window.fmtQRaw=fmtQRaw;
+window.fmtQWithUnit=fmtQWithUnit;
+window.fmtPct=fmtPct;
+window.fmtDate=fmtDate;
+window.rl=rl;
+window.curUnit=curUnit;
+window.uiLocale=uiLocale;
+window.inRange=inRange;
+window.setHeader=setHeader;
 window.kpiFor=kpiFor;
 window.totalStock=totalStock;
 window.stockCostQAR=stockCostQAR;
 window.getWACOP=getWACOP;
 window.recompute=recompute;
-window.fmtQWithUnit=fmtQWithUnit;
-window.curUnit=curUnit;
-window.uiLocale=uiLocale;
-window.setHeader=setHeader;
-window.inRange=inRange;
+window.recomputeFor=recomputeFor;
+window.editTrade=editTrade;
+window.editBatch=editBatch;
+window.cssToRgba=cssToRgba;
+window.getBrandColor=getBrandColor;
+window.getT=getT;
+window.destroyChart=destroyChart;
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 try{
   Object.defineProperty(window,"state",{get:()=>state,set:v=>{state=v;}});
 }catch(e){
@@ -8127,47 +8147,6 @@ try{
 window.addEventListener("DOMContentLoaded", function(){
   // Load Cloud URL into login screen input (if saved)
   try { gasLoadConfig(); var u = document.getElementById("gasUrlOnLogin"); if (u && _gasUrl) u.value = _gasUrl; } catch(e) {}
-
-  // â”€â”€ Handle ?invite=MRC-xxx deep-link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  try {
-    var _inviteParam = new URLSearchParams(window.location.search).get('invite');
-    if (_inviteParam && /^MRC-/i.test(_inviteParam)) {
-      var _pendingInviteMid = _inviteParam.toUpperCase();
-      // Strip the param from the URL without reloading
-      try {
-        var _cleanUrl = window.location.pathname + window.location.hash;
-        window.history.replaceState(null, '', _cleanUrl);
-      } catch(e) {}
-      // After app boots, navigate to merchants > directory with the MID pre-filled
-      setTimeout(function() {
-        try {
-          if (typeof navTo === 'function') navTo('merchants');
-          // Pre-fill the directory search and trigger a search
-          setTimeout(function() {
-            try {
-              var dirInput = document.getElementById('dir_q');
-              if (dirInput) {
-                dirInput.value = _pendingInviteMid;
-              }
-              // Set the merchants tab to directory and trigger search
-              if (window._mchTab !== undefined) window._mchTab = 'directory';
-              if (typeof renderMerchants === 'function') renderMerchants();
-              setTimeout(function() {
-                try {
-                  var dirInput2 = document.getElementById('dir_q');
-                  if (dirInput2) dirInput2.value = _pendingInviteMid;
-                  var searchBtn = document.getElementById('dir_search');
-                  if (searchBtn) searchBtn.click();
-                } catch(e) {}
-              }, 100);
-              if (typeof toast === 'function') toast('Invite link: ' + _pendingInviteMid + ' â€” send them an invite below', 'good');
-            } catch(e) {}
-          }, 300);
-        } catch(e) {}
-      }, 500);
-    }
-  } catch(e) {}
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   // Mode toggle
   var lb = document.getElementById("authModeLoginBtn");
@@ -12500,6 +12479,19 @@ window.renderMerchants = function(){
   function crm5Safe(v){ return typeof _safeStr === 'function' ? _safeStr(v) : String(v==null?'':v); }
   function crm5Norm(v){ return typeof _normName === 'function' ? _normName(v) : crm5Safe(v).trim().toLowerCase(); }
   function crm5Uid(){ return typeof uid === 'function' ? uid() : ('crm_'+Math.random().toString(16).slice(2)); }
+  // â”€â”€ Aliases for main-IIFE helpers â”€â”€
+  var uid       = window.uid       || crm5Uid;
+  var num       = window.num       || function(v,d){ var n=parseFloat(v); return isNaN(n)?(d||0):n; };
+  var esc       = window.esc       || crm5Safe;
+  var openModal = window.openModal || function(){};
+  var closeModal= window.closeModal|| function(){};
+  var fmtU      = window.fmtU      || function(v,dp){ return (num(v,0)).toFixed(dp==null?2:dp)+' USDT'; };
+  var fmtP      = window.fmtP      || function(v){ return num(v,0).toFixed(3); };
+  var fmtQ      = window.fmtQ      || function(v){ return (num(v,0)).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})+' QAR'; };
+  var fmtDate   = window.fmtDate   || function(ts){ try{ return new Date(ts).toLocaleDateString(); }catch(e){ return 'â€”'; } };
+  var recompute = window.recompute || function(){};
+  var setHeader = window.setHeader || function(){};
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function crm5TierMeta(code){
     var map={
       A:{code:'A',label:'VIP',icon:'â—†',color:'#f59e0b',bg:'rgba(245,158,11,.12)',border:'rgba(245,158,11,.3)'},
@@ -12839,17 +12831,37 @@ window.renderMerchants = function(){
   if (window.__taheito_dashboard_crm_lookup_v6) return;
   window.__taheito_dashboard_crm_lookup_v6 = true;
 
-  // Aliases for functions defined in main IIFE (exposed via window.* above)
-  var kpiFor       = function(r){ return window.kpiFor       ? window.kpiFor(r)       : {count:0,qty:0,rev:0,net:0,fee:0,avgMgn:0}; };
-  var totalStock   = function(){  return window.totalStock   ? window.totalStock()    : 0; };
-  var stockCostQAR = function(){  return window.stockCostQAR ? window.stockCostQAR()  : 0; };
-  var getWACOP     = function(){  return window.getWACOP     ? window.getWACOP()      : null; };
-  var recompute    = function(){  if (window.recompute)        window.recompute();     };
-  var fmtQWithUnit = function(v){ return window.fmtQWithUnit ? window.fmtQWithUnit(v) : String(v||0); };
-  var curUnit      = function(){  return window.curUnit      ? window.curUnit()       : 'QAR'; };
-  var uiLocale     = function(){  return window.uiLocale     ? window.uiLocale()      : 'en-US'; };
-  var setHeader    = function(a,b){ if (window.setHeader)      window.setHeader(a,b); };
-  var inRange      = function(ts,r){ return window.inRange   ? window.inRange(ts,r)  : true; };
+  // â”€â”€ Complete aliases for main-IIFE helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  var uid          = window.uid          || function(){ return Math.random().toString(36).slice(2); };
+  var num          = window.num          || function(v,d){ var n=parseFloat(v); return isNaN(n)?(d||0):n; };
+  var esc          = window.esc          || function(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); };
+  var openModal    = window.openModal    || function(){};
+  var closeModal   = window.closeModal   || function(){};
+  var fmtU         = window.fmtU         || function(v,dp){ return (num(v,0)).toFixed(dp==null?2:dp)+' USDT'; };
+  var fmtP         = window.fmtP         || function(v){ return num(v,0).toFixed(3); };
+  var fmtQ         = window.fmtQ         || function(v){ return (num(v,0)).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})+' QAR'; };
+  var fmtQRaw      = window.fmtQRaw      || fmtQ;
+  var fmtQWithUnit = window.fmtQWithUnit || fmtQ;
+  var fmtPct       = window.fmtPct       || function(v){ return Number.isFinite(Number(v))?(Number(v)>=0?'+':'')+Math.trunc(Number(v))+'%':'â€”'; };
+  var fmtDate      = window.fmtDate      || function(ts){ try{ return new Date(ts).toLocaleDateString(); }catch(e){ return 'â€”'; } };
+  var rl           = window.rl           || function(){ return 'Period'; };
+  var curUnit      = window.curUnit      || function(){ return 'QAR'; };
+  var uiLocale     = window.uiLocale     || function(){ return 'en-US'; };
+  var inRange      = window.inRange      || function(){ return true; };
+  var setHeader    = window.setHeader    || function(){};
+  var kpiFor       = window.kpiFor       || function(){ return {count:0,qty:0,rev:0,net:0,fee:0,avgMgn:0}; };
+  var totalStock   = window.totalStock   || function(){ return 0; };
+  var stockCostQAR = window.stockCostQAR || function(){ return 0; };
+  var getWACOP     = window.getWACOP     || function(){ return null; };
+  var recompute    = window.recompute    || function(){};
+  var recomputeFor = window.recomputeFor || function(s){ return s; };
+  var editTrade    = window.editTrade    || function(){};
+  var editBatch    = window.editBatch    || function(){};
+  var cssToRgba    = window.cssToRgba    || function(c){ return c; };
+  var getBrandColor= window.getBrandColor|| function(){ return '#45B8C8'; };
+  var getT         = window.getT         || function(k){ return k; };
+  var destroyChart = window.destroyChart || function(){};
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function safe(v){ return String(v == null ? '' : v); }
   function qs(sel, root){ return (root || document).querySelector(sel); }
