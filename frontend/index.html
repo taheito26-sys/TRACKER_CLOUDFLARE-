@@ -6678,11 +6678,11 @@ function render(){
   else if(p==="p2p")renderP2P();
   else if(p==="crm")renderCRM();
   else if(p==="merchants"){ try{ renderMerchants(); }catch(e){ console.error('renderMerchants error:',e); } }
-  else { if(typeof _stopPolling==='function') _stopPolling(); }
   else if(p==="calendar")renderCalendar();
   else if(p==="vault")renderVault();
   else if(p==="kpibuilder")renderKpiBuilder();
   else renderSettings();
+  if(p!=="p2p" && typeof _stopPolling==='function') _stopPolling();
   try{ applyI18n_(document.body); }catch(e){}
   const sc=$("#pageScroll");if(sc)sc.scrollTop=0;
 
@@ -11350,7 +11350,7 @@ window.renderMerchants = function(){
       _obStep=1; save();
       _publishProfile();
       if(typeof render==='function') render(); else renderMerchants();
-  }
+    });
 
   function _obRow(lbl,val){
     return '<div style="padding:6px 8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:8px;">'+esc(lbl)+'</div><div style="font-weight:600;margin-top:1px;">'+esc(String(val||'—'))+'</div></div>';
@@ -12601,7 +12601,6 @@ window.renderMerchants = function(){
       if(pb) pb.innerHTML = '<div style="padding:40px;text-align:center;"><div style="font-size:24px;margin-bottom:10px;">⚠️</div><div style="font-weight:700;margin-bottom:6px;">Merchant Module Error</div><div style="color:var(--muted,#888);font-size:11px;">' + String(e.message||e) + '</div><div style="margin-top:12px;"><button class="btn" onclick="localStorage.removeItem(\'mch_platform_v3\');localStorage.removeItem(\'mch_platform_v2\');location.reload();">Reset &amp; Reload</button></div></div>';
     };
   }
-
 
   // Check for incoming invite link on load
   try {
