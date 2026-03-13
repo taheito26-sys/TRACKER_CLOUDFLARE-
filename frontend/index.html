@@ -2208,7 +2208,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
   <button class="mBtn" data-go="orders" data-tip="Trade ledger&#10;Log USDT sales · FIFO cost basis · margin"><svg viewBox="0 0 24 24" fill="none"><path d="M7 4h10M7 8h10M7 12h10M7 16h10M7 20h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Trade</button>
   <button class="mBtn" data-go="stock"><svg viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.5"/></svg>Stock</button>
   <button class="mBtn" data-go="p2p" data-tip="Live P2P rates&#10;Binance QAR buy &amp; sell offers"><svg viewBox="0 0 24 24" fill="none"><path d="M8 7h8M6 11h12M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0" stroke="currentColor" stroke-width="1.5"/></svg>P2P</button>
-  <button class="mBtn" data-go="merchants" data-tip="Merchants &amp; Collaboration&#10;Deals · Lending · Partnerships"><svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Mchnt</button>
+  <button class="mBtn" data-go="merchants" data-tip="Merchants&#10;Deals · Lending · Partnerships"><svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Mchnt</button>
   
   <button class="mBtn" data-go="calendar" data-tip="Trade calendar&#10;Visual daily activity · click a day for detail"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Cal</button>
   
@@ -5547,17 +5547,17 @@ function _relTime(ts){var d=Date.now()-ts;if(d<60000)return"just now";if(d<36000
 function _riskBadge(level){var c={low:"good",medium:"warn",high:"bad",critical:"bad"};return'<span class="pill" style="font-size:8px;color:var(--'+(c[level]||"muted")+');border-color:color-mix(in srgb,var(--'+(c[level]||"muted")+') 30%,transparent);background:color-mix(in srgb,var(--'+(c[level]||"muted")+') 8%,transparent);">'+esc((level||"low").toUpperCase())+'</span>';}
 
 function _renderMerchants_legacy_v1(){
-  if(typeof setHeader==="function") setHeader("Merchants & Collaboration","Partnerships \u00b7 Lending \u00b7 Arbitrage \u00b7 Capital \u00b7 Collaboration");
+  if(typeof setHeader==="function") setHeader("Merchants & Collaboration","Partnerships · Lending · Arbitrage · Capital · Collaboration");
   state.merchants=Array.isArray(state.merchants)?state.merchants:[];
   var tab=window._mchTab||"overview";
   var kpis=_mchKpis();
 
   var tabs=[
-    {id:"overview",icon:"\ud83d\udcca",label:"Overview"},
-    {id:"directory",icon:"\ud83d\udc65",label:"Directory"},
-    {id:"collaboration",icon:"\ud83e\udd1d",label:"Collaboration",badge:kpis.pendingApprovals},
-    {id:"dealboard",icon:"\ud83d\udccb",label:"Deal Board",badge:kpis.totalDeals},
-    {id:"analytics",icon:"\ud83d\udcc8",label:"Analytics"}
+    {id:"overview",icon:"📊",label:"Overview"},
+    {id:"directory",icon:"👥",label:"Directory"},
+    {id:"collaboration",icon:"🤝",label:"Collaboration",badge:kpis.pendingApprovals},
+    {id:"dealboard",icon:"📋",label:"Deal Board",badge:kpis.totalDeals},
+    {id:"analytics",icon:"📈",label:"Analytics"}
   ];
   var tabBar='<div style="display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;">'+tabs.map(function(t){return'<button class="rowBtn mch-tab-btn" data-mchtab="'+t.id+'" style="font-size:calc(10px * var(--ui-scale,1));padding:5px 10px;display:flex;align-items:center;gap:4px;'+(tab===t.id?"background:var(--brand3);border-color:var(--brand);color:var(--brand);font-weight:700;":"")+'">'+t.icon+" "+t.label+(t.badge?' <span style="background:var(--bad);color:#fff;font-size:8px;padding:1px 5px;border-radius:999px;margin-left:2px;">'+t.badge+"</span>":"")+"</button>";}).join("")+"</div>";
 
@@ -5565,7 +5565,7 @@ function _renderMerchants_legacy_v1(){
     '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--brand);border-color:color-mix(in srgb,var(--brand) 30%,transparent);background:color-mix(in srgb,var(--brand) 10%,transparent)">Active</span></div><div class="kpi-lbl">TOTAL ACTIVE USDT</div><div class="kpi-val">'+fmtU(kpis.totalUsdt,0)+'</div><div class="kpi-sub">'+state.merchants.length+" merchant"+(state.merchants.length!==1?"s":"")+"</div></div>"+
     '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge good" style="color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent)">YTD</span></div><div class="kpi-lbl">PROFIT RECEIVED</div><div class="kpi-val good">'+fmtQ(kpis.totalProfit)+'</div><div class="kpi-sub">Partnerships &amp; capital</div></div>'+
     '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge warn" style="color:var(--warn);border-color:color-mix(in srgb,var(--warn) 30%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)">Pending</span></div><div class="kpi-lbl">LENDING RETURNS DUE</div><div class="kpi-val warn">'+fmtU(kpis.pendingReturn,0)+'</div><div class="kpi-sub">'+kpis.lendingActive+" active lending"+(kpis.lendingActive!==1?"s":"")+"</div></div>"+
-    '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--t5,#0ea5e9);border-color:color-mix(in srgb,var(--t5,#0ea5e9) 30%,transparent);background:color-mix(in srgb,var(--t5,#0ea5e9) 10%,transparent)">'+kpis.collabEnabled+'</span></div><div class="kpi-lbl">COLLAB ACTIVE</div><div class="kpi-val">'+(kpis.pendingApprovals>0?'<span style="color:var(--bad);">'+kpis.pendingApprovals+" pending</span>":"\u2713 clear")+'</div><div class="kpi-sub">'+kpis.totalMessages+" messages \u00b7 "+kpis.collabEnabled+" shared</div></div>"+
+    '<div class="kpi-card"><div class="kpi-head"><span class="kpi-badge" style="color:var(--t5,#0ea5e9);border-color:color-mix(in srgb,var(--t5,#0ea5e9) 30%,transparent);background:color-mix(in srgb,var(--t5,#0ea5e9) 10%,transparent)">'+kpis.collabEnabled+'</span></div><div class="kpi-lbl">COLLAB ACTIVE</div><div class="kpi-val">'+(kpis.pendingApprovals>0?'<span style="color:var(--bad);">'+kpis.pendingApprovals+" pending</span>":"✓ clear")+'</div><div class="kpi-sub">'+kpis.totalMessages+" messages · "+kpis.collabEnabled+" shared</div></div>"+
   "</div>";
 
   var content="";
@@ -5593,8 +5593,8 @@ function _mchOverview(kpis){
   });
   allActivity.sort(function(a,b){return b.ts-a.ts;});
   var recent=allActivity.slice(0,15);
-  var actIcons={lending_created:"\ud83d\udcb0",settlement_recorded:"\ud83d\udcca",profit_recorded:"\ud83d\udcb5",sent_message:"\ud83d\udcac",enabled_collab:"\ud83d\udd17",approved:"\u2705",rejected:"\u274c",deal_closed:"\ud83c\udfc1"};
-  var activityHtml=recent.length===0?'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No recent activity</div><div class="empty-s">Add merchants and create deals to see activity here</div></div>':recent.map(function(a){return'<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:calc(10px * var(--ui-scale,1));align-items:flex-start;"><span style="font-size:12px;flex-shrink:0;">'+(actIcons[a.action]||"\ud83d\udccc")+'</span><div style="flex:1;min-width:0;"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(a.detail)+'</div><div class="muted" style="font-size:9px;">'+esc(a.merchantName)+" \u00b7 "+_relTime(a.ts)+"</div></div></div>";}).join("");
+  var actIcons={lending_created:"💰",settlement_recorded:"📊",profit_recorded:"💵",sent_message:"💬",enabled_collab:"🔗",approved:"✅",rejected:"❌",deal_closed:"🏁"};
+  var activityHtml=recent.length===0?'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No recent activity</div><div class="empty-s">Add merchants and create deals to see activity here</div></div>':recent.map(function(a){return'<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:calc(10px * var(--ui-scale,1));align-items:flex-start;"><span style="font-size:12px;flex-shrink:0;">'+(actIcons[a.action]||"📌")+'</span><div style="flex:1;min-width:0;"><div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(a.detail)+'</div><div class="muted" style="font-size:9px;">'+esc(a.merchantName)+" · "+_relTime(a.ts)+"</div></div></div>";}).join("");
 
   var topMerchants=merchants.map(function(m){
     var lending=(m.lending||[]).filter(function(l){return l.status==="active";}).reduce(function(s,l){return s+l.amount_usdt;},0);
@@ -5603,14 +5603,14 @@ function _mchOverview(kpis){
     var cap=(m.capital_placement&&m.capital_placement.active?m.capital_placement.usdt_capital:0);
     return{name:m.name,id:m.id,total:lending+arb+part+cap,risk:m.risk_level||"low",collab:m.collaboration&&m.collaboration.enabled||false};
   }).sort(function(a,b){return b.total-a.total;}).slice(0,5);
-  var topHtml=topMerchants.length===0?"":('<div class="tableWrap"><table><thead><tr><th>Merchant</th><th class="r">Exposure</th><th>Risk</th><th>Collab</th></tr></thead><tbody>'+topMerchants.map(function(m){return'<tr style="cursor:pointer;" onclick="window._selectedMerchantId=\''+esc(m.id)+'\';window._mchTab=\'directory\';render();"><td><strong>'+esc(m.name)+'</strong></td><td class="mono r">'+fmtU(m.total,0)+"</td><td>"+_riskBadge(m.risk)+"</td><td>"+(m.collab?'<span style="color:var(--good);font-size:10px;">\u25cf Active</span>':'<span class="muted" style="font-size:10px;">\u2014</span>')+"</td></tr>";}).join("")+"</tbody></table></div>");
+  var topHtml=topMerchants.length===0?"":('<div class="tableWrap"><table><thead><tr><th>Merchant</th><th class="r">Exposure</th><th>Risk</th><th>Collab</th></tr></thead><tbody>'+topMerchants.map(function(m){return'<tr style="cursor:pointer;" onclick="window._selectedMerchantId=\''+esc(m.id)+'\';window._mchTab=\'directory\';render();"><td><strong>'+esc(m.name)+'</strong></td><td class="mono r">'+fmtU(m.total,0)+"</td><td>"+_riskBadge(m.risk)+"</td><td>"+(m.collab?'<span style="color:var(--good);font-size:10px;">● Active</span>':'<span class="muted" style="font-size:10px;">—</span>')+"</td></tr>";}).join("")+"</tbody></table></div>");
 
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+
     '<div class="panel"><div class="panel-head"><h2>Quick Actions</h2></div><div class="panel-body"><div style="display:flex;gap:6px;flex-wrap:wrap;">'+
       '<button class="rowBtn" id="qaAddMerchant" style="font-size:9px;padding:4px 10px;">+ Add Merchant</button>'+
-      '<button class="rowBtn" id="qaGotoDirectory" style="font-size:9px;padding:4px 10px;">\ud83d\udc65 Directory</button>'+
-      '<button class="rowBtn" id="qaGotoCollab" style="font-size:9px;padding:4px 10px;">\ud83e\udd1d Collaboration</button>'+
-      '<button class="rowBtn" id="qaGotoDealBoard" style="font-size:9px;padding:4px 10px;">\ud83d\udccb Deal Board</button>'+
+      '<button class="rowBtn" id="qaGotoDirectory" style="font-size:9px;padding:4px 10px;">👥 Directory</button>'+
+      '<button class="rowBtn" id="qaGotoCollab" style="font-size:9px;padding:4px 10px;">🤝 Collaboration</button>'+
+      '<button class="rowBtn" id="qaGotoDealBoard" style="font-size:9px;padding:4px 10px;">📋 Deal Board</button>'+
     '</div></div></div>'+
     '<div class="panel"><div class="panel-head"><h2>Portfolio Summary</h2></div><div class="panel-body" style="font-size:calc(10px * var(--ui-scale,1));">'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+
@@ -5630,7 +5630,7 @@ function _mchDirectory(){
   var merchants=!q?state.merchants:state.merchants.filter(function(m){return[m.name,m.phone||"",m.email||""].join(" ").toLowerCase().indexOf(q)>=0;});
 
   var tableHtml=merchants.length===0
-    ?'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No merchants yet</div><div class="empty-s">Add your first merchant partnership \u2192</div></div>'
+    ?'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No merchants yet</div><div class="empty-s">Add your first merchant partnership →</div></div>'
     :'<div class="tableWrap"><table><thead><tr><th>Name</th><th>Active USDT</th><th>YTD Profit</th><th>Deals</th><th>Risk</th><th>Collab</th><th></th></tr></thead><tbody>'+
     merchants.map(function(m){
       var allLending=(m.lending||[]).reduce(function(s,l){return s+(l.status==="active"?l.amount_usdt:0);},0);
@@ -5640,7 +5640,7 @@ function _mchDirectory(){
       var profit=(cap.monthly_profits||[]).reduce(function(s,p){return s+num(p.profit_usdt,0);},0)+(part.settlements||[]).reduce(function(s,p){return s+num(p.your_share_usdt,0);},0);
       var deals=(m.lending||[]).filter(function(l){return l.status==="active";}).length+(m.arbitrage||[]).filter(function(a){return a.status==="active";}).length+(part.active?1:0)+(cap.active?1:0);
       var collab=m.collaboration&&m.collaboration.enabled;
-      return'<tr style="cursor:pointer;'+(window._selectedMerchantId===m.id?"background:var(--brand3);":"")+'" onclick="window._selectedMerchantId=\''+esc(m.id)+'\';render();"><td><strong>'+esc(m.name)+"</strong>"+(m.phone?'<div class="muted" style="font-size:9px;">'+esc(m.phone)+"</div>":"")+'</td><td class="mono r">'+fmtU(activeUsdt,0)+'</td><td class="mono r good">'+fmtQ(profit)+'</td><td class="r">'+deals+"</td><td>"+_riskBadge(m.risk_level||"low")+"</td><td>"+(collab?'<span style="color:var(--good);font-size:10px;" title="Collaboration enabled">\u25cf</span>':'<span class="muted" style="font-size:10px;">\u2014</span>')+'</td><td style="padding-right:0;"><button class="rowBtn" style="font-size:8px;padding:2px 4px;" onclick="event.stopPropagation();deleteM(\''+esc(m.id)+'\');">\u00d7</button></td></tr>';
+      return'<tr style="cursor:pointer;'+(window._selectedMerchantId===m.id?"background:var(--brand3);":"")+'" onclick="window._selectedMerchantId=\''+esc(m.id)+'\';render();"><td><strong>'+esc(m.name)+"</strong>"+(m.phone?'<div class="muted" style="font-size:9px;">'+esc(m.phone)+"</div>":"")+'</td><td class="mono r">'+fmtU(activeUsdt,0)+'</td><td class="mono r good">'+fmtQ(profit)+'</td><td class="r">'+deals+"</td><td>"+_riskBadge(m.risk_level||"low")+"</td><td>"+(collab?'<span style="color:var(--good);font-size:10px;" title="Collaboration enabled">●</span>':'<span class="muted" style="font-size:10px;">—</span>')+'</td><td style="padding-right:0;"><button class="rowBtn" style="font-size:8px;padding:2px 4px;" onclick="event.stopPropagation();deleteM(\''+esc(m.id)+'\');">×</button></td></tr>';
     }).join("")+'</tbody></table></div>';
 
   var detailHtml="";
@@ -5650,19 +5650,19 @@ function _mchDirectory(){
       var part=m.partnership||{};var cap=m.capital_placement||{};var col=m.collaboration||{};
       var lendingList=(m.lending||[]).filter(function(l){return l.status==="active";});
       var arbList=(m.arbitrage||[]).filter(function(a){return a.status==="active";});
-      detailHtml='<div class="panel"><div class="panel-head"><h2>'+esc(m.name)+'</h2><div style="display:flex;gap:4px;"><button class="rowBtn" id="editMerchantBtn" style="font-size:9px;padding:3px 8px;">Edit</button><button class="rowBtn" id="toggleCollabBtn" style="font-size:9px;padding:3px 8px;'+(col.enabled?"color:var(--good);":"")+'">'+(col.enabled?"\ud83d\udd17 Collab ON":"\ud83d\udd17 Enable Collab")+'</button></div></div>'+
+      detailHtml='<div class="panel"><div class="panel-head"><h2>'+esc(m.name)+'</h2><div style="display:flex;gap:4px;"><button class="rowBtn" id="editMerchantBtn" style="font-size:9px;padding:3px 8px;">Edit</button><button class="rowBtn" id="toggleCollabBtn" style="font-size:9px;padding:3px 8px;'+(col.enabled?"color:var(--good);":"")+'">'+(col.enabled?"🔗 Collab ON":"🔗 Enable Collab")+'</button></div></div>'+
       '<div class="panel-body" style="font-size:10px;display:flex;flex-direction:column;gap:8px;">'+
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'+
-          '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">Phone</div><div style="font-weight:600;margin-top:2px;">'+esc(m.phone||"\u2014")+'</div></div>'+
-          '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">Email</div><div style="font-weight:600;margin-top:2px;">'+esc(m.email||"\u2014")+'</div></div>'+
+          '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">Phone</div><div style="font-weight:600;margin-top:2px;">'+esc(m.phone||"—")+'</div></div>'+
+          '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">Email</div><div style="font-weight:600;margin-top:2px;">'+esc(m.email||"—")+'</div></div>'+
         '</div>'+
-        (col.enabled?'<div style="padding:8px;background:color-mix(in srgb,var(--good) 6%,transparent);border:1px solid color-mix(in srgb,var(--good) 20%,transparent);border-radius:var(--lt-radius-sm);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="muted" style="font-size:9px;">SHARE TOKEN</div><button class="rowBtn" id="copyShareTokenBtn" style="font-size:8px;padding:2px 8px;color:var(--brand);">📋 Copy</button></div><div style="font-family:var(--lt-font-mono,monospace);font-size:10px;margin-top:3px;word-break:break-all;user-select:all;" id="shareTokenText">'+esc(col.shared_token||"\u2014")+'</div><div class="muted" style="font-size:8px;margin-top:3px;">Tap Copy or long-press to share with your partner</div></div>':"")+
+        (col.enabled?'<div style="padding:8px;background:color-mix(in srgb,var(--good) 6%,transparent);border:1px solid color-mix(in srgb,var(--good) 20%,transparent);border-radius:var(--lt-radius-sm);"><div style="display:flex;justify-content:space-between;align-items:center;"><div class="muted" style="font-size:9px;">SHARE TOKEN</div><button class="rowBtn" id="copyShareTokenBtn" style="font-size:8px;padding:2px 8px;color:var(--brand);">📋 Copy</button></div><div style="font-family:var(--lt-font-mono,monospace);font-size:10px;margin-top:3px;word-break:break-all;user-select:all;" id="shareTokenText">'+esc(col.shared_token||"—")+'</div><div class="muted" style="font-size:8px;margin-top:3px;">Tap Copy or long-press to share with your partner</div></div>':"")+
         '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">LENDING TRANSACTIONS</div><div style="margin-top:6px;display:flex;justify-content:space-between;"><span>Active: '+lendingList.length+'</span><span>Pending: '+fmtU(lendingList.reduce(function(s,l){return s+l.amount_usdt;},0),0)+'</span></div><button class="rowBtn" id="addLendingBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Add Lending</button>'+
           (lendingList.length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:6px;">'+lendingList.map(function(l){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:9px;"><span>'+fmtU(l.amount_usdt,0)+' USDT</span><span class="muted">'+new Date(l.sent_date).toLocaleDateString()+'</span><button class="rowBtn" style="font-size:8px;padding:1px 4px;" onclick="event.stopPropagation();window._closeLending(\''+esc(m.id)+'\',\''+esc(l.id)+'\');">Close</button></div>';}).join("")+"</div>":"")+"</div>"+
         '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">ARBITRAGE DEALS</div><div style="margin-top:6px;display:flex;justify-content:space-between;"><span>Active: '+arbList.length+'</span><span>USDT: '+fmtU(arbList.reduce(function(s,a){return s+a.usdt_sent;},0),0)+'</span></div><button class="rowBtn" id="addArbitrageBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Add Arbitrage</button>'+
           (arbList.length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:6px;">'+arbList.map(function(a){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:9px;"><span>'+fmtU(a.usdt_sent,0)+' USDT @ '+a.price_qar_per_usdt+'</span><span class="muted">'+new Date(a.sent_date).toLocaleDateString()+'</span><button class="rowBtn" style="font-size:8px;padding:1px 4px;" onclick="event.stopPropagation();window._closeArbitrage(\''+esc(m.id)+'\',\''+esc(a.id)+'\');">Close</button></div>';}).join("")+"</div>":"")+"</div>"+
-        '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">PARTNERSHIP'+(part.active?" (ACTIVE)":"")+'</div>'+(part.active?'<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:9px;"><span>Capital: '+fmtU(part.usdt_sent,0)+'</span><span>Your %: '+(part.profit_ratio&&part.profit_ratio.you_percentage||0)+'%</span><span>YTD: '+fmtQ((part.settlements||[]).reduce(function(s,p){return s+num(p.your_share_usdt,0);},0))+'</span></div>'+(part.settlements&&part.settlements.length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:4px;font-size:9px;">'+part.settlements.slice(-5).reverse().map(function(s){return'<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>'+new Date(s.settlement_date).toLocaleDateString()+'</span><span>Rev: '+fmtQ(s.revenue_qar)+'</span><span class="good">Your: '+fmtQ(s.your_share_qar)+'</span></div>';}).join("")+"</div>":"")+'<button class="rowBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;" id="settlementBtn">\ud83d\udcca New Settlement</button>':'<button class="rowBtn" id="addPartnershipBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Add Partnership</button>')+"</div>"+
-        '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">CAPITAL PLACEMENT'+(cap.active?" (ACTIVE)":"")+'</div>'+(cap.active?'<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:9px;"><span>Capital: '+fmtU(cap.usdt_capital,0)+'</span><span>Rate: '+((cap.monthly_profit_rate||0)*100).toFixed(0)+'%/mo</span><span>YTD: '+fmtQ((cap.monthly_profits||[]).reduce(function(s,p){return s+num(p.profit_usdt,0);},0))+'</span></div>'+(cap.monthly_profits&&cap.monthly_profits.length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:4px;font-size:9px;">'+cap.monthly_profits.slice(-5).reverse().map(function(p){return'<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>'+esc(p.month)+'</span><span class="good">'+fmtQ(p.profit_qar)+'</span></div>';}).join("")+"</div>":"")+'<button class="rowBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;" id="recordProfitBtn">\ud83d\udcb0 Record Monthly Profit</button>':'<button class="rowBtn" id="addCapitalBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Place Capital</button>')+"</div>"+
+        '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">PARTNERSHIP'+(part.active?" (ACTIVE)":"")+'</div>'+(part.active?'<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:9px;"><span>Capital: '+fmtU(part.usdt_sent,0)+'</span><span>Your %: '+(part.profit_ratio&&part.profit_ratio.you_percentage||0)+'%</span><span>YTD: '+fmtQ((part.settlements||[]).reduce(function(s,p){return s+num(p.your_share_usdt,0);},0))+'</span></div>'+(part.settlements&&part.settlements.length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:4px;font-size:9px;">'+part.settlements.slice(-5).reverse().map(function(s){return'<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>'+new Date(s.settlement_date).toLocaleDateString()+'</span><span>Rev: '+fmtQ(s.revenue_qar)+'</span><span class="good">Your: '+fmtQ(s.your_share_qar)+'</span></div>';}).join("")+"</div>":"")+'<button class="rowBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;" id="settlementBtn">📊 New Settlement</button>':'<button class="rowBtn" id="addPartnershipBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Add Partnership</button>')+"</div>"+
+        '<div style="padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted">CAPITAL PLACEMENT'+(cap.active?" (ACTIVE)":"")+'</div>'+(cap.active?'<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:9px;"><span>Capital: '+fmtU(cap.usdt_capital,0)+'</span><span>Rate: '+((cap.monthly_profit_rate||0)*100).toFixed(0)+'%/mo</span><span>YTD: '+fmtQ((cap.monthly_profits||[]).reduce(function(s,p){return s+num(p.profit_usdt,0);},0))+'</span></div>'+(cap.monthly_profits&&cap.monthly_profits.length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:4px;font-size:9px;">'+cap.monthly_profits.slice(-5).reverse().map(function(p){return'<div style="display:flex;justify-content:space-between;padding:2px 0;"><span>'+esc(p.month)+'</span><span class="good">'+fmtQ(p.profit_qar)+'</span></div>';}).join("")+"</div>":"")+'<button class="rowBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;" id="recordProfitBtn">💰 Record Monthly Profit</button>':'<button class="rowBtn" id="addCapitalBtn" style="margin-top:6px;font-size:8px;padding:2px 6px;width:100%;">+ Place Capital</button>')+"</div>"+
       "</div></div>";
     }
   }
@@ -5683,18 +5683,18 @@ function _mchCollaboration(kpis){
   var recentActivity=allActivity.slice(0,20);
 
   var approvalHtml=allApprovals.length===0
-    ?'<div class="muted" style="font-size:10px;padding:10px;">No pending approvals \u2014 all clear \u2713</div>'
-    :allApprovals.map(function(a){return'<div style="display:flex;gap:8px;padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;align-items:center;"><div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:10px;">'+esc(a.type.replace(/_/g," ").toUpperCase())+'</div><div class="muted" style="font-size:9px;">'+esc(a.merchantName)+" \u00b7 "+_relTime(a.ts)+" \u00b7 by "+esc(a.requested_by)+'</div></div><button class="rowBtn" style="font-size:8px;padding:2px 6px;color:var(--good);" onclick="window._approveApproval(\''+esc(a.merchantId)+'\',\''+esc(a.id)+"')\">✓ Approve</button>"+'<button class="rowBtn" style="font-size:8px;padding:2px 6px;color:var(--bad);" onclick="window._rejectApproval(\''+esc(a.merchantId)+'\',\''+esc(a.id)+"')\">✗ Reject</button></div>";}).join("");
+    ?'<div class="muted" style="font-size:10px;padding:10px;">No pending approvals — all clear ✓</div>'
+    :allApprovals.map(function(a){return'<div style="display:flex;gap:8px;padding:8px;background:var(--panel2);border-radius:var(--lt-radius-sm);margin-bottom:6px;align-items:center;"><div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:10px;">'+esc(a.type.replace(/_/g," ").toUpperCase())+'</div><div class="muted" style="font-size:9px;">'+esc(a.merchantName)+" · "+_relTime(a.ts)+" · by "+esc(a.requested_by)+'</div></div><button class="rowBtn" style="font-size:8px;padding:2px 6px;color:var(--good);" onclick="window._approveApproval(\''+esc(a.merchantId)+'\',\''+esc(a.id)+"')\">✓ Approve</button>"+'<button class="rowBtn" style="font-size:8px;padding:2px 6px;color:var(--bad);" onclick="window._rejectApproval(\''+esc(a.merchantId)+'\',\''+esc(a.id)+"')\">✗ Reject</button></div>";}).join("");
 
   var collabCardsHtml=collabMerchants.length===0
     ?'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg><div class="empty-t">No collaborative merchants</div><div class="empty-s">Enable collaboration on a merchant from the Directory tab</div></div>'
     :collabMerchants.map(function(m){
       var col=m.collaboration||{};var msgs=(col.messages||[]).length;var pending=(col.pending_approvals||[]).filter(function(a){return a.status==="pending";}).length;var logs=(col.activity_log||[]).length;
-      return'<div style="padding:10px;background:var(--panel2);border-radius:var(--lt-radius-sm);border:1px solid var(--line);margin-bottom:6px;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><strong>'+esc(m.name)+'</strong> <span class="pill" style="font-size:8px;color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);">\u25cf Shared</span></div><div style="display:flex;gap:4px;"><button class="rowBtn" style="font-size:8px;padding:2px 6px;" onclick="window._sendCollabMessage(\''+esc(m.id)+'\')">\ud83d\udcac Message</button><button class="rowBtn" style="font-size:8px;padding:2px 6px;" onclick="window._requestApproval(\''+esc(m.id)+'\')">\ud83d\udccb Request</button></div></div><div style="display:flex;gap:12px;margin-top:6px;font-size:9px;" class="muted"><span>\ud83d\udce8 '+msgs+" messages</span><span>"+(pending>0?'<span style="color:var(--bad);">\u26a0 '+pending+" pending</span>":"\u2713 clear")+"</span><span>\ud83d\udcdd "+logs+" log entries</span><span>\ud83d\udd11 "+(col.shared_token?col.shared_token.slice(0,8)+"\u2026":"no token")+"</span></div>"+
+      return'<div style="padding:10px;background:var(--panel2);border-radius:var(--lt-radius-sm);border:1px solid var(--line);margin-bottom:6px;"><div style="display:flex;justify-content:space-between;align-items:center;"><div><strong>'+esc(m.name)+'</strong> <span class="pill" style="font-size:8px;color:var(--good);border-color:color-mix(in srgb,var(--good) 30%,transparent);">● Shared</span></div><div style="display:flex;gap:4px;"><button class="rowBtn" style="font-size:8px;padding:2px 6px;" onclick="window._sendCollabMessage(\''+esc(m.id)+'\')">💬 Message</button><button class="rowBtn" style="font-size:8px;padding:2px 6px;" onclick="window._requestApproval(\''+esc(m.id)+'\')">📋 Request</button></div></div><div style="display:flex;gap:12px;margin-top:6px;font-size:9px;" class="muted"><span>📨 '+msgs+" messages</span><span>"+(pending>0?'<span style="color:var(--bad);">⚠ '+pending+" pending</span>":"✓ clear")+"</span><span>📝 "+logs+" log entries</span><span>🔑 "+(col.shared_token?col.shared_token.slice(0,8)+"…":"no token")+"</span></div>"+
       ((col.messages||[]).length>0?'<div style="margin-top:6px;border-top:1px solid var(--line2);padding-top:6px;max-height:100px;overflow-y:auto;">'+(col.messages||[]).slice(-3).reverse().map(function(msg){return'<div style="font-size:9px;padding:2px 0;"><span style="font-weight:600;">'+esc(msg.sender==="you"?"You":"Partner")+":</span> "+esc(msg.text)+' <span class="muted" style="font-size:8px;">'+_relTime(msg.ts)+"</span></div>";}).join("")+"</div>":"")+"</div>";
     }).join("");
 
-  var timelineHtml=recentActivity.length===0?'<div class="muted" style="font-size:10px;padding:10px;">No collaboration activity yet</div>':recentActivity.map(function(a){return'<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--line2);font-size:9px;"><span class="muted" style="flex-shrink:0;min-width:50px;">'+_relTime(a.ts)+"</span><span style=\"flex-shrink:0;\">"+(a.actor==="you"?"\ud83d\udc64":"\ud83e\udd1d")+'</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong>'+esc(a.merchantName)+"</strong> \u2014 "+esc(a.detail||a.action)+"</span></div>";}).join("");
+  var timelineHtml=recentActivity.length===0?'<div class="muted" style="font-size:10px;padding:10px;">No collaboration activity yet</div>':recentActivity.map(function(a){return'<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--line2);font-size:9px;"><span class="muted" style="flex-shrink:0;min-width:50px;">'+_relTime(a.ts)+"</span><span style=\"flex-shrink:0;\">"+(a.actor==="you"?"👤":"🤝")+'</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong>'+esc(a.merchantName)+"</strong> — "+esc(a.detail||a.action)+"</span></div>";}).join("");
 
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+
     '<div class="panel"><div class="panel-head"><h2>Pending Approvals</h2><span class="pill">'+allApprovals.length+'</span></div><div class="panel-body" style="max-height:260px;overflow-y:auto;">'+approvalHtml+'</div></div>'+
@@ -5713,10 +5713,10 @@ function _mchDealBoard(){
     if(m.capital_placement&&m.capital_placement.active)deals.capital.push(Object.assign({},m.capital_placement,{merchantName:m.name,merchantId:m.id,id:m.id+"_cap"}));
   });
   var columns=[
-    {key:"lending",label:"\ud83d\udcb0 Lending",color:"var(--brand)",items:deals.lending},
-    {key:"arbitrage",label:"\ud83d\udcca Arbitrage",color:"var(--warn)",items:deals.arbitrage},
-    {key:"partnership",label:"\ud83e\udd1d Partnership",color:"var(--good)",items:deals.partnership},
-    {key:"capital",label:"\ud83c\udfe6 Capital",color:"var(--t5,#0ea5e9)",items:deals.capital}
+    {key:"lending",label:"💰 Lending",color:"var(--brand)",items:deals.lending},
+    {key:"arbitrage",label:"📊 Arbitrage",color:"var(--warn)",items:deals.arbitrage},
+    {key:"partnership",label:"🤝 Partnership",color:"var(--good)",items:deals.partnership},
+    {key:"capital",label:"🏦 Capital",color:"var(--t5,#0ea5e9)",items:deals.capital}
   ];
   var boardHtml='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">'+columns.map(function(col){
     var active=col.items.filter(function(i){return i.status==="active"||!i.status||i.active;});
@@ -5726,8 +5726,8 @@ function _mchDealBoard(){
         var valLine="",dateLine="";
         if(col.key==="lending"){valLine=fmtU(d.amount_usdt,0)+" USDT";dateLine=d.expected_return_date?"Due: "+new Date(d.expected_return_date).toLocaleDateString():"No due date";}
         else if(col.key==="arbitrage"){valLine=fmtU(d.usdt_sent,0)+" USDT @ "+d.price_qar_per_usdt;dateLine=d.expected_return_date?"Due: "+new Date(d.expected_return_date).toLocaleDateString():"No due date";}
-        else if(col.key==="partnership"){valLine=fmtU(d.usdt_sent,0)+" USDT";dateLine=(d.profit_ratio&&d.profit_ratio.you_percentage||0)+"% share \u00b7 "+(d.settlements||[]).length+" settlements";}
-        else if(col.key==="capital"){valLine=fmtU(d.usdt_capital,0)+" USDT";dateLine=((d.monthly_profit_rate||0)*100).toFixed(0)+"%/mo \u00b7 "+(d.monthly_profits||[]).length+" payouts";}
+        else if(col.key==="partnership"){valLine=fmtU(d.usdt_sent,0)+" USDT";dateLine=(d.profit_ratio&&d.profit_ratio.you_percentage||0)+"% share · "+(d.settlements||[]).length+" settlements";}
+        else if(col.key==="capital"){valLine=fmtU(d.usdt_capital,0)+" USDT";dateLine=((d.monthly_profit_rate||0)*100).toFixed(0)+"%/mo · "+(d.monthly_profits||[]).length+" payouts";}
         var overdue=d.expected_return_date&&d.expected_return_date<Date.now()&&d.status==="active";
         return'<div style="padding:6px 8px;background:var(--panel);border:1px solid '+(overdue?"color-mix(in srgb,var(--bad) 40%,transparent)":"var(--line)")+';border-radius:var(--lt-radius-sm);margin-bottom:4px;font-size:9px;cursor:pointer;" onclick="window._selectedMerchantId=\''+esc(d.merchantId)+'\';window._mchTab=\'directory\';render();"><div style="font-weight:700;font-size:10px;">'+esc(d.merchantName)+'</div><div style="margin-top:2px;">'+valLine+'</div><div class="muted" style="margin-top:1px;">'+dateLine+(overdue?' <span style="color:var(--bad);font-weight:700;">OVERDUE</span>':"")+"</div></div>";
       }).join(""))+
@@ -5781,7 +5781,7 @@ function _mchAnalytics(kpis){
   maturingDeals.sort(function(a,b){return a.due-b.due;});
   var maturityHtml=maturingDeals.length===0?'<div class="muted" style="font-size:10px;">No deals with due dates</div>':maturingDeals.slice(0,8).map(function(d){
     var overdue=d.due<Date.now();var daysLeft=Math.ceil((d.due-Date.now())/86400000);
-    return'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line2);font-size:9px;"><span>'+esc(d.merchantName)+" \u2014 "+d.type+'</span><span class="mono">'+fmtU(d.amount,0)+'</span><span style="color:'+(overdue?"var(--bad)":daysLeft<7?"var(--warn)":"var(--muted)")+';">'+(overdue?Math.abs(daysLeft)+"d overdue":daysLeft+"d left")+"</span></div>";
+    return'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line2);font-size:9px;"><span>'+esc(d.merchantName)+" — "+d.type+'</span><span class="mono">'+fmtU(d.amount,0)+'</span><span style="color:'+(overdue?"var(--bad)":daysLeft<7?"var(--warn)":"var(--muted)")+';">'+(overdue?Math.abs(daysLeft)+"d overdue":daysLeft+"d left")+"</span></div>";
   }).join("");
 
   return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+
@@ -5843,13 +5843,13 @@ function _toggleCollab(id){
     saveRecompute("Collaboration disabled","warn");
   } else {
     m.collaboration.enabled=true;m.collaboration.shared_token=_genToken();
-    _collabLog(m,"enabled_collab","Collaboration enabled \u2014 token generated");
-    saveRecompute("Collaboration enabled \u2014 token generated","good");
+    _collabLog(m,"enabled_collab","Collaboration enabled — token generated");
+    saveRecompute("Collaboration enabled — token generated","good");
   }
 }
 window._sendCollabMessage=function(id){
   var m=(state.merchants||[]).find(function(x){return x.id===id;});if(!m)return;
-  openModal("Send Message to "+esc(m.name),'<div class="form-field"><label class="form-label">Message *</label><textarea id="collabMsg" class="inp-field" style="min-height:80px;" placeholder="Type your message\u2026"></textarea></div><div class="msg" id="collabMsgErr"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">Send Message</button>');
+  openModal("Send Message to "+esc(m.name),'<div class="form-field"><label class="form-label">Message *</label><textarea id="collabMsg" class="inp-field" style="min-height:80px;" placeholder="Type your message…"></textarea></div><div class="msg" id="collabMsgErr"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">Send Message</button>');
   setTimeout(function(){
     $("#m_c")?.addEventListener("click",closeModal);
     $("#m_send")?.addEventListener("click",function(){
@@ -5864,7 +5864,7 @@ window._sendCollabMessage=function(id){
 };
 window._requestApproval=function(id){
   var m=(state.merchants||[]).find(function(x){return x.id===id;});if(!m)return;
-  openModal("Request Approval \u2014 "+esc(m.name),'<div class="form-field"><label class="form-label">Request Type *</label><select id="reqType" class="inp-field"><option value="settlement">Settlement Review</option><option value="profit_record">Profit Record Verification</option><option value="deal_close">Deal Closure</option><option value="capital_change">Capital Change</option></select></div><div class="form-field"><label class="form-label">Description *</label><textarea id="reqDesc" class="inp-field" style="min-height:60px;" placeholder="Describe what needs approval\u2026"></textarea></div><div class="msg" id="reqErr"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_req">Submit Request</button>');
+  openModal("Request Approval — "+esc(m.name),'<div class="form-field"><label class="form-label">Request Type *</label><select id="reqType" class="inp-field"><option value="settlement">Settlement Review</option><option value="profit_record">Profit Record Verification</option><option value="deal_close">Deal Closure</option><option value="capital_change">Capital Change</option></select></div><div class="form-field"><label class="form-label">Description *</label><textarea id="reqDesc" class="inp-field" style="min-height:60px;" placeholder="Describe what needs approval…"></textarea></div><div class="msg" id="reqErr"></div>','<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_req">Submit Request</button>');
   setTimeout(function(){
     $("#m_c")?.addEventListener("click",closeModal);
     $("#m_req")?.addEventListener("click",function(){
@@ -5873,7 +5873,7 @@ window._requestApproval=function(id){
       if(!m.collaboration)m.collaboration={enabled:false,shared_token:"",role:"owner",shared_fields:["lending","arbitrage","partnership","capital"],activity_log:[],messages:[],pending_approvals:[]};
       m.collaboration.pending_approvals=m.collaboration.pending_approvals||[];
       m.collaboration.pending_approvals.push({id:uid(),ts:Date.now(),type:type,status:"pending",requested_by:"partner",data:{description:desc},resolved_ts:null,notes:""});
-      _collabLog(m,"approval_requested","Approval requested: "+type+" \u2014 "+desc.slice(0,60));
+      _collabLog(m,"approval_requested","Approval requested: "+type+" — "+desc.slice(0,60));
       m.last_activity_date=Date.now();saveRecompute("Approval request submitted","good");closeModal();
     });
   },0);
@@ -6678,6 +6678,7 @@ function render(){
   else if(p==="p2p")renderP2P();
   else if(p==="crm")renderCRM();
   else if(p==="merchants"){ try{ renderMerchants(); }catch(e){ console.error('renderMerchants error:',e); } }
+  else { if(typeof _stopPolling==='function') _stopPolling(); }
   else if(p==="calendar")renderCalendar();
   else if(p==="vault")renderVault();
   else if(p==="kpibuilder")renderKpiBuilder();
@@ -11012,6 +11013,110 @@ window.renderMerchants = function(){
   var _appTab = 'inbox';
   var _dirResults = [];
 
+  /* ─── D1 API layer ─────────────────────────────────────────────────
+     All invite/relationship/message/profile/search operations go through
+     Cloudflare Worker + D1. Local MS state is kept in sync as a cache.
+     Polling runs every 45s when the Merchants tab is open.
+     ─────────────────────────────────────────────────────────────────── */
+  var API_BASE = 'https://p2p-merchant-api.taheito26.workers.dev';
+  var _pollTimer = null;
+  var _lastPollTs = 0;
+  var _syncStatus = 'idle';
+
+  async function _api(method, path, body) {
+    var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    var res = await fetch(API_BASE + path, opts);
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
+    return data;
+  }
+
+  async function _publishProfile() {
+    if (!MS.profile) return;
+    try {
+      await _api('POST', '/api/profiles', {
+        merchant_id:    MS.profile.merchant_id,
+        display_name:   MS.profile.display_name,
+        nickname:       MS.profile.nickname,
+        merchant_type:  MS.profile.merchant_type,
+        region:         MS.profile.region || '',
+        bio:            MS.profile.bio || '',
+        discoverability: MS.profile.discoverability || 'public',
+      });
+    } catch(e) { console.warn('publishProfile:', e.message); }
+  }
+
+  async function _apiSearch(q) {
+    return _api('GET', '/api/profiles/search?q=' + encodeURIComponent(q) + '&limit=20');
+  }
+
+  async function _apiSendInvite(inv) {
+    return _api('POST', '/api/invites', inv);
+  }
+
+  async function _apiAcceptInvite(inviteId, myMid) {
+    return _api('POST', '/api/invites/' + inviteId + '/accept', { accepting_merchant_id: myMid });
+  }
+
+  async function _apiRejectInvite(inviteId, myMid) {
+    return _api('POST', '/api/invites/' + inviteId + '/reject', { rejecting_merchant_id: myMid });
+  }
+
+  async function _apiWithdrawInvite(inviteId, myMid) {
+    return _api('POST', '/api/invites/' + inviteId + '/withdraw', { withdrawing_merchant_id: myMid });
+  }
+
+  async function _apiSendMessage(msg) {
+    return _api('POST', '/api/messages', msg);
+  }
+
+  async function _pollD1() {
+    if (!MS.profile) return;
+    var mid = MS.profile.merchant_id;
+    var since = _lastPollTs;
+    _lastPollTs = Date.now();
+    try {
+      var data = await _api('GET', '/api/poll/' + mid + '?since=' + since);
+      var changed = false;
+      (data.invites || []).forEach(function(ri) {
+        var exists = MS.invites.some(function(i) { return i.id === ri.id; });
+        if (!exists) {
+          MS.invites.push({ id:ri.id, from_merchant_id:ri.from_merchant_id, to_merchant_id:ri.to_merchant_id,
+            status:ri.status, purpose:ri.purpose||'', message:ri.message||'',
+            created_at:ri.created_at, updated_at:ri.updated_at, expires_at:ri.expires_at,
+            from_display_name:ri.from_display_name||ri.from_merchant_id, from_nickname:ri.from_nickname||'', _remote:true });
+          notify('invite','New invite from '+(ri.from_display_name||ri.from_merchant_id),'Tap Invites tab to view.');
+          changed = true;
+        } else {
+          var local = MS.invites.find(function(i){ return i.id===ri.id; });
+          if (local && local.status !== ri.status) { local.status=ri.status; local.updated_at=ri.updated_at; changed=true; }
+        }
+      });
+      (data.messages || []).forEach(function(msg) {
+        var exists = MS.messages.some(function(m){ return m.id===msg.id; });
+        if (!exists) {
+          MS.messages.push({ id:msg.id, relationship_id:msg.relationship_id, sender_merchant_id:msg.sender_merchant_id,
+            sender_name:msg.sender_name||msg.sender_merchant_id, body:msg.body, created_at:msg.created_at, read_at:null });
+          changed = true;
+        }
+      });
+      if (changed) { save(); if (typeof render==='function') render(); }
+      _syncStatus = 'ok';
+    } catch(e) { _syncStatus = 'error'; console.warn('Poll error:', e.message); }
+  }
+
+  function _startPolling() {
+    if (_pollTimer) return;
+    _pollD1();
+    _pollTimer = setInterval(_pollD1, 45000);
+  }
+  function _stopPolling() {
+    if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+  }
+
+
+
   /* ─── Audit & Notification helpers ────────────────────────────────── */
   function audit(action, entityType, entityId, detail){
     MS.auditLogs.unshift({ id:uid(), ts:now(), actor_user_id:'me', entity_type:entityType||'general', entity_id:entityId||null, action:action, detail:detail||'' });
@@ -11121,7 +11226,8 @@ window.renderMerchants = function(){
      ═══════════════════════════════════════════════════════════════════════ */
   window.renderMerchants = function(){
     if(typeof setHeader === 'function') setHeader("Merchant Platform","Advances · Sales · Profit-Share · Pools · Settlements");
-    if(!MS.profile){ _renderOnboarding(); return; }
+    if(!MS.profile){ _stopPolling(); _renderOnboarding(); return; }
+    _startPolling();
     _renderHub();
   };
 
@@ -11242,8 +11348,8 @@ window.renderMerchants = function(){
       audit('profile_created','profile',MS.profile.id,'Merchant profile created: '+MS.profile.display_name);
       notify('system','Welcome to Merchant Platform!','Your profile '+MS.profile.display_name+' ('+MS.profile.merchant_id+') is now active.');
       _obStep=1; save();
+      _publishProfile();
       if(typeof render==='function') render(); else renderMerchants();
-    });
   }
 
   function _obRow(lbl,val){
@@ -11376,6 +11482,7 @@ window.renderMerchants = function(){
           '<button class="btn secondary" id="qaGotoInvites" style="font-size:9px;">📨 Invites</button>'+
           '<button class="btn secondary" id="qaGotoRels" style="font-size:9px;">🤝 Connections</button>'+
           '<button class="btn secondary" id="qaGotoDeals" style="font-size:9px;">💰 Advances</button>'+
+          '<button class="btn" id="copyInviteLinkBtn" style="font-size:9px;">🔗 Copy Invite Link</button>'+
         '</div></div></div>' +
       '</div>';
   }
@@ -11387,7 +11494,7 @@ window.renderMerchants = function(){
     var p = MS.profile;
     return '<div style="max-width:600px;">' +
       '<div class="panel" style="margin-bottom:10px;">' +
-        '<div class="panel-head"><h2>Merchant Profile</h2><button class="btn" id="editProfileBtn" style="font-size:9px;">Edit</button></div>' +
+        '<div class="panel-head"><h2>Merchant Profile</h2><div style="display:flex;gap:4px;"><button class="btn secondary" id="copyInviteLinkBtn" style="font-size:9px;">🔗 Copy Invite Link</button><button class="btn" id="editProfileBtn" style="font-size:9px;">Edit</button></div></div>' +
         '<div class="panel-body">' +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px;">' +
             '<div style="padding:6px 8px;background:var(--panel2);border-radius:var(--lt-radius-sm);"><div class="muted" style="font-size:8px;">MERCHANT ID</div><div style="display:flex;align-items:center;gap:6px;margin-top:1px;"><span style="font-weight:600;font-family:var(--lt-font-mono,monospace);font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;" id="profileMerchantIdText">'+esc(p.merchant_id)+'</span><button class="rowBtn" id="copyMerchantIdBtn" style="font-size:8px;padding:2px 6px;color:var(--brand);white-space:nowrap;">📋 Copy</button></div></div>' + _obRow('Nickname','@'+p.nickname) +
@@ -12195,6 +12302,7 @@ window.renderMerchants = function(){
         } else { prompt('Copy Merchant ID:',mid); }
       }
     });
+    $('#copyInviteLinkBtn')?.addEventListener('click',function(){ _copyInviteLink(); });
     // Directory
     $('#dir_search')?.addEventListener('click',function(){ _dirSearch(); });
     $('#dir_q')?.addEventListener('keydown',function(e){ if(e.key==='Enter') _dirSearch(); });
@@ -12258,17 +12366,109 @@ window.renderMerchants = function(){
   /* ═══════════════════════════════════════════════════════════════════════
      SHARED ACTIONS (Invites, Approvals, etc.)
      ═══════════════════════════════════════════════════════════════════════ */
-  function _dirSearch(){
-    var q=($('#dir_q')?.value||'').trim().toLowerCase(); if(!q){ if(typeof toast==='function') toast('Enter a search term','warn'); return; }
-    var found=[];
-    (MS.merchants||[]).forEach(function(m){
-      if((m.name||'').toLowerCase().includes(q)||(m.id||'').toLowerCase().includes(q)){
-        found.push({ merchant_id:m.id||uid().slice(0,8).toUpperCase(), display_name:m.name||m.id, nickname:(m.name||'').toLowerCase().replace(/\s+/g,'_').slice(0,20), merchant_type:'independent' });
-      }
-    });
-    if(q.startsWith('mrc')){ found.push({ merchant_id:q.toUpperCase(), display_name:'Merchant '+q.toUpperCase(), nickname:q.replace(/[^a-z0-9_]/g,'_'), merchant_type:'independent' }); }
-    _dirResults=found; renderMerchants();
-    if(!found.length && typeof toast==='function') toast('No results for "'+q+'"','warn');
+  async function _dirSearch(){
+    var q=($('#dir_q')?.value||'').trim(); if(!q){ if(typeof toast==='function') toast('Enter a search term',''); return; }
+    var btn=$('#dir_search'); if(btn){ btn.textContent='Searching…'; btn.disabled=true; }
+    try {
+      var results = await _apiSearch(q);
+      _dirResults = results.filter(function(r){ return !MS.profile || r.merchant_id !== MS.profile.merchant_id; });
+      renderMerchants();
+      if(!_dirResults.length && typeof toast==='function') toast('No merchants found for "'+q+'"','');
+    } catch(e) {
+      if(typeof toast==='function') toast('Search failed: '+e.message,'');
+    } finally {
+      var btn2=$('#dir_search'); if(btn2){ btn2.textContent='🔍 Search'; btn2.disabled=false; }
+    }
+  }
+
+
+  /* =================================================================
+     INVITE LINK SYSTEM — Cross-device invite via URL hash
+     Sender: generates link with encoded profile; Recipient: opens link
+     ================================================================= */
+  function _copyInviteLink(){
+    if(!MS.profile) return;
+    var payload = {
+      v:1,
+      mid: MS.profile.merchant_id,
+      name: MS.profile.display_name,
+      nick: MS.profile.nickname,
+      type: MS.profile.merchant_type,
+      region: MS.profile.region||'',
+      ts: Date.now()
+    };
+    var encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    var url = window.location.origin + window.location.pathname + '#invite=' + encoded;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url)
+        .then(function(){ if(typeof toast==='function') toast('Invite link copied ✓ — share with your partner!','good'); })
+        .catch(function(){ prompt('Copy this invite link:',url); });
+    } else { prompt('Copy this invite link:',url); }
+  }
+
+  function _checkInviteInUrl(){
+    var hash = window.location.hash || '';
+    var m = hash.match(/[#&]invite=([A-Za-z0-9+/=]+)/);
+    if(!m) return;
+    try{ history.replaceState(null,'',window.location.pathname+window.location.search); }catch(e){}
+    var payload;
+    try{ payload = JSON.parse(decodeURIComponent(escape(atob(m[1])))); }catch(e){ return; }
+    if(!payload || !payload.mid) return;
+    if(Date.now() - payload.ts > 7*24*3600000){
+      if(typeof toast==='function') toast('Invite link expired (>7 days)','');
+      return;
+    }
+    if(MS.profile && (payload.mid === MS.profile.merchant_id)){
+      if(typeof toast==='function') toast('This is your own invite link!','');
+      return;
+    }
+    _showIncomingInviteDialog(payload);
+  }
+
+  function _showIncomingInviteDialog(payload){
+    if(typeof openModal !== 'function'){ setTimeout(function(){ _showIncomingInviteDialog(payload); },800); return; }
+    openModal('Merchant Invite Received',
+      '<div style="text-align:center;padding:12px 0;">' +
+        '<div style="font-size:32px;margin-bottom:8px;">🤝</div>' +
+        '<div style="font-size:14px;font-weight:700;margin-bottom:4px;">'+esc(payload.name || payload.mid)+'</div>' +
+        '<div class="muted" style="font-size:10px;">@'+esc(payload.nick||'')+(payload.region?' · '+esc(payload.region):'')+'</div>' +
+        '<div class="muted" style="font-size:10px;margin-top:4px;">Merchant ID: <code style="font-size:9px;">'+esc(payload.mid)+'</code></div>' +
+      '</div>' +
+      (MS.profile ? '' :
+        '<div class="msg" style="margin-top:8px;background:color-mix(in srgb,var(--warn) 10%,transparent);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);padding:8px;border-radius:var(--lt-radius-sm);font-size:10px;">⚠ Create your Merchant Profile first, then open this link again to accept.</div>'
+      ),
+      (MS.profile ?
+        '<button class="btn secondary" id="m_c">Ignore</button><button class="btn" id="inv_accept_url">✓ Accept & Connect</button>' :
+        '<button class="btn secondary" id="m_c">Close</button>'
+      )
+    );
+    setTimeout(function(){
+      $('#m_c')?.addEventListener('click', closeModal);
+      $('#inv_accept_url')?.addEventListener('click', function(){
+        if(!MS.profile){ closeModal(); return; }
+        var alreadyRel = MS.relationships.some(function(r){
+          return (r.merchant_a_id===MS.profile.merchant_id&&r.merchant_b_id===payload.mid)||
+                 (r.merchant_b_id===MS.profile.merchant_id&&r.merchant_a_id===payload.mid);
+        });
+        if(alreadyRel){ if(typeof toast==='function') toast('Already connected!','good'); closeModal(); return; }
+        var inv={ id:uid(), from_merchant_id:payload.mid, to_merchant_id:MS.profile.merchant_id,
+          status:'accepted', purpose:'Via invite link', requested_role:'operator',
+          message:'Accepted via invite link', created_at:payload.ts, updated_at:Date.now(), expires_at:Date.now()+14*86400000 };
+        MS.invites.push(inv);
+        var rel={ id:uid(), merchant_a_id:payload.mid, merchant_b_id:MS.profile.merchant_id,
+          invite_id:inv.id, relationship_type:'general', status:'active', created_at:Date.now(), updated_at:Date.now() };
+        MS.relationships.push(rel);
+        MS.relationshipTerms.push({ id:uid(), relationship_id:rel.id, default_ratio:MS.profile.default_profit_ratio||60,
+          loss_policy:'shared_ratio', settlement_cycle:MS.profile.default_settlement_cycle||'monthly',
+          allowed_currencies:['USDT','QAR'], allowed_deal_classes:['advance','purchase','profitshare','pool'],
+          advances_enabled:true, sales_enabled:true, funded_deals_enabled:true, pools_enabled:true, created_at:Date.now() });
+        notify('invite','Connected with '+esc(payload.name||payload.mid),'Relationship active via invite link.');
+        audit('invite_accepted','invite',inv.id,'Accepted via link from '+payload.mid);
+        save(); closeModal();
+        _tab='relationships'; renderMerchants();
+        if(typeof toast==='function') toast('Connected with '+esc(payload.name||payload.mid)+' ✓','good');
+      });
+    },0);
   }
 
   function _openInviteModal(targetMid,targetName){
@@ -12278,45 +12478,73 @@ window.renderMerchants = function(){
       '<div class="form-field"><label class="form-label">Message</label><textarea id="inv_msg" class="inp-field" style="min-height:50px;" placeholder="Introduce yourself…"></textarea></div>',
       '<div class="msg" id="inv_err"></div>',
     ].join(''),
-    '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">Send Invite</button>');
+    '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" id="m_send">📨 Send Invite</button>');
     setTimeout(function(){
       $('#m_c')?.addEventListener('click',closeModal);
-      $('#m_send')?.addEventListener('click',function(){
+      $('#m_send')?.addEventListener('click',async function(){
         var purpose=($('#inv_purpose')?.value||'').trim(), msg=($('#inv_msg')?.value||'').trim();
-        var inv={ id:uid(), from_merchant_id:MS.profile.merchant_id, to_merchant_id:targetMid, status:'pending', purpose:purpose, requested_role:'operator', message:msg, created_at:now(), updated_at:now(), expires_at:now()+14*86400000 };
-        MS.invites.push(inv);
-        audit('invite_sent','invite',inv.id,'Invite to '+targetMid);
-        notify('invite','Invite sent','Invite to '+targetMid+' pending.');
-        save(); closeModal(); _tab='invites'; _invTab='sent'; renderMerchants();
-        if(typeof toast==='function') toast('Invite sent','good');
+        var errEl=$('#inv_err');
+        var btn=$('#m_send'); if(btn){ btn.textContent='Sending…'; btn.disabled=true; }
+        var inv={ id:uid(), from_merchant_id:MS.profile.merchant_id, to_merchant_id:targetMid,
+          status:'pending', purpose:purpose, message:msg,
+          created_at:now(), updated_at:now(), expires_at:now()+14*86400000 };
+        try {
+          await _apiSendInvite(inv); // persist to D1
+          MS.invites.push(inv); // update local cache
+          audit('invite_sent','invite',inv.id,'Invite to '+targetMid);
+          notify('invite','Invite sent','Invite to '+targetMid+' pending.');
+          save(); closeModal(); _tab='invites'; _invTab='sent'; renderMerchants();
+          if(typeof toast==='function') toast('📨 Invite sent to '+(targetName||targetMid),'good');
+        } catch(e2) {
+          if(errEl){ errEl.textContent=e2.message; errEl.className='msg err'; }
+          if(btn){ btn.textContent='📨 Send Invite'; btn.disabled=false; }
+        }
       });
     },0);
   }
 
-  function _acceptInvite(id){
+  async function _acceptInvite(id){
     var inv=MS.invites.find(function(i){return i.id===id;}); if(!inv||inv.status!=='pending') return;
-    inv.status='accepted'; inv.updated_at=now();
-    var rel={ id:uid(), merchant_a_id:inv.from_merchant_id, merchant_b_id:inv.to_merchant_id, invite_id:inv.id, relationship_type:'general', status:'active', created_at:now(), updated_at:now() };
-    MS.relationships.push(rel);
-    // Create default relationship terms (Section 13)
-    MS.relationshipTerms.push({ id:uid(), relationship_id:rel.id, default_ratio:MS.profile.default_profit_ratio||60, loss_policy:'shared_ratio', settlement_cycle:MS.profile.default_settlement_cycle||'monthly', allowed_currencies:['USDT','QAR'], allowed_deal_classes:['advance','purchase','profitshare','pool'], advances_enabled:true, sales_enabled:true, funded_deals_enabled:true, pools_enabled:true, created_at:now() });
-    audit('invite_accepted','invite',inv.id,'Accepted from '+inv.from_merchant_id);
-    notify('invite','Relationship formed!','Connected with '+inv.from_merchant_id);
-    save(); renderMerchants();
-    if(typeof toast==='function') toast('Relationship formed','good');
+    try {
+      var result = await _apiAcceptInvite(id, MS.profile.merchant_id);
+      inv.status='accepted'; inv.updated_at=now();
+      // Add relationship locally if not already there
+      var relId = result.relationship_id;
+      if (!MS.relationships.some(function(r){ return r.id===relId; })) {
+        var rel={ id:relId, merchant_a_id:inv.from_merchant_id, merchant_b_id:inv.to_merchant_id,
+          invite_id:inv.id, relationship_type:'general', status:'active', created_at:now(), updated_at:now() };
+        MS.relationships.push(rel);
+        MS.relationshipTerms.push({ id:uid(), relationship_id:relId, default_ratio:MS.profile.default_profit_ratio||60,
+          loss_policy:'shared_ratio', settlement_cycle:MS.profile.default_settlement_cycle||'monthly',
+          allowed_currencies:['USDT','QAR'], allowed_deal_classes:['advance','purchase','profitshare','pool'],
+          advances_enabled:true, sales_enabled:true, funded_deals_enabled:true, pools_enabled:true, created_at:now() });
+      }
+      audit('invite_accepted','invite',inv.id,'Accepted from '+inv.from_merchant_id);
+      notify('invite','🤝 Relationship formed!','Connected with '+(inv.from_display_name||inv.from_merchant_id));
+      save(); renderMerchants();
+      if(typeof toast==='function') toast('🤝 Connected with '+(inv.from_display_name||inv.from_merchant_id),'good');
+    } catch(e){
+      if(typeof toast==='function') toast('Accept failed: '+e.message,'');
+    }
   }
 
-  function _rejectInvite(id){
+  async function _rejectInvite(id){
     var inv=MS.invites.find(function(i){return i.id===id;}); if(!inv||inv.status!=='pending') return;
-    inv.status='rejected'; inv.updated_at=now();
-    audit('invite_rejected','invite',inv.id,'Rejected from '+inv.from_merchant_id);
-    save(); renderMerchants();
+    try {
+      await _apiRejectInvite(id, MS.profile.merchant_id);
+      inv.status='rejected'; inv.updated_at=now();
+      audit('invite_rejected','invite',inv.id,'Rejected from '+inv.from_merchant_id);
+      save(); renderMerchants();
+    } catch(e){ if(typeof toast==='function') toast('Reject failed: '+e.message,''); }
   }
 
-  function _withdrawInvite(id){
+  async function _withdrawInvite(id){
     var inv=MS.invites.find(function(i){return i.id===id;}); if(!inv||inv.status!=='pending') return;
-    inv.status='withdrawn'; inv.updated_at=now();
-    save(); renderMerchants();
+    try {
+      await _apiWithdrawInvite(id, MS.profile.merchant_id);
+      inv.status='withdrawn'; inv.updated_at=now();
+      save(); renderMerchants();
+    } catch(e){ if(typeof toast==='function') toast('Withdraw failed: '+e.message,''); }
   }
 
   function _approveApproval(id){
@@ -12343,7 +12571,7 @@ window.renderMerchants = function(){
     p.discoverability=$('#set_disc')?.value||'public'; p.default_currency=$('#set_cur')?.value||'USDT';
     p.updated_at=now();
     audit('settings_saved','profile',p.id,'Settings updated');
-    save(); renderMerchants();
+    save(); _publishProfile(); renderMerchants();
     if(typeof toast==='function') toast('Saved','good');
   }
 
@@ -12373,6 +12601,14 @@ window.renderMerchants = function(){
       if(pb) pb.innerHTML = '<div style="padding:40px;text-align:center;"><div style="font-size:24px;margin-bottom:10px;">⚠️</div><div style="font-weight:700;margin-bottom:6px;">Merchant Module Error</div><div style="color:var(--muted,#888);font-size:11px;">' + String(e.message||e) + '</div><div style="margin-top:12px;"><button class="btn" onclick="localStorage.removeItem(\'mch_platform_v3\');localStorage.removeItem(\'mch_platform_v2\');location.reload();">Reset &amp; Reload</button></div></div>';
     };
   }
+
+
+  // Check for incoming invite link on load
+  try {
+    setTimeout(function(){
+      if(typeof _checkInviteInUrl==='function') _checkInviteInUrl();
+    }, 1200);
+  } catch(e){}
 
 })();
 </script>
