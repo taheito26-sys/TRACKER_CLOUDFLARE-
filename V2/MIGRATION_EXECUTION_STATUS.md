@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 9/38 tasks (24%)  `██████░░░░░░░░░░░░░░░░░░`
+**Progress:** 11/40 tasks (28%)  `███████░░░░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -133,6 +133,20 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 3. **Next step (Agent):** Use wrapper output to validate deployed endpoint state and close Phase 1 checks.
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run `./scripts/verify-system-endpoints.cmd` from `backend/` and paste output including the script version line.
+
+### Step 1.12 — Added backend-root launchers for verifier
+1. **Step completed:** Added `backend/verify-system.cmd` and `backend/verify-system.ps1` so verification can run from backend root without `scripts/` path issues.
+2. **Evidence:** New launcher files plus runbook section “Backend-root launcher (easiest)”.
+3. **Next step (Agent):** Parse launcher output and close endpoint validation gates when successful.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Run `./verify-system.cmd` from `backend/` and paste full output.
+
+### Step 1.13 — Added `.bat` fallback + explicit invocation modes
+1. **Step completed:** Added `backend/verify-system.bat` and documented explicit invocation (`&`, `cmd /c`) for shells where `.cmd` is not auto-resolved.
+2. **Evidence:** `backend/verify-system.bat` and runbook “Backend-root launcher (easiest)” section update.
+3. **Next step (Agent):** Parse output from explicit launcher invocation and update Phase 1 gate status.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Run `cmd /c verify-system.cmd` from `backend/` and paste full output.
 
 ### Phase 1 summary
 1. **Phase status:** In Progress.

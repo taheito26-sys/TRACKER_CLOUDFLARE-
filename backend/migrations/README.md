@@ -96,6 +96,27 @@ node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.tahei
 
 This avoids PowerShell aliasing/dot-sourcing issues entirely and returns a non-zero exit code on failure.
 
+### Backend-root launcher (easiest)
+
+If PowerShell says `scripts\verify-system-endpoints.cmd` is not recognized, use root launchers:
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+.\verify-system.cmd
+# or
+.\verify-system.ps1
+```
+
+These launchers call the Node verifier under `scripts/` and avoid path confusion.
+
+If `.cmd` is still not recognized in PowerShell, run one of these explicit forms:
+
+```powershell
+& ".\verify-system.cmd"
+cmd /c verify-system.cmd
+.\verify-system.bat
+```
+
 ### Windows CMD/PowerShell wrapper (recommended)
 
 From `backend/` run this wrapper to avoid shell syntax issues:
@@ -106,7 +127,7 @@ From `backend/` run this wrapper to avoid shell syntax issues:
 .\scripts\verify-system-endpoints.cmd https://p2p-tracker.taheito26.workers.dev
 ```
 
-Before running, ensure you have latest scripts from git (`git pull`).
+Before running, ensure you have latest scripts from git (`git pull`) and confirm files exist with `Get-ChildItem .\scripts`.
 
 ### Known-good PowerShell sequence (copy/paste)
 
