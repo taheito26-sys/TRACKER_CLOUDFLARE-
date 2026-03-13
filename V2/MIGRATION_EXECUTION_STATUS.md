@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 7/36 tasks (19%)  `█████░░░░░░░░░░░░░░░░░░░`
+**Progress:** 8/37 tasks (22%)  `█████░░░░░░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -119,6 +119,13 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 3. **Next step (Agent):** Evaluate your Node verifier output and close Phase 1 endpoint gates when checks pass.
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run from backend root: `node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.taheito26.workers.dev"` and paste full output.
+
+### Step 1.10 — Deployment fingerprint endpoint added
+1. **Step completed:** Added `/api/system/version` endpoint to verify whether the deployed Worker includes latest system routes.
+2. **Evidence:** `backend/src/index.js` exposes version metadata; verifier scripts now request `/api/system/version`.
+3. **Next step (Agent):** Use version endpoint response to confirm deployment freshness before evaluating health/migrations gates.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Run Node verifier and share output including `/api/system/version` response.
 
 ### Phase 1 summary
 1. **Phase status:** In Progress.

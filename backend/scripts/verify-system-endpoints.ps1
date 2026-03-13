@@ -30,6 +30,7 @@ Write-Host "[verify] Base URL: $BaseUrl"
 
 $healthUrl = "$BaseUrl/api/system/health"
 $migrationsUrl = "$BaseUrl/api/system/migrations"
+$versionUrl = "$BaseUrl/api/system/version"
 $statusUrl = "$BaseUrl/api/status"
 
 Write-Host "[verify] GET $healthUrl"
@@ -52,6 +53,16 @@ if ($migrationsRes.ok) {
   if ($migrationsRes.raw) { Write-Host "[error-body] $($migrationsRes.raw)" }
 }
 
+Write-Host "[verify] GET $versionUrl"
+$versionRes = Get-JsonOrError $versionUrl
+if ($versionRes.ok) {
+  Write-Host "[result] /api/system/version"
+  Write-Output $versionRes.raw
+} else {
+  Write-Host "[error] /api/system/version status=$($versionRes.status) message=$($versionRes.error)"
+  if ($versionRes.raw) { Write-Host "[error-body] $($versionRes.raw)" }
+}
+
 $healthOk = $false
 $hasVersion001 = $false
 
@@ -68,7 +79,7 @@ if ($migrationsRes.ok -and $null -ne $migrationsRes.data.migrations) {
   }
 }
 
-if (-not $healthRes.ok -or -not $migrationsRes.ok) {
+if (-not $healthRes.ok -or -not $migrationsRes.ok -or -not $versionRes.ok) {
   Write-Host "[diag] /api/system endpoints are not reachable on this deployment. Checking fallback endpoint..."
   $statusRes = Get-JsonOrError $statusUrl
   if ($statusRes.ok) {

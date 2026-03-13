@@ -1407,6 +1407,17 @@ async function handleSystem(request, env) {
     }
   }
 
+  if (url.pathname === "/api/system/version") {
+    const version = String(env.WORKER_VERSION || env.CF_VERSION_METADATA || "unknown");
+    return json(request, env, {
+      ok: true,
+      service: "p2p-tracker",
+      version,
+      timestamp: nowIso(),
+      endpoints: ["/api/system/health", "/api/system/migrations", "/api/system/version"],
+    });
+  }
+
   return null;
 }
 

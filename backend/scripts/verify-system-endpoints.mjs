@@ -41,9 +41,11 @@ console.log(`[verify] Base URL: ${normalizeBase(baseUrl)}`);
 
 const health = await getJson('/api/system/health');
 const migrations = await getJson('/api/system/migrations');
+const version = await getJson('/api/system/version');
 
 printResult('/api/system/health', health);
 printResult('/api/system/migrations', migrations);
+printResult('/api/system/version', version);
 
 let healthOk = false;
 let hasVersion001 = false;
@@ -53,11 +55,11 @@ if (migrations.ok && Array.isArray(migrations.data?.migrations)) {
   hasVersion001 = migrations.data.migrations.some((m) => String(m?.version) === '001');
 }
 
-if (!health.ok || !migrations.ok) {
+if (!health.ok || !migrations.ok || !version.ok) {
   console.log('[diag] /api/system routes not fully reachable; checking /api/status fallback...');
   const status = await getJson('/api/status');
   printResult('/api/status', status);
-  if (status.ok && (health.status === 404 || migrations.status === 404)) {
+  if (status.ok && (health.status === 404 || migrations.status === 404 || version.status === 404)) {
     console.log('[diag] /api/status works while /api/system returns 404 -> likely older deployed worker code. Redeploy latest backend.');
   }
 }

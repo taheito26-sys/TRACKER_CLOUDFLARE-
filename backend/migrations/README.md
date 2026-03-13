@@ -34,6 +34,7 @@ npx wrangler d1 execute crypto-tracker --command "SELECT id, version, descriptio
 ```bash
 curl -s https://<worker-domain>/api/system/health
 curl -s https://<worker-domain>/api/system/migrations
+curl -s https://<worker-domain>/api/system/version
 ```
 
 ### PowerShell (Windows) equivalents
@@ -48,6 +49,7 @@ curl.exe -sS "https://<worker-domain>/api/system/migrations"
 # Option B: native PowerShell JSON fetch
 (Invoke-RestMethod "https://<worker-domain>/api/system/health") | ConvertTo-Json -Depth 10
 (Invoke-RestMethod "https://<worker-domain>/api/system/migrations") | ConvertTo-Json -Depth 10
+(Invoke-RestMethod "https://<worker-domain>/api/system/version") | ConvertTo-Json -Depth 10
 ```
 
 ### Common Windows pitfalls
@@ -75,9 +77,10 @@ From `backend/` run:
 .\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
 ```
 
-This script prints both JSON payloads and fails if:
+This script prints system JSON payloads and fails if:
 - `health.ok != true`
-- migration version `001` is not found.
+- migration version `001` is not found
+- `/api/system/version` is unavailable (helps detect stale deployments).
 
 - If you receive `404 Not Found` on `/api/system/*`, run the verifier script. It now checks `/api/status` as a fallback and tells you whether the deployment likely runs older code.
 - If fallback `/api/status` works but `/api/system/*` is 404, redeploy latest backend Worker from this repo and rerun verification.
@@ -114,4 +117,5 @@ cd ..
 
 - `/api/system/health` returns `ok: true` and `bindings.db: true`.
 - `/api/system/migrations` includes version `001`.
+- `/api/system/version` returns endpoint/version metadata.
 - Running migration SQL repeatedly does not duplicate version `001`.

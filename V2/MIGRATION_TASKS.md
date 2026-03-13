@@ -19,6 +19,7 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Add `001_schema_migrations.sql` migration file
 - [x] Implement `/api/system/health` route
 - [x] Implement `/api/system/migrations` route
+- [x] Implement `/api/system/version` route
 - [x] Publish migration runbook and verifier scripts
 - [ ] Apply `001_schema_migrations.sql` in staging
 - [ ] Apply `001_schema_migrations.sql` in production
