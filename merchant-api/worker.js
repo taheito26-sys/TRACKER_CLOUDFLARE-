@@ -9,6 +9,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-Merchant-ID',
   'Content-Type': 'application/json',
+  'X-Worker-Name': 'p2p-merchant-api',
 };
 
 function json(data, status = 200) {
@@ -29,7 +30,12 @@ export default {
     const url  = new URL(request.url);
     const path = url.pathname.replace(/\/$/, '');
     const method = request.method;
+    console.log('merchant-api', method, path);
     const db = env.DB;
+    if (method === 'GET' && path === '/api/health') {
+      return json({ ok: true, worker: 'p2p-merchant-api', ts: Date.now() });
+    }
+
 
     let body = {};
     if (method === 'POST' || method === 'PUT') {
