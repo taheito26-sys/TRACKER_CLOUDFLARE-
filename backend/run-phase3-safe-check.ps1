@@ -1,48 +1,47 @@
-param(
-  [Parameter(Mandatory=$false)]
-  [string]$BaseUrl = "https://p2p-tracker.taheito26.workers.dev",
+$BaseUrl = "https://p2p-tracker.taheito26.workers.dev"
+$SkipDeploy = $false
+$UserId = "phase3-safe-user"
+$IdempotencyKey = $null
+$RequestTimeoutMs = 15000
 
-  [Parameter(Mandatory=$false)]
-  [switch]$SkipDeploy,
-
-  [Parameter(Mandatory=$false)]
-  [string]$UserId = "phase3-safe-user",
-
-  [Parameter(Mandatory=$false)]
-  [string]$IdempotencyKey,
-
-  [Parameter(Mandatory=$false)]
-  [int]$RequestTimeoutMs = 15000,
-
-  [Parameter(Mandatory=$false)]
-  [switch]$KebabCase,
-
-  [Parameter(ValueFromRemainingArguments = $true)]
-  [string[]]$RemainingArgs
-)
-
-for ($i = 0; $i -lt $RemainingArgs.Count; $i++) {
-  $arg = [string]$RemainingArgs[$i]
+for ($i = 0; $i -lt $args.Count; $i++) {
+  $arg = [string]$args[$i]
   switch -Regex ($arg) {
-    '^--skip-deploy$' { $SkipDeploy = $true; continue }
-    '^--base-url$' {
-      if ($i + 1 -ge $RemainingArgs.Count) { throw "Missing value for $arg" }
-      $i++; $BaseUrl = [string]$RemainingArgs[$i]; continue
+    '^(-|--)?skip-?deploy$' { $SkipDeploy = $true; continue }
+
+    '^(-|--)?base-?url$' {
+      if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
+      $i++; $BaseUrl = [string]$args[$i]; continue
     }
-    '^--user-id$' {
-      if ($i + 1 -ge $RemainingArgs.Count) { throw "Missing value for $arg" }
-      $i++; $UserId = [string]$RemainingArgs[$i]; continue
+
+    '^(-|--)?user-?id$' {
+      if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
+      $i++; $UserId = [string]$args[$i]; continue
     }
-    '^--idempotency-key$' {
-      if ($i + 1 -ge $RemainingArgs.Count) { throw "Missing value for $arg" }
-      $i++; $IdempotencyKey = [string]$RemainingArgs[$i]; continue
+
+    '^(-|--)?idempotency-?key$' {
+      if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
+      $i++; $IdempotencyKey = [string]$args[$i]; continue
     }
-    '^--request-timeout-ms$' {
-      if ($i + 1 -ge $RemainingArgs.Count) { throw "Missing value for $arg" }
-      $i++; $RequestTimeoutMs = [int]$RemainingArgs[$i]; continue
+
+    '^(-|--)?request-?timeout-?ms$' {
+      if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
+      $i++
+      $timeoutRaw = [string]$args[$i]
+      if (-not [int]::TryParse($timeoutRaw, [ref]$RequestTimeoutMs)) {
+        throw "Invalid integer for $arg: $timeoutRaw"
+      }
+      continue
     }
-    '^--kebab-case$' { $KebabCase = $true; continue }
-    default { throw "Unknown argument: $arg" }
+
+    '^(-|--)?kebab-?case$' {
+      # Compatibility no-op flag for prior guidance.
+      continue
+    }
+
+    default {
+      throw "Unknown argument: $arg"
+    }
   }
 }
 
