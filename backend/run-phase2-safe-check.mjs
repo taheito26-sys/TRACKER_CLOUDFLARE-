@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
 function arg(name, fallback = undefined) {
   const i = args.findIndex((a) => a === name);
@@ -18,7 +21,7 @@ const expectStatus = Number(arg('--expect-status', '401'));
 
 function runStep(name, cmd, cmdArgs) {
   console.log(`[phase2-safe] ${name}`);
-  const out = spawnSync(cmd, cmdArgs, { stdio: 'inherit', shell: process.platform === 'win32' });
+  const out = spawnSync(cmd, cmdArgs, { stdio: 'inherit', shell: false });
   const code = Number(out.status ?? out.signal ?? 1);
   if (code !== 0) throw new Error(`[phase2-safe] ${name} failed with exit code ${code}`);
 }
@@ -48,10 +51,10 @@ async function probeWriteGuard() {
     console.log(`[phase2-safe] baseUrl=${baseUrl} expectStatus=${expectStatus}`);
 
     if (!skipDeploy) {
-      runStep('Step A: Deploy worker', 'npx', ['wrangler', 'deploy', '--config', './wrangler.toml']);
+      runStep('Step A: Deploy worker', 'npx', ['wrangler', 'deploy', '--config', path.join(scriptDir, 'wrangler.toml')]);
     }
 
-    runStep('Step B: Verify system endpoints', 'node', ['./scripts/verify-system-endpoints.mjs', '--base-url', baseUrl]);
+    runStep('Step B: Verify system endpoints', 'node', [path.join(scriptDir, 'scripts', 'verify-system-endpoints.mjs'), '--base-url', baseUrl]);
 
     console.log('[phase2-safe] Step C: Probe unauth write guard');
     const probe = await probeWriteGuard();
