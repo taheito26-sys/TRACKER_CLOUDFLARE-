@@ -146,6 +146,16 @@ async function verifySystemEndpointsInline() {
       return;
     } catch (err) {
       lastErr = err;
+
+      if (isAll404Error(err)) {
+        const diagnostics = await probe404Diagnostics();
+        if (looksLikeFrontendTarget(diagnostics)) {
+          throw new Error(
+            '[phase3-safe] Inline verify failed: all-system-endpoints-404=true and root serves frontend HTML. Base URL appears to target frontend site, not Worker API origin.'
+          );
+        }
+      }
+
       if (attempt >= verifyRetries) break;
       await sleep(verifyRetryDelayMs);
     }
@@ -190,6 +200,12 @@ function looksLikeFrontendTarget(diagnostics) {
   const system404 = system.status === 404;
   const frontendMarker = String(root.snippet || '').toLowerCase().includes('<title>p2p tracker');
   return rootHtml && system404 && frontendMarker;
+}
+
+
+function isAll404Error(err) {
+  const message = String(err?.message || err);
+  return message.includes('all-system-endpoints-404=true');
 }
 
 async function postImport() {
@@ -257,12 +273,10 @@ async function getImport(importId) {
       console.error('[phase3-safe] Next action: rerun with Access service token headers.');
       console.error('[phase3-safe] Example: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs + ' --verify-retries ' + verifyRetries + ' --verify-retry-delay-ms ' + verifyRetryDelayMs + ' --cf-access-client-id <id> --cf-access-client-secret <secret>');
     }
+    if (message.includes('root serves frontend HTML')) {
+      console.error('[phase3-safe] Next action: use the Worker API origin URL (workers.dev from wrangler deploy), not the frontend/site URL.');
+    }
     if (message.includes('all-system-endpoints-404=true')) {
-      const diagnostics = await probe404Diagnostics();
-      if (looksLikeFrontendTarget(diagnostics)) {
-        console.error('[phase3-safe] Detected frontend HTML at /. This base URL appears to target the frontend site, not the Worker API origin.');
-        console.error('[phase3-safe] Next action: use the Worker origin URL from wrangler deploy output (typically https://<worker-name>.<account>.workers.dev), then rerun.');
-      }
       console.error('[phase3-safe] Next action: deploy this worker target and rerun phase3 check.');
       console.error('[phase3-safe] Deploy command: npx wrangler deploy --config ./wrangler.toml');
       console.error('[phase3-safe] Rerun command: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs + ' --verify-retries ' + verifyRetries + ' --verify-retry-delay-ms ' + verifyRetryDelayMs);
