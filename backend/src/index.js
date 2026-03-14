@@ -2544,6 +2544,51 @@ async function computeKpiParity(db, userId) {
   };
 }
 
+
+
+async function computeCutoverReadiness(db, userId) {
+  await ensureSchemaMigrationsTable(db);
+  await ensureImportBridgeTables(db);
+  await ensurePhase5FinancialTables(db);
+
+  const migrations = await d1All(db, `SELECT version FROM schema_migrations ORDER BY id ASC`);
+  const migrationVersions = migrations.map(r => String(r.version || ''));
+
+  const [batchCount, tradeCount, allocCount, dealCount, settlementCount, journalCount] = await Promise.all([
+    d1First(db, `SELECT COUNT(*) AS c FROM batches WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM trades WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM trade_allocations WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM deals WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM settlements WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM journal_entries WHERE user_id = ?`, userId),
+  ]);
+
+  const parity = await computeKpiParity(db, userId);
+
+  const checks = {
+    migration_001_applied: migrationVersions.includes('001'),
+    migration_002_applied: migrationVersions.includes('002'),
+    trading_seeded: Number(batchCount?.c || 0) > 0 || Number(tradeCount?.c || 0) > 0,
+    financial_seeded: Number(dealCount?.c || 0) > 0 || Number(settlementCount?.c || 0) > 0,
+    kpi_parity_ok: !!parity.ok,
+  };
+
+  return {
+    ok: Object.values(checks).every(Boolean),
+    checks,
+    migrations: migrationVersions,
+    counts: {
+      batches: Number(batchCount?.c || 0),
+      trades: Number(tradeCount?.c || 0),
+      trade_allocations: Number(allocCount?.c || 0),
+      deals: Number(dealCount?.c || 0),
+      settlements: Number(settlementCount?.c || 0),
+      journal_entries: Number(journalCount?.c || 0),
+    },
+    parity,
+  };
+}
+
 async function handleSystem(request, env) {
   const url = new URL(request.url);
   if (url.pathname === "/api/system/health") {
@@ -2588,7 +2633,7 @@ async function handleSystem(request, env) {
       service: "p2p-tracker",
       version,
       timestamp: nowIso(),
-      endpoints: ["/api/system/health", "/api/system/migrations", "/api/system/version", "/api/system/kpi-parity"],
+      endpoints: ["/api/system/health", "/api/system/migrations", "/api/system/version", "/api/system/kpi-parity", "/api/system/cutover-readiness"],
     });
   }
 
@@ -2609,6 +2654,23 @@ async function handleSystem(request, env) {
       return bad(request, env, err.message || "Failed to compute KPI parity", 500);
     }
   }
+
+  if (url.pathname === "/api/system/cutover-readiness") {
+    if (!env.DB) return bad(request, env, "D1 binding DB is not configured", 500);
+    let user;
+    try {
+      user = await getUserContext(request, env);
+    } catch (err) {
+      return bad(request, env, err.message || "Unauthorized", 401);
+    }
+    try {
+      const readiness = await computeCutoverReadiness(env.DB, user.userId);
+      return json(request, env, { ok: readiness.ok, readiness, timestamp: nowIso() }, readiness.ok ? 200 : 409);
+    } catch (err) {
+      return bad(request, env, err.message || "Failed to compute cutover readiness", 500);
+    }
+  }
+
 
   return null;
 }
