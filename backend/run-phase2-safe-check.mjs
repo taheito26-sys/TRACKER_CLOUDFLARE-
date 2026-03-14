@@ -18,12 +18,41 @@ function flag(name) {
 const baseUrl = arg('--base-url', 'https://p2p-tracker.taheito26.workers.dev').replace(/\/$/, '');
 const skipDeploy = flag('--skip-deploy');
 const expectStatus = Number(arg('--expect-status', '401'));
+const verifyRetries = Number(arg('--verify-retries', '3'));
+const verifyRetryDelayMs = Number(arg('--verify-retry-delay-ms', '1500'));
 
 function runStep(name, cmd, cmdArgs) {
   console.log(`[phase2-safe] ${name}`);
   const out = spawnSync(cmd, cmdArgs, { stdio: 'inherit', shell: false });
   const code = Number(out.status ?? out.signal ?? 1);
   if (code !== 0) throw new Error(`[phase2-safe] ${name} failed with exit code ${code}`);
+}
+
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function runVerifyOnce() {
+  runStep('Step B: Verify system endpoints', 'node', [path.join(scriptDir, 'scripts', 'verify-system-endpoints.mjs'), '--base-url', baseUrl]);
+}
+
+async function runVerifyWithRetries() {
+  let lastErr;
+  for (let attempt = 1; attempt <= verifyRetries; attempt++) {
+    try {
+      if (attempt > 1) {
+        console.log(`[phase2-safe] Step B retry ${attempt}/${verifyRetries} after ${verifyRetryDelayMs}ms`);
+      }
+      runVerifyOnce();
+      return;
+    } catch (err) {
+      lastErr = err;
+      if (attempt >= verifyRetries) break;
+      await sleep(verifyRetryDelayMs);
+    }
+  }
+  throw lastErr;
 }
 
 async function probeWriteGuard() {
@@ -48,13 +77,13 @@ async function probeWriteGuard() {
 (async () => {
   try {
     console.log('[phase2-safe] Starting consolidated safe check');
-    console.log(`[phase2-safe] baseUrl=${baseUrl} expectStatus=${expectStatus}`);
+    console.log(`[phase2-safe] baseUrl=${baseUrl} expectStatus=${expectStatus} verifyRetries=${verifyRetries} verifyRetryDelayMs=${verifyRetryDelayMs}`);
 
     if (!skipDeploy) {
       runStep('Step A: Deploy worker', 'npx', ['wrangler', 'deploy', '--config', path.join(scriptDir, 'wrangler.toml')]);
     }
 
-    runStep('Step B: Verify system endpoints', 'node', [path.join(scriptDir, 'scripts', 'verify-system-endpoints.mjs'), '--base-url', baseUrl]);
+    await runVerifyWithRetries();
 
     console.log('[phase2-safe] Step C: Probe unauth write guard');
     const probe = await probeWriteGuard();
