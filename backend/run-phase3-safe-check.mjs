@@ -153,6 +153,27 @@ async function verifySystemEndpointsInline() {
   throw lastErr;
 }
 
+
+
+async function probe404Diagnostics() {
+  const targets = ['/', '/api/system/health?__phase3_probe=1'];
+  for (const target of targets) {
+    const url = `${baseUrl}${target}`;
+    try {
+      const { res, text } = await fetchText(url, { method: 'GET' });
+      const contentType = res.headers.get('content-type') || 'n/a';
+      const server = res.headers.get('server') || 'n/a';
+      const cfRay = res.headers.get('cf-ray') || 'n/a';
+      const snippet = (text || '').slice(0, 160).replace(/\s+/g, ' ').trim();
+      console.error(`[phase3-safe] 404-diagnostic ${target} status=${res.status} content-type=${contentType} server=${server} cf-ray=${cfRay}`);
+      if (snippet) {
+        console.error(`[phase3-safe] 404-diagnostic ${target} body-snippet=${snippet}`);
+      }
+    } catch (err) {
+      console.error(`[phase3-safe] 404-diagnostic ${target} request-failed: ${err?.message || err}`);
+    }
+  }
+}
 async function postImport() {
   const payload = {
     idempotency_key: idemKey,
@@ -219,6 +240,7 @@ async function getImport(importId) {
       console.error('[phase3-safe] Example: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs + ' --verify-retries ' + verifyRetries + ' --verify-retry-delay-ms ' + verifyRetryDelayMs + ' --cf-access-client-id <id> --cf-access-client-secret <secret>');
     }
     if (message.includes('all-system-endpoints-404=true')) {
+      await probe404Diagnostics();
       console.error('[phase3-safe] Next action: deploy this worker target and rerun phase3 check.');
       console.error('[phase3-safe] Deploy command: npx wrangler deploy --config ./wrangler.toml');
       console.error('[phase3-safe] Rerun command: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs + ' --verify-retries ' + verifyRetries + ' --verify-retry-delay-ms ' + verifyRetryDelayMs);
