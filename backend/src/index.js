@@ -3,6 +3,13 @@ const BINANCE = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search";
 const JWKS_CACHE = new Map();
 const JWKS_TTL_MS = 60 * 60 * 1000;
 
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -98,7 +105,12 @@ function bad(request, env, message, status = 400, extra = {}) {
 }
 async function readJson(request) {
   const txt = await request.text();
-  return txt ? JSON.parse(txt) : {};
+  if (!txt) return {};
+  try {
+    return JSON.parse(txt);
+  } catch {
+    throw new HttpError(400, "Invalid JSON body");
+  }
 }
 async function getUserContext(request, env) {
   const auth = request.headers.get("Authorization") || "";
@@ -1218,7 +1230,8 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/close$/)) {
 
     return bad(request, env, "Not found", 404);
   } catch (err) {
-    return bad(request, env, err.message || "Merchant API error", /Forbidden/.test(err.message || "") ? 403 : 500);
+    const status = Number(err?.status) || (/Forbidden/.test(err?.message || "") ? 403 : 500);
+    return bad(request, env, err?.message || "Merchant API error", status);
   }
 }
 
