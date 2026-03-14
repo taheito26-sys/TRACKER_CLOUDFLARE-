@@ -18,6 +18,11 @@ const skipDeploy = flag('--skip-deploy');
 const userId = arg('--user-id', 'phase3-safe-user');
 const idemKey = arg('--idempotency-key', `phase3-${Date.now()}`);
 
+function bin(name) {
+  if (process.platform === 'win32') return `${name}.cmd`;
+  return name;
+}
+
 function runStep(name, cmd, cmdArgs) {
   console.log(`[phase3-safe] ${name}`);
   const out = spawnSync(cmd, cmdArgs, { stdio: 'inherit', shell: false });
@@ -63,10 +68,10 @@ async function getImport(importId) {
     console.log(`[phase3-safe] baseUrl=${baseUrl} userId=${userId}`);
 
     if (!skipDeploy) {
-      runStep('Step A: Deploy worker', 'npx', ['wrangler', 'deploy', '--config', path.join(scriptDir, 'wrangler.toml')]);
+      runStep('Step A: Deploy worker', bin('npx'), ['wrangler', 'deploy', '--config', path.join(scriptDir, 'wrangler.toml')]);
     }
 
-    runStep('Step B: Verify system endpoints', 'node', [path.join(scriptDir, 'scripts', 'verify-system-endpoints.mjs'), '--base-url', baseUrl]);
+    runStep('Step B: Verify system endpoints', bin('node'), [path.join(scriptDir, 'scripts', 'verify-system-endpoints.mjs'), '--base-url', baseUrl]);
 
     console.log('[phase3-safe] Step C: POST /api/import/json');
     const importId = await postImport();
@@ -78,6 +83,9 @@ async function getImport(importId) {
     console.log('[phase3-safe] PASS: import bridge baseline endpoints verified');
   } catch (err) {
     console.error(String(err?.message || err));
+    if (String(err?.message || '').includes('exit code')) {
+      console.error('[phase3-safe] Hint: on Windows this runner now uses npx.cmd/node.cmd; if it still fails, run `npx wrangler deploy --config ./wrangler.toml` manually and re-run with --skip-deploy.');
+    }
     console.error('[phase3-safe] Required from you (User): paste full output of this command.');
     process.exit(1);
   }
