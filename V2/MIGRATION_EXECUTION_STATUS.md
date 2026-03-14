@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 22/46 tasks (48%)  `████████████░░░░░░░░░░░░`
+**Progress:** 23/46 tasks (50%)  `████████████░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -9,12 +9,10 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 ## Required from you now (Operator checklist)
 
-Please provide/execute the following to continue Phase 2 implementation:
+Please provide/execute the following for next phase transition:
 
-1. Run consolidated command from `backend/`:
-   - `.\run-phase2-safe-check.ps1`
-2. Paste full output and one `mutation_audit` line from `npx wrangler tail --format pretty --config ./wrangler.toml`.
-3. Confirm go-ahead for audit logging persistence enhancements next.
+1. Confirm go-ahead to begin Phase 3 (Import Bridge).
+2. Optional: share one example import JSON payload you plan to migrate first.
 
 ## Update contract for all future status replies
 
@@ -287,6 +285,13 @@ The **Required from you (User)** line must be present after every step, even if 
 4. **Next phase:** Phase 2 (Auth & Security Baseline).
 5. **Required from you (User):** Run `.\run-phase2-safe-check.ps1` and paste full output.
 
+### Step 2.8 — Consolidated runner validated in production and warning hardening
+1. **Step completed:** Recorded successful production execution of the consolidated Phase 2 runner and removed shell-args spawn mode that raised Node DEP0190 warnings.
+2. **Evidence:** User output shows `run-phase2-safe-check.ps1` PASS with deploy + verifier PASS + write-guard `401`; `backend/run-phase2-safe-check.mjs` now uses non-shell spawn execution for child steps.
+3. **Next step (Agent):** Start Phase 3 Import Bridge implementation plan and endpoint scaffold.
+4. **Next phase:** Phase 3 (Import Bridge).
+5. **Required from you (User):** Confirm Phase 3 go-ahead and optional first import payload sample.
+
 ### Phase 2 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
@@ -294,7 +299,7 @@ The **Required from you (User)** line must be present after every step, even if 
 3. **Exit criteria status:**
    - [x] Auth/session middleware enforced on all write routes.
    - [x] Payload validation layer added for migration-sensitive endpoints.
-   - [ ] Audit logging added on mutation endpoints.
-4. **Next step (Agent):** Implement audit logging enhancements and decide persistence strategy beyond logs-only baseline.
-5. **Next phase:** Phase 2 (Auth & Security Baseline).
+   - [x] Audit logging added on mutation endpoints.
+4. **Next step (Agent):** Begin Phase 3 import bridge endpoint scaffolding and validation rules.
+5. **Next phase:** Phase 3 (Import Bridge).
 6. **Required from you (User):** Deploy production update and share one write-route auth outcome sample.
