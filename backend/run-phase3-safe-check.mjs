@@ -37,21 +37,34 @@ function runStep(name, cmd, cmdArgs) {
 }
 
 
+async function fetchText(url, options = {}) {
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (err) {
+    throw new Error(`[phase3-safe] request failed for ${url}: ${err?.message || err}`);
+  }
+  const text = await res.text();
+  return { res, text };
+}
+
+function parseJsonIfPossible(text) {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 async function verifySystemEndpointsInline() {
   console.log('[phase3-safe] Step B: Verify system endpoints (inline)');
   const endpoints = ['/api/system/health', '/api/system/migrations', '/api/system/version'];
   const results = {};
   for (const ep of endpoints) {
     const url = `${baseUrl}${ep}`;
-    let res;
-    try {
-      res = await fetch(url, { method: 'GET' });
-    } catch (err) {
-      throw new Error(`[phase3-safe] ${ep} request failed for ${url}: ${err?.message || err}`);
-    }
-    const text = await res.text();
-    let data = null;
-    try { data = text ? JSON.parse(text) : null; } catch {}
+    const { res, text } = await fetchText(url, { method: 'GET' });
+    const data = parseJsonIfPossible(text);
     results[ep] = { status: res.status, ok: res.ok, data, text };
     console.log(`[phase3-safe] ${ep} status=${res.status}`);
   }
@@ -77,7 +90,7 @@ async function postImport() {
     deals: [{ id: 'deal_1', title: 'Sample Deal', amount: 1000, currency: 'USDT' }],
     trades: [{ id: 'tr_1', symbol: 'BTCUSDT', qty: 0.01 }],
   };
-  const res = await fetch(`${baseUrl}/api/import/json`, {
+  const { res, text: body } = await fetchText(`${baseUrl}/api/import/json`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -85,19 +98,17 @@ async function postImport() {
     },
     body: JSON.stringify(payload),
   });
-  const body = await res.text();
   console.log(`[phase3-safe] import POST status=${res.status}`);
   if (body) console.log(`[phase3-safe] import POST body=${body}`);
   if (res.status !== 202 && res.status !== 200) throw new Error(`[phase3-safe] import POST unexpected status ${res.status}`);
-  const json = body ? JSON.parse(body) : {};
+  const json = parseJsonIfPossible(body) || {};
   return json?.import_job?.id;
 }
 
 async function getImport(importId) {
-  const res = await fetch(`${baseUrl}/api/import/json/${importId}`, {
+  const { res, text: body } = await fetchText(`${baseUrl}/api/import/json/${importId}`, {
     headers: { 'X-User-Id': userId },
   });
-  const body = await res.text();
   console.log(`[phase3-safe] import GET status=${res.status}`);
   if (body) console.log(`[phase3-safe] import GET body=${body}`);
   if (res.status !== 200) throw new Error(`[phase3-safe] import GET unexpected status ${res.status}`);
