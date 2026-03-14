@@ -3,6 +3,13 @@ const BINANCE = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search";
 const JWKS_CACHE = new Map();
 const JWKS_TTL_MS = 60 * 60 * 1000;
 
+class HttpError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -98,7 +105,12 @@ function bad(request, env, message, status = 400, extra = {}) {
 }
 async function readJson(request) {
   const txt = await request.text();
-  return txt ? JSON.parse(txt) : {};
+  if (!txt) return {};
+  try {
+    return JSON.parse(txt);
+  } catch {
+    throw new HttpError(400, "Invalid JSON body");
+  }
 }
 async function getUserContext(request, env) {
   const auth = request.headers.get("Authorization") || "";
@@ -130,6 +142,68 @@ async function d1All(db, sql, ...params) {
 }
 async function d1Run(db, sql, ...params) {
   return await db.prepare(sql).bind(...params).run();
+}
+async function ensureSchemaMigrationsTable(db) {
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      version TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+}
+async function listSchemaMigrations(db) {
+  await ensureSchemaMigrationsTable(db);
+  return await d1All(
+    db,
+    `SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC`
+  );
+}
+
+function isWriteMethod(method) {
+  const m = String(method || '').toUpperCase();
+  return m === 'POST' || m === 'PUT' || m === 'PATCH' || m === 'DELETE';
+}
+function getCloudflareAccessActor(request) {
+  const email = normalizeEmail(request.headers.get('cf-access-authenticated-user-email'));
+  if (email) return { actor: email, source: 'cf-access-authenticated-user-email' };
+  const userId = String(request.headers.get('cf-access-authenticated-user-id') || '').trim();
+  if (userId) return { actor: userId, source: 'cf-access-authenticated-user-id' };
+  const jwtAssertion = String(request.headers.get('cf-access-jwt-assertion') || '').trim();
+  if (jwtAssertion) return { actor: 'cf-access-jwt', source: 'cf-access-jwt-assertion' };
+  return null;
+}
+function resolveWriteAuth(request, env) {
+  const enabled = String(env.AUTH_SOURCE || '').trim().toLowerCase() === 'cloudflare-access';
+  if (!enabled) {
+    return { ok: true, actor: 'auth-disabled', mode: 'off' };
+  }
+  const actor = getCloudflareAccessActor(request);
+  if (!actor) {
+    return {
+      ok: false,
+      mode: 'cloudflare-access',
+      actor: 'anonymous',
+      response: bad(request, env, 'Unauthorized: missing Cloudflare Access identity headers', 401),
+    };
+  }
+  return { ok: true, actor: actor.actor, mode: 'cloudflare-access', source: actor.source };
+}
+function auditWrite(request, meta = {}) {
+  const payload = {
+    type: 'mutation_audit',
+    method: request.method,
+    path: new URL(request.url).pathname,
+    actor: meta.actor || 'unknown',
+    auth_mode: meta.mode || 'unknown',
+    auth_source: meta.source || null,
+    status: meta.status ?? null,
+    outcome: meta.outcome || 'unknown',
+    at: nowIso(),
+  };
+  if (meta.error) payload.error = String(meta.error);
+  console.log(JSON.stringify(payload));
 }
 function merchantId() {
   const bytes = new Uint8Array(4);
@@ -1201,7 +1275,8 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/close$/)) {
 
     return bad(request, env, "Not found", 404);
   } catch (err) {
-    return bad(request, env, err.message || "Merchant API error", /Forbidden/.test(err.message || "") ? 403 : 500);
+    const status = Number(err?.status) || (/Forbidden/.test(err?.message || "") ? 403 : 500);
+    return bad(request, env, err?.message || "Merchant API error", status);
   }
 }
 
@@ -1353,6 +1428,57 @@ async function handleP2P(request, env) {
   return null;
 }
 
+async function handleSystem(request, env) {
+  const url = new URL(request.url);
+  if (url.pathname === "/api/system/health") {
+    const health = {
+      ok: true,
+      service: "p2p-tracker",
+      timestamp: nowIso(),
+      bindings: {
+        db: !!env.DB,
+        kv: !!env.P2P_KV,
+      },
+    };
+
+    if (env.DB) {
+      try {
+        const ping = await d1First(env.DB, "SELECT 1 AS ok");
+        health.bindings.dbCheck = ping?.ok === 1;
+      } catch (err) {
+        health.ok = false;
+        health.bindings.dbCheck = false;
+        health.errors = [{ scope: "db", message: err.message || "DB check failed" }];
+      }
+    }
+
+    return json(request, env, health, health.ok ? 200 : 503);
+  }
+
+  if (url.pathname === "/api/system/migrations") {
+    if (!env.DB) return bad(request, env, "D1 binding DB is not configured", 500);
+    try {
+      const rows = await listSchemaMigrations(env.DB);
+      return json(request, env, { migrations: rows, count: rows.length });
+    } catch (err) {
+      return bad(request, env, err.message || "Failed to list migrations", 500);
+    }
+  }
+
+  if (url.pathname === "/api/system/version") {
+    const version = String(env.WORKER_VERSION || env.CF_VERSION_METADATA || "unknown");
+    return json(request, env, {
+      ok: true,
+      service: "p2p-tracker",
+      version,
+      timestamp: nowIso(),
+      endpoints: ["/api/system/health", "/api/system/migrations", "/api/system/version"],
+    });
+  }
+
+  return null;
+}
+
 export default {
   async scheduled(_event, env, ctx) {
     if (!env.P2P_KV) return;
@@ -1362,12 +1488,56 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
+
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/merchant")) {
-      return handleMerchant(request, env);
+    const isApiPath = url.pathname.startsWith('/api/');
+    const isWrite = isApiPath && isWriteMethod(request.method);
+    let authMeta = { ok: true, actor: 'system', mode: 'off' };
+
+    if (isWrite) {
+      authMeta = resolveWriteAuth(request, env);
+      if (!authMeta.ok) {
+        auditWrite(request, {
+          actor: authMeta.actor,
+          mode: authMeta.mode,
+          source: authMeta.source,
+          status: authMeta.response?.status || 401,
+          outcome: 'denied',
+          error: 'missing_or_invalid_access_identity',
+        });
+        return authMeta.response;
+      }
     }
-    const p2p = await handleP2P(request, env);
-    if (p2p) return p2p;
-    return bad(request, env, "Not found", 404);
+
+    let response;
+    try {
+      if (url.pathname.startsWith("/api/system")) {
+        const system = await handleSystem(request, env);
+        if (system) response = system;
+      }
+      if (!response && url.pathname.startsWith("/api/merchant")) {
+        response = await handleMerchant(request, env);
+      }
+      if (!response) {
+        const p2p = await handleP2P(request, env);
+        if (p2p) response = p2p;
+      }
+      if (!response) response = bad(request, env, "Not found", 404);
+    } catch (err) {
+      console.error('[worker] unhandled fetch error:', err?.stack || err?.message || String(err));
+      response = bad(request, env, err?.message || 'Internal error', err?.status || 500);
+    }
+
+    if (isWrite) {
+      auditWrite(request, {
+        actor: authMeta.actor,
+        mode: authMeta.mode,
+        source: authMeta.source,
+        status: response.status,
+        outcome: response.ok ? 'success' : 'error',
+      });
+    }
+
+    return response;
   },
 };
