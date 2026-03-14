@@ -12,14 +12,14 @@ This runbook executes and validates Phase 1 schema foundation tasks.
 
 ```bash
 cd backend
-npx wrangler d1 execute crypto-tracker --file=./migrations/001_schema_migrations.sql
+npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql
 ```
 
 ## Apply migrations (local)
 
 ```bash
 cd backend
-npx wrangler d1 execute crypto-tracker --local --file=./migrations/001_schema_migrations.sql
+npx wrangler d1 execute DB --local --file=./migrations/001_schema_migrations.sql
 ```
 
 ## Phase 1 one-shot executor (time saver)
@@ -28,7 +28,7 @@ If you want to run multiple Phase 1 steps in one shot (deploy + migration + veri
 
 ```powershell
 cd C:\TRACKER_CLOUDFLARE-\backend
-.\run-phase1-oneshot.ps1
+.\run-phase1-oneshot.ps1 -D1Target "DB"
 ```
 
 Or from CMD:
@@ -39,20 +39,27 @@ run-phase1-oneshot.cmd
 
 The one-shot script now **fails fast**: if deploy, migration, or verify fails, it exits non-zero and stops subsequent success reporting.
 
+If you are using Node directly, run the `.mjs` file (not the `.cmd` wrapper):
+
+```powershell
+node .\run-phase1-oneshot.mjs --d1-target DB
+```
+
+
 Optional flags:
 
 ```powershell
-.\run-phase1-oneshot.ps1 -SkipDeploy
-.\run-phase1-oneshot.ps1 -SkipMigration
-.\run-phase1-oneshot.ps1 -SkipVerify
-.\run-phase1-oneshot.ps1 -DbName "crypto-tracker" -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
+.\run-phase1-oneshot.ps1 -D1Target "DB" -SkipDeploy
+.\run-phase1-oneshot.ps1 -D1Target "DB" -SkipMigration
+.\run-phase1-oneshot.ps1 -D1Target "DB" -SkipVerify
+.\run-phase1-oneshot.ps1 -D1Target "DB" -DbName "crypto-tracker" -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
 ```
 
 ## Verify migration registry table
 
 ```bash
 cd backend
-npx wrangler d1 execute crypto-tracker --command "SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC;"
+npx wrangler d1 execute DB --remote --command "SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC;"
 ```
 
 ## Verify Worker endpoints after deploy
