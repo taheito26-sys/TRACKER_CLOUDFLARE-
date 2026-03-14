@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const args = process.argv.slice(2);
-const SCRIPT_VERSION = '2026-03-14-v5';
+const SCRIPT_VERSION = '2026-03-14-v7';
 let baseUrl = 'https://p2p-tracker.taheito26.workers.dev';
 for (let i = 0; i < args.length; i++) {
   if ((args[i] === '--base-url' || args[i] === '-b') && args[i + 1]) {
@@ -88,18 +88,45 @@ if (!health.ok || !migrations.ok || !version.ok) {
   }
 }
 
-const anyHtml = [health, migrations, version].some((r) => !r.ok && looksLikeHtml(r.text));
+
+const allFetchFailed = [health, migrations, version].every((r) => r.status === 0 && String(r.error || '').toLowerCase().includes('fetch failed'));
+if (allFetchFailed) {
+  console.log('[diag] Network/DNS issue detected (all endpoint probes failed before HTTP response).');
+  console.log("[diag] If Wrangler shows 'Unable to resolve Cloudflare's API hostname', fix DNS/network/VPN/firewall first.");
+}
+
+const anyHtml = [health, migrations, version].some((r) => looksLikeHtml(r.text));
 if (anyHtml) {
-  console.log('[diag] Target may be wrong: API URL appears to return HTML instead of JSON. Verify backend worker route/domain.');
+  console.log('[diag] Target may be wrong: API URL appears to return HTML instead of backend JSON.');
+  const root = await getJson('/');
+  if (root.text && looksLikeHtml(root.text)) {
+    console.log('[diag] Root `/` also returns HTML -> this URL is likely frontend/site content, not backend worker API.');
+  }
 }
 
 console.log(`[summary] health.ok=${healthOk} version001=${hasVersion001}`);
 if (!healthOk || !hasVersion001) {
   console.error('[verify] FAIL: expected health.ok=true and migration version 001 present');
   console.error('[verify] Required from you (User):');
-  console.error(`[verify]   1) Re-run migration: npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql --config ./wrangler.toml`);
-  console.error(`[verify]   2) Re-check migration versions: npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config ./wrangler.toml`);
-  console.error(`[verify]   3) Re-run verifier from backend/: node ./scripts/verify-system-endpoints.mjs --base-url "${normalizeBase(baseUrl)}"`);
+  if (allFetchFailed) {
+    console.error('[verify]   1) Fix connectivity first (DNS/VPN/firewall). In PowerShell run:');
+    console.error('[verify]      Test-NetConnection api.cloudflare.com -Port 443');
+    console.error('[verify]      Test-NetConnection p2p-tracker.taheito26.workers.dev -Port 443');
+    console.error('[verify]   2) After network is healthy, rerun:');
+    console.error('[verify]      npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config ./wrangler.toml');
+    console.error(`[verify]      node ./scripts/verify-system-endpoints.mjs --base-url "${normalizeBase(baseUrl)}"`);
+  } else if (anyHtml) {
+    console.error('[verify]   1) Deploy backend worker from backend/ (not frontend/static site):');
+    console.error('[verify]      npx wrangler deploy --config ./wrangler.toml');
+    console.error('[verify]   2) Verify you are probing backend domain, then rerun:');
+    console.error(`[verify]      node ./scripts/verify-system-endpoints.mjs --base-url "${normalizeBase(baseUrl)}"`);
+    console.error('[verify]   3) If still failing, run migration check:');
+    console.error('[verify]      npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config ./wrangler.toml');
+  } else {
+    console.error(`[verify]   1) Re-run migration: npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql --config ./wrangler.toml`);
+    console.error(`[verify]   2) Re-check migration versions: npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config ./wrangler.toml`);
+    console.error(`[verify]   3) Re-run verifier from backend/: node ./scripts/verify-system-endpoints.mjs --base-url "${normalizeBase(baseUrl)}"`);
+  }
   process.exitCode = 1;
   // Intentionally avoid abrupt process.exit() and timers on Windows to prevent async handle assertion crashes.
 } else {

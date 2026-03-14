@@ -122,6 +122,43 @@ curl.exe -v "https://<worker-domain>/api/system/health"
 Test-NetConnection p2p-tracker.taheito26.workers.dev -Port 443
 ```
 
+### If Wrangler reports DNS/hostname resolution failure
+
+If you see `Unable to resolve Cloudflare's API hostname`, this is a local network/DNS issue (not a migration script issue).
+
+Run from PowerShell and paste output:
+
+```powershell
+Test-NetConnection api.cloudflare.com -Port 443
+Test-NetConnection p2p-tracker.taheito26.workers.dev -Port 443
+```
+
+Then run (without `. $args[0]` prefix):
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config .\wrangler.toml
+node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.taheito26.workers.dev"
+```
+
+### If verifier shows HTML/website content instead of JSON
+
+If output contains large HTML (e.g., dashboard page markup), you are likely hitting frontend/site content instead of backend API worker.
+
+Required from you (User):
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+npx wrangler deploy --config .\wrangler.toml
+node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.taheito26.workers.dev"
+```
+
+If it still fails, paste output of:
+
+```powershell
+npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config .\wrangler.toml
+```
+
 ### If verifier reports `health.ok=false version001=false`
 
 Run these two commands and paste outputs:
@@ -208,7 +245,7 @@ From `backend/` run this wrapper to avoid shell syntax issues:
 
 Before running, ensure you have latest scripts from git (`git pull`) and confirm files exist with `Get-ChildItem .\scripts`.
 
-If Node shows `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` on Windows, use the latest verifier (`v4`) from this repo; it now exits via `process.exitCode` and avoids abrupt process termination.
+If Node shows `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` on Windows, use the latest verifier (`v7`) from this repo; it now exits via `process.exitCode` and avoids abrupt process termination.
 
 ### Known-good PowerShell sequence (copy/paste)
 
@@ -231,7 +268,7 @@ If verifier output shows HTML bodies, you are likely hitting the wrong target (f
 
 ## Expected results
 
-- Verifier banner should show: `verify-system-endpoints.mjs 2026-03-13-v4`.
+- Verifier banner should show: `verify-system-endpoints.mjs 2026-03-14-v7`.
 
 - `/api/system/health` returns `ok: true` and `bindings.db: true`.
 - `/api/system/migrations` includes version `001`.
