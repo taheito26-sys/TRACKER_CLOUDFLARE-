@@ -43,7 +43,12 @@ async function verifySystemEndpointsInline() {
   const results = {};
   for (const ep of endpoints) {
     const url = `${baseUrl}${ep}`;
-    const res = await fetch(url, { method: 'GET' });
+    let res;
+    try {
+      res = await fetch(url, { method: 'GET' });
+    } catch (err) {
+      throw new Error(`[phase3-safe] ${ep} request failed for ${url}: ${err?.message || err}`);
+    }
     const text = await res.text();
     let data = null;
     try { data = text ? JSON.parse(text) : null; } catch {}
