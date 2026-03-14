@@ -9,11 +9,11 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 ## Required from you now (Operator checklist)
 
-Please provide/execute the following to close remaining Phase 1 rollout items:
+Please provide/execute the following to continue Phase 2 implementation:
 
-1. Confirm whether staging migration application is also complete (`Apply 001_schema_migrations.sql in staging`).
-2. If staging is not complete, run the same migration apply + verifier flow in staging and paste output.
-3. Confirm whether I should now close Phase 1 and start Phase 2 planning tasks.
+1. Confirm whether staging migration application is complete for `001_schema_migrations.sql`.
+2. Choose auth source for write-route protection: `Cloudflare Access`, `JWT`, `API key`, or `hybrid`.
+3. Choose audit identity field and sink (logs-only, D1, or external).
 
 ## Update contract for all future status replies
 
@@ -30,7 +30,8 @@ The **Required from you (User)** line must be present after every step, even if 
 
 - **Phase 0 (Program Setup):** In Progress
 - **Phase 1 (Platform & Schema Foundation):** In Progress
-- **Phase 2+:** Not Started
+- **Phase 2 (Auth & Security Baseline):** In Progress
+- **Phase 3+:** Not Started
 
 ---
 
@@ -231,3 +232,26 @@ The **Required from you (User)** line must be present after every step, even if 
 5. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
 6. **Required from you (User):** Confirm environment scope (staging vs production) for the PASS output and whether `Apply 001` tasks can be checked off.
 
+
+---
+
+## Phase 2 — Auth & Security Baseline
+
+### Step 2.1 — Phase 2 kickoff and execution baseline
+1. **Step completed:** Began Phase 2 by publishing an implementation baseline and execution sequence.
+2. **Evidence:** `V2/PHASE2_AUTH_SECURITY_BASELINE.md` created with scope, sequence, required user decisions, and exit criteria.
+3. **Next step (Agent):** Implement write-route inventory and auth guard skeleton in backend after you confirm auth model.
+4. **Next phase:** Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** Confirm auth source (`Cloudflare Access`/`JWT`/`API key`/`hybrid`) and audit sink.
+
+### Phase 2 summary
+1. **Phase status:** In Progress.
+2. **Completed in this phase:**
+   - Kickoff baseline document created.
+3. **Exit criteria status:**
+   - [ ] Auth/session middleware enforced on all write routes.
+   - [ ] Payload validation layer added for migration-sensitive endpoints.
+   - [ ] Audit logging added on mutation endpoints.
+4. **Next step (Agent):** Start Step 2.2 implementation once auth source is selected.
+5. **Next phase:** Phase 2 (Auth & Security Baseline).
+6. **Required from you (User):** Provide auth and audit decisions so implementation can proceed.
