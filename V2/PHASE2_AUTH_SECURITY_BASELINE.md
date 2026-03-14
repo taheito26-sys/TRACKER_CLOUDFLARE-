@@ -62,3 +62,18 @@ Implemented in `backend/src/index.js`:
 - Cloudflare Access auth guard controlled by `env.AUTH_SOURCE == "cloudflare-access"`.
 - Fail-closed `401` response for write requests missing Access identity headers.
 - Logs-only mutation audit events via `console.log` JSON payloads.
+
+
+## Operator evidence collection (production)
+
+To validate Step 2.3 in production, collect:
+1. One write-route HTTP response (`401` expected for unauthenticated probe, or app-defined result for authenticated probe).
+2. One `mutation_audit` log event from `wrangler tail` containing `auth_mode`, `auth_source`, `actor`, `status`, `outcome`.
+
+Command skeleton:
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+npx wrangler tail --format pretty --config .\wrangler.toml
+# in second terminal send one POST/PATCH request to a write route
+```

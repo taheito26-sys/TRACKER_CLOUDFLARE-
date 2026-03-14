@@ -77,6 +77,57 @@ Optional flags:
 .\run-phase1-oneshot.ps1 -D1Target "DB" -DbName "crypto-tracker" -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
 ```
 
+
+### Send one production write request (unauth probe) — exact commands
+
+From PowerShell in `backend/`:
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+curl.exe -i -X POST "https://p2p-tracker.taheito26.workers.dev/api/merchant/messages" -H "Content-Type: application/json" -d "{}"
+```
+
+Alternative (native PowerShell):
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+try {
+  Invoke-WebRequest -Method POST -Uri "https://p2p-tracker.taheito26.workers.dev/api/merchant/messages" -ContentType "application/json" -Body "{}"
+} catch {
+  $_.Exception.Response.StatusCode.value__
+  $_.ErrorDetails.Message
+}
+```
+
+What to paste back in chat:
+- HTTP status line (or status code) from this request.
+- Response body JSON (especially `Unauthorized: missing Cloudflare Access identity headers` if 401).
+
+### How to confirm Cloudflare Access headers on production write requests
+
+Use this flow to capture proof that the write guard sees Cloudflare Access identity headers and to produce one write-route sample outcome.
+
+1) Start log tail in one terminal (from `backend/`):
+
+```powershell
+npx wrangler tail --format pretty --config .\wrangler.toml
+```
+
+2) In another terminal, send a write request to any mutation route (replace with a real write route in your app):
+
+```powershell
+# Example unauthenticated probe (should return 401 when guard is active)
+curl.exe -i -X POST "https://p2p-tracker.taheito26.workers.dev/api/merchant/messages" -H "Content-Type: application/json" -d "{}"
+```
+
+3) Capture these two artifacts and paste in chat:
+- The HTTP response snippet (status line + body) from step 2.
+- One `mutation_audit` log line from `wrangler tail` showing fields like `auth_mode`, `auth_source`, `actor`, `status`, `outcome`.
+
+Interpretation:
+- `401` + `mutation_audit` with `outcome:"denied"` confirms fail-closed behavior.
+- `2xx/4xx` with `auth_mode:"cloudflare-access"` and non-anonymous actor confirms Access headers were present and parsed.
+
 ### How to confirm staging migration `001_schema_migrations.sql` is complete
 
 Use the staging account/environment context and run:

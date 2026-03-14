@@ -11,10 +11,11 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 Please provide/execute the following to continue Phase 2 implementation:
 
-1. Deploy backend with latest changes in production:
-   - `npx wrangler deploy --config ./wrangler.toml`
-2. Confirm Cloudflare Access headers are present for production write traffic.
-3. Paste one sample write-route result (success or 401) so auth guard behavior is validated.
+1. Run `npx wrangler tail --format pretty --config ./wrangler.toml` from `backend/`.
+2. Send one production write-route request (unauthenticated probe is okay) and capture HTTP result.
+3. Paste both artifacts:
+   - HTTP response snippet (status + body)
+   - one `mutation_audit` log line (`auth_mode`, `auth_source`, `actor`, `status`, `outcome`).
 
 ## Update contract for all future status replies
 
@@ -258,6 +259,13 @@ The **Required from you (User)** line must be present after every step, even if 
 3. **Next step (Agent):** Add payload validation layer for migration-sensitive write endpoints (Phase 2 task 2).
 4. **Next phase:** Phase 2 (Auth & Security Baseline).
 5. **Required from you (User):** Deploy updated backend and confirm write-route behavior under Cloudflare Access in production.
+
+### Step 2.4 — Published operator guide for Access-header proof and write sample
+1. **Step completed:** Added explicit production instructions to collect Cloudflare Access header proof and one write-route outcome sample.
+2. **Evidence:** `backend/migrations/README.md` and `V2/PHASE2_AUTH_SECURITY_BASELINE.md` now include `wrangler tail` + write-request evidence workflow.
+3. **Next step (Agent):** After you paste sample artifacts, proceed to payload validation layer implementation.
+4. **Next phase:** Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** Run the evidence collection steps and paste one HTTP result plus one `mutation_audit` log line.
 
 ### Phase 2 summary
 1. **Phase status:** In Progress.
