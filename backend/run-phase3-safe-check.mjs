@@ -157,6 +157,8 @@ async function verifySystemEndpointsInline() {
 
 async function probe404Diagnostics() {
   const targets = ['/', '/api/system/health?__phase3_probe=1'];
+  const diagnostics = [];
+
   for (const target of targets) {
     const url = `${baseUrl}${target}`;
     try {
@@ -165,15 +167,31 @@ async function probe404Diagnostics() {
       const server = res.headers.get('server') || 'n/a';
       const cfRay = res.headers.get('cf-ray') || 'n/a';
       const snippet = (text || '').slice(0, 160).replace(/\s+/g, ' ').trim();
+      diagnostics.push({ target, status: res.status, contentType, server, cfRay, snippet });
       console.error(`[phase3-safe] 404-diagnostic ${target} status=${res.status} content-type=${contentType} server=${server} cf-ray=${cfRay}`);
       if (snippet) {
         console.error(`[phase3-safe] 404-diagnostic ${target} body-snippet=${snippet}`);
       }
     } catch (err) {
-      console.error(`[phase3-safe] 404-diagnostic ${target} request-failed: ${err?.message || err}`);
+      const message = String(err?.message || err);
+      diagnostics.push({ target, requestFailed: message });
+      console.error(`[phase3-safe] 404-diagnostic ${target} request-failed: ${message}`);
     }
   }
+
+  return diagnostics;
 }
+
+function looksLikeFrontendTarget(diagnostics) {
+  const root = diagnostics.find((d) => d.target === '/');
+  const system = diagnostics.find((d) => d.target && d.target.startsWith('/api/system/health'));
+  if (!root || !system) return false;
+  const rootHtml = root.status === 200 && String(root.contentType || '').toLowerCase().includes('text/html');
+  const system404 = system.status === 404;
+  const frontendMarker = String(root.snippet || '').toLowerCase().includes('<title>p2p tracker');
+  return rootHtml && system404 && frontendMarker;
+}
+
 async function postImport() {
   const payload = {
     idempotency_key: idemKey,
@@ -240,7 +258,11 @@ async function getImport(importId) {
       console.error('[phase3-safe] Example: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs + ' --verify-retries ' + verifyRetries + ' --verify-retry-delay-ms ' + verifyRetryDelayMs + ' --cf-access-client-id <id> --cf-access-client-secret <secret>');
     }
     if (message.includes('all-system-endpoints-404=true')) {
-      await probe404Diagnostics();
+      const diagnostics = await probe404Diagnostics();
+      if (looksLikeFrontendTarget(diagnostics)) {
+        console.error('[phase3-safe] Detected frontend HTML at /. This base URL appears to target the frontend site, not the Worker API origin.');
+        console.error('[phase3-safe] Next action: use the Worker origin URL from wrangler deploy output (typically https://<worker-name>.<account>.workers.dev), then rerun.');
+      }
       console.error('[phase3-safe] Next action: deploy this worker target and rerun phase3 check.');
       console.error('[phase3-safe] Deploy command: npx wrangler deploy --config ./wrangler.toml');
       console.error('[phase3-safe] Rerun command: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs + ' --verify-retries ' + verifyRetries + ' --verify-retry-delay-ms ' + verifyRetryDelayMs);
