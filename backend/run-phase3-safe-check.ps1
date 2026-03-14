@@ -8,25 +8,26 @@ $CfAccessClientSecret = $null
 
 for ($i = 0; $i -lt $args.Count; $i++) {
   $arg = [string]$args[$i]
-  switch -Regex ($arg) {
-    '^(-|--)?skip-?deploy$' { $SkipDeploy = $true; continue }
+  $argKey = $arg.TrimStart('-').ToLowerInvariant().Replace('_','').Replace('-','')
+  switch ($argKey) {
+    'skipdeploy' { $SkipDeploy = $true; continue }
 
-    '^(-|--)?base-?url$' {
+    'baseurl' {
       if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
       $i++; $BaseUrl = [string]$args[$i]; continue
     }
 
-    '^(-|--)?user-?id$' {
+    'userid' {
       if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
       $i++; $UserId = [string]$args[$i]; continue
     }
 
-    '^(-|--)?idempotency-?key$' {
+    'idempotencykey' {
       if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
       $i++; $IdempotencyKey = [string]$args[$i]; continue
     }
 
-    '^(-|--)?request-?timeout-?ms$' {
+    'requesttimeoutms' {
       if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
       $i++
       $timeoutRaw = [string]$args[$i]
@@ -37,17 +38,17 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     }
 
 
-    '^(-|--)?cf-?access-?client-?id$' {
+    'cfaccessclientid' {
       if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
       $i++; $CfAccessClientId = [string]$args[$i]; continue
     }
 
-    '^(-|--)?cf-?access-?client-?secret$' {
+    'cfaccessclientsecret' {
       if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
       $i++; $CfAccessClientSecret = [string]$args[$i]; continue
     }
 
-    '^(-|--)?kebab-?case$' {
+    'kebabcase' {
       # Compatibility no-op flag for prior guidance.
       continue
     }
