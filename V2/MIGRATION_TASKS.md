@@ -61,8 +61,8 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Validate KPI parity against baseline
 
 ## Phase 7 — Frontend Rewire
-- [ ] Replace critical localStorage mutation paths with API calls
-- [ ] Enable API-only mode behind feature flag
+- [x] Replace critical localStorage mutation paths with API calls
+- [x] Enable API-only mode behind feature flag
 
 ## Phase 8 — Cutover & Reconciliation
 - [ ] Complete staging reconciliation sign-off
