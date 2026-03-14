@@ -1,7 +1,19 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 17/46 tasks (37%)  `█████████░░░░░░░░░░░░░░░`
+**Overall Progress:** 37/46 tasks (80%)  `███████████████████░░░░░`
+
+**Per-Phase Progress**
+- **Phase 0 — Program Setup:** 3/7 (43%)  `███████░░░░░░░░░`
+- **Phase 1 — Platform & Schema Foundation:** 17/18 (94%)  `███████████████░`
+- **Phase 2 — Auth & Security Baseline:** 3/3 (100%)  `████████████████`
+- **Phase 3 — Import Bridge:** 3/3 (100%)  `████████████████`
+- **Phase 4 — Trading + FIFO:** 3/3 (100%)  `████████████████`
+- **Phase 5 — Deals + Settlement + Journal:** 3/3 (100%)  `████████████████`
+- **Phase 6 — KPI Read Models:** 3/3 (100%)  `████████████████`
+- **Phase 7 — Frontend Rewire:** 2/2 (100%)  `████████████████`
+- **Phase 8 — Cutover & Reconciliation:** 0/2 (0%)  `░░░░░░░░░░░░░░░░`
+- **Phase 9 — LocalStorage Decommission:** 0/2 (0%)  `░░░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
