@@ -28,3 +28,10 @@ When relevant, ask the user to provide:
 - Owner names to replace role placeholders.
 - Preferred migration window and freeze dates.
 
+
+
+## Agent message placement rule
+
+- In every **chat update**, the line `Required from you (User):` must appear for **each step** immediately after `Next phase:`.
+- Do not move required user actions into separate docs only; keep them visible in the update message itself.
+- If nothing is required from the user for a step, explicitly write: `Required from you (User): None.`

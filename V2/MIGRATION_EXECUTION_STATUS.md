@@ -6,6 +6,31 @@
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
 
+
+## Required from you now (Operator checklist)
+
+Please provide/execute the following so Phase 1 can be closed:
+
+1. Confirm target environment: `local`, `staging`, or `production`.
+2. Confirm Worker base URL to validate: e.g. `https://p2p-tracker.taheito26.workers.dev`.
+3. From your machine (Cloudflare-authenticated), run:
+   - `cd C:\TRACKER_CLOUDFLARE-\backend`
+   - `.\run-phase1-oneshot.ps1 -D1Target "DB"`
+4. Paste the full output, especially Step B (migration) and Step C (verify) results.
+5. If Step B fails, rerun with explicit remote migration command and paste output:
+   - `npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql --config ./wrangler.toml`
+
+## Update contract for all future status replies
+
+For every step/phase update posted in chat, include:
+1. Step completed
+2. Evidence
+3. Next step (Agent)
+4. Next phase
+5. Required from you (User)
+
+The **Required from you (User)** line must be present after every step, even if the value is `None`.
+
 ## Current rollout status
 
 - **Phase 0 (Program Setup):** In Progress

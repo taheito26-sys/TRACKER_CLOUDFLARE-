@@ -8,6 +8,28 @@ This runbook executes and validates Phase 1 schema foundation tasks.
 - `backend/wrangler.toml` configured with correct `[[d1_databases]]` binding.
 - Authenticated Cloudflare session (`wrangler login`).
 
+
+## What is required from you (operator inputs/actions)
+
+To complete Phase 1 validation, I need the following from you:
+
+1. **Environment target**: tell me whether to validate against `local`, `staging`, or `production`.
+2. **Worker URL**: confirm the base URL to validate (for example `https://p2p-tracker.taheito26.workers.dev`).
+3. **Cloudflare session readiness**: ensure `wrangler whoami` works in your shell.
+4. **Run and paste output** (Windows PowerShell):
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+.\run-phase1-oneshot.ps1 -D1Target "DB"
+```
+
+5. If one-shot fails at migration step, run and paste:
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql --config .\wrangler.toml
+```
+
 ## Apply migrations (remote)
 
 ```bash
