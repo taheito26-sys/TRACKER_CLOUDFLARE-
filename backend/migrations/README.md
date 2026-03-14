@@ -137,7 +137,7 @@ From `backend/` run this wrapper to avoid shell syntax issues:
 
 Before running, ensure you have latest scripts from git (`git pull`) and confirm files exist with `Get-ChildItem .\scripts`.
 
-If Node shows `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` on Windows, use the latest verifier (`v3`) from this repo; it now exits via `process.exitCode` and avoids abrupt process termination.
+If Node shows `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` on Windows, use the latest verifier (`v4`) from this repo; it now exits via `process.exitCode` and avoids abrupt process termination.
 
 ### Known-good PowerShell sequence (copy/paste)
 
@@ -157,6 +157,8 @@ cd ..
 ```
 
 ## Expected results
+
+- Verifier banner should show: `verify-system-endpoints.mjs 2026-03-13-v4`.
 
 - `/api/system/health` returns `ok: true` and `bindings.db: true`.
 - `/api/system/migrations` includes version `001`.

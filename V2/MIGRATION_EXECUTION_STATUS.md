@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 13/42 tasks (31%)  `███████░░░░░░░░░░░░░░░░░`
+**Progress:** 14/43 tasks (33%)  `████████░░░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -161,6 +161,13 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 3. **Next step (Agent):** Parse output from corrected launcher command and finalize Phase 1 endpoint checks.
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run `cmd /c .\verify-system.cmd` from `backend/` and paste output with script version line.
+
+### Step 1.16 — Verifier v4: removed timer-based fail path
+1. **Step completed:** Updated verifier to v4 and removed timer-based delay on failure to avoid Windows async-handle assertion edge cases.
+2. **Evidence:** `backend/scripts/verify-system-endpoints.mjs` now uses `process.exitCode` only; runbook now expects v4 banner.
+3. **Next step (Agent):** Validate user output contains v4 banner and re-assess endpoint 404 diagnostics.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Pull latest code and rerun verifier; paste output with `2026-03-13-v4` banner.
 
 ### Phase 1 summary
 1. **Phase status:** In Progress.
