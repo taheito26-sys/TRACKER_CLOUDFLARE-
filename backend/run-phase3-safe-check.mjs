@@ -18,6 +18,8 @@ const skipDeploy = flag('--skip-deploy');
 const userId = arg('--user-id', 'phase3-safe-user');
 const idemKey = arg('--idempotency-key', `phase3-${Date.now()}`);
 const requestTimeoutMs = Number(arg('--request-timeout-ms', '15000'));
+const verifyRetries = Number(arg('--verify-retries', '3'));
+const verifyRetryDelayMs = Number(arg('--verify-retry-delay-ms', '1500'));
 const cfAccessClientId = arg('--cf-access-client-id', process.env.CF_ACCESS_CLIENT_ID || '').trim();
 const cfAccessClientSecret = arg('--cf-access-client-secret', process.env.CF_ACCESS_CLIENT_SECRET || '').trim();
 
@@ -39,6 +41,19 @@ function assertValidTimeoutMs(value) {
   if (!Number.isFinite(value) || value <= 0) {
     throw new Error(`[phase3-safe] Invalid --request-timeout-ms: ${value}`);
   }
+}
+
+function assertValidRetryConfig(retries, delayMs) {
+  if (!Number.isFinite(retries) || retries < 1) {
+    throw new Error(`[phase3-safe] Invalid --verify-retries: ${retries}`);
+  }
+  if (!Number.isFinite(delayMs) || delayMs < 0) {
+    throw new Error(`[phase3-safe] Invalid --verify-retry-delay-ms: ${delayMs}`);
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function runStep(name, cmd, cmdArgs) {
@@ -92,7 +107,7 @@ function accessHeaders() {
   return headers;
 }
 
-async function verifySystemEndpointsInline() {
+async function verifySystemEndpointsInlineOnce() {
   console.log('[phase3-safe] Step B: Verify system endpoints (inline)');
   const endpoints = ['/api/system/health', '/api/system/migrations', '/api/system/version'];
   const results = {};
@@ -117,6 +132,25 @@ async function verifySystemEndpointsInline() {
     throw new Error(`[phase3-safe] Inline verify failed: health.ok=${healthOk} version001=${has001} versionEndpoint=${versionOk}${staleDeployHint}`);
   }
   console.log('[phase3-safe] Step B PASS: system endpoints validated');
+}
+
+
+async function verifySystemEndpointsInline() {
+  let lastErr;
+  for (let attempt = 1; attempt <= verifyRetries; attempt++) {
+    try {
+      if (attempt > 1) {
+        console.log(`[phase3-safe] Step B retry ${attempt}/${verifyRetries} after ${verifyRetryDelayMs}ms`);
+      }
+      await verifySystemEndpointsInlineOnce();
+      return;
+    } catch (err) {
+      lastErr = err;
+      if (attempt >= verifyRetries) break;
+      await sleep(verifyRetryDelayMs);
+    }
+  }
+  throw lastErr;
 }
 
 async function postImport() {
@@ -158,8 +192,9 @@ async function getImport(importId) {
   try {
     assertValidBaseUrl(baseUrl);
     assertValidTimeoutMs(requestTimeoutMs);
+    assertValidRetryConfig(verifyRetries, verifyRetryDelayMs);
     console.log('[phase3-safe] Starting consolidated phase3 check');
-    console.log(`[phase3-safe] baseUrl=${baseUrl} userId=${userId} requestTimeoutMs=${requestTimeoutMs} cfAccessHeaders=${cfAccessClientId && cfAccessClientSecret ? 'present' : 'absent'}`);
+    console.log(`[phase3-safe] baseUrl=${baseUrl} userId=${userId} requestTimeoutMs=${requestTimeoutMs} verifyRetries=${verifyRetries} verifyRetryDelayMs=${verifyRetryDelayMs} cfAccessHeaders=${cfAccessClientId && cfAccessClientSecret ? 'present' : 'absent'}`);
 
     if (!skipDeploy) {
       runStep('Step A: Deploy worker', 'npx', ['wrangler', 'deploy', '--config', path.join(scriptDir, 'wrangler.toml')]);
@@ -181,12 +216,12 @@ async function getImport(importId) {
     console.error(message);
     if (message.includes('import POST unauthorized (401)')) {
       console.error('[phase3-safe] Next action: rerun with Access service token headers.');
-      console.error('[phase3-safe] Example: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs + ' --cf-access-client-id <id> --cf-access-client-secret <secret>');
+      console.error('[phase3-safe] Example: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs + ' --verify-retries ' + verifyRetries + ' --verify-retry-delay-ms ' + verifyRetryDelayMs + ' --cf-access-client-id <id> --cf-access-client-secret <secret>');
     }
     if (message.includes('all-system-endpoints-404=true')) {
       console.error('[phase3-safe] Next action: deploy this worker target and rerun phase3 check.');
       console.error('[phase3-safe] Deploy command: npx wrangler deploy --config ./wrangler.toml');
-      console.error('[phase3-safe] Rerun command: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs);
+      console.error('[phase3-safe] Rerun command: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs + ' --verify-retries ' + verifyRetries + ' --verify-retry-delay-ms ' + verifyRetryDelayMs);
     }
     console.error('[phase3-safe] Hint: if Step A fails on Windows, run `npx wrangler deploy --config ./wrangler.toml` and rerun with --skip-deploy.');
     console.error('[phase3-safe] Required from you (User): paste full output of this command.');
