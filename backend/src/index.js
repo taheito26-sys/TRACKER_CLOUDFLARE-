@@ -1306,6 +1306,118 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/close$/)) {
 }
 
 
+
+async function ensureImportBridgeTables(db) {
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS import_jobs (
+      id TEXT PRIMARY KEY,
+      idempotency_key TEXT NOT NULL UNIQUE,
+      actor_user_id TEXT NOT NULL,
+      payload_hash TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      totals_json TEXT NOT NULL,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+}
+
+async function sha256Hex(input) {
+  const bytes = new TextEncoder().encode(String(input || ''));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function summarizeImportPayload(payload) {
+  const p = asPlainObject(payload);
+  const deals = Array.isArray(p.deals) ? p.deals.length : 0;
+  const trades = Array.isArray(p.trades) ? p.trades.length : 0;
+  const journal = Array.isArray(p.journal) ? p.journal.length : 0;
+  const settlements = Array.isArray(p.settlements) ? p.settlements.length : 0;
+  const totalRows = deals + trades + journal + settlements;
+  if (totalRows <= 0) throw new HttpError(400, 'Import payload is empty');
+  return { deals, trades, journal, settlements, totalRows };
+}
+
+async function handleImport(request, env) {
+  if (!env.DB) return bad(request, env, 'D1 binding DB is not configured', 500);
+  const db = env.DB;
+  const url = new URL(request.url);
+  const path = url.pathname.replace(/^\/api\/import/, '') || '/';
+  const method = request.method.toUpperCase();
+
+  let user;
+  try {
+    user = await getUserContext(request, env);
+  } catch (err) {
+    return bad(request, env, err.message || 'Unauthorized', 401);
+  }
+
+  try {
+    await ensureImportBridgeTables(db);
+
+    if (method === 'POST' && path === '/json') {
+      const body = asPlainObject(await readJson(request));
+      const idempotencyKey = requireStringField(body, 'idempotency_key', { min: 8, max: 120 });
+      const totals = summarizeImportPayload(body);
+      const payloadHash = await sha256Hex(JSON.stringify(body));
+
+      const existing = await d1First(db, `SELECT id, idempotency_key, actor_user_id, payload_hash, totals_json, status, created_at, updated_at FROM import_jobs WHERE idempotency_key = ? LIMIT 1`, idempotencyKey);
+      if (existing) {
+        return json(request, env, {
+          ok: true,
+          reused: true,
+          import_job: { ...existing, totals: safeJsonParse(existing.totals_json, {}) },
+        });
+      }
+
+      const row = {
+        id: randomId('imp_'),
+        idempotency_key: idempotencyKey,
+        actor_user_id: user.userId,
+        payload_hash: payloadHash,
+        payload_json: JSON.stringify(body),
+        totals_json: JSON.stringify(totals),
+        status: 'accepted',
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+
+      await d1Run(db, `
+        INSERT INTO import_jobs
+          (id, idempotency_key, actor_user_id, payload_hash, payload_json, totals_json, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        row.id, row.idempotency_key, row.actor_user_id, row.payload_hash, row.payload_json,
+        row.totals_json, row.status, row.created_at, row.updated_at
+      );
+
+      await createAudit(db, {
+        actor_user_id: user.userId,
+        entity_type: 'import_job',
+        entity_id: row.id,
+        action: 'import_json_accepted',
+        detail: { idempotency_key: row.idempotency_key, totals },
+      });
+
+      return json(request, env, { ok: true, reused: false, import_job: { ...row, totals } }, 202);
+    }
+
+    if (method === 'GET' && path.match(/^\/json\/[^/]+$/)) {
+      const id = path.split('/')[2];
+      const row = await d1First(db, `SELECT id, idempotency_key, actor_user_id, payload_hash, totals_json, status, created_at, updated_at FROM import_jobs WHERE id = ? LIMIT 1`, id);
+      if (!row) return bad(request, env, 'Import job not found', 404);
+      return json(request, env, { ok: true, import_job: { ...row, totals: safeJsonParse(row.totals_json, {}) } });
+    }
+
+    return bad(request, env, 'Not found', 404);
+  } catch (err) {
+    const status = Number(err?.status) || 500;
+    return bad(request, env, err?.message || 'Import API error', status);
+  }
+}
+
 async function fetchSide(tradeType) {
   const body = JSON.stringify({
     page: 1,
@@ -1542,6 +1654,9 @@ export default {
       }
       if (!response && url.pathname.startsWith("/api/merchant")) {
         response = await handleMerchant(request, env);
+      }
+      if (!response && url.pathname.startsWith('/api/import')) {
+        response = await handleImport(request, env);
       }
       if (!response) {
         const p2p = await handleP2P(request, env);
