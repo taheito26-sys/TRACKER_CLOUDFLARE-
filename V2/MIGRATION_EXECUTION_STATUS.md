@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 23/46 tasks (50%)  `████████████░░░░░░░░░░░░`
+**Progress:** 26/46 tasks (57%)  `██████████████░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
