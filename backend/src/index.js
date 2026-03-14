@@ -2731,6 +2731,22 @@ async function handleSystem(request, env) {
     }
   }
 
+  if (url.pathname === "/api/system/reconciliation-summary") {
+    if (!env.DB) return bad(request, env, "D1 binding DB is not configured", 500);
+    let user;
+    try {
+      user = await getUserContext(request, env);
+    } catch (err) {
+      return bad(request, env, err.message || "Unauthorized", 401);
+    }
+    try {
+      const summary = await computeReconciliationSummary(env.DB, user.userId);
+      return json(request, env, { ok: true, summary, timestamp: nowIso() });
+    } catch (err) {
+      return bad(request, env, err.message || "Failed to compute reconciliation summary", 500);
+    }
+  }
+
 
   return null;
 }
