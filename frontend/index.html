@@ -2227,6 +2227,51 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
 (()=>{
 "use strict";
 const SK="usdt_pro_v15";
+const API_ONLY_FLAG_KEY="taheito_api_only_mode";
+function isApiOnlyMode(){
+  try{
+    const qp=new URLSearchParams(location.search||"");
+    if(qp.get("apiOnly")==="1") return true;
+  }catch(_){ }
+  try{return localStorage.getItem(API_ONLY_FLAG_KEY)==="true";}catch(_){return false;}
+}
+function setApiOnlyMode(on){
+  try{localStorage.setItem(API_ONLY_FLAG_KEY,on?"true":"false");}catch(_){ }
+  try{toast("API-only mode "+(on?"enabled":"disabled"),on?"good":"warn");}catch(_){ }
+}
+window.setApiOnlyMode=setApiOnlyMode;
+async function syncTradingStateFromApi(){
+  if(!(window.TaheitoAPI&&typeof window.TaheitoAPI.getBatches==='function'&&typeof window.TaheitoAPI.getTrades==='function')){
+    throw new Error('TaheitoAPI trading client is not available');
+  }
+  const [bRes,tRes]=await Promise.all([window.TaheitoAPI.getBatches(),window.TaheitoAPI.getTrades()]);
+  const bRows=Array.isArray(bRes?.batches)?bRes.batches:[];
+  const tRows=Array.isArray(tRes?.trades)?tRes.trades:[];
+  state.batches=bRows.map(b=>({
+    id:String(b.id||uid()),
+    ts:Number(new Date(b.acquired_at||b.created_at||Date.now())),
+    source:String(b.source||b.asset_symbol||'API'),
+    note:String(b.notes||''),
+    buyPriceQAR:num(b.unit_cost,0),
+    initialUSDT:num(b.quantity,0),
+    revisions:Array.isArray(b.revisions)?b.revisions:[]
+  })).filter(b=>b.initialUSDT>0&&b.buyPriceQAR>=0);
+  state.trades=tRows.map(t=>({
+    id:String(t.id||uid()),
+    ts:Number(new Date(t.traded_at||t.created_at||Date.now())),
+    inputMode:'USDT',
+    amountUSDT:num(t.quantity,0),
+    sellPriceQAR:num(t.unit_price,0),
+    feeQAR:num(t.fee,0),
+    note:String(t.notes||''),
+    voided:String(t.status||'active').toLowerCase()==='void',
+    usesStock:String(t.side||'sell').toLowerCase()==='sell',
+    revisions:Array.isArray(t.revisions)?t.revisions:[],
+    customerId:String(t.customer_id||'')
+  })).filter(t=>t.amountUSDT>0&&t.sellPriceQAR>=0);
+  recompute();
+  render();
+}
 const PCOLORS=["#45B8C8","#E05252","#F5A623","#5B9BD5","#E8835A","#2ECC71","#9B59B6","#F0C040","#1ABC9C","#2E4A6B"];
 
 // ── HELPERS ──────────────────────────────────────────────────────
@@ -2801,12 +2846,25 @@ function sanitize(s){
   return out;
 }
 function load(){
+  if(isApiOnlyMode()){
+    storageOk=true;
+    syncTradingStateFromApi().catch(function(err){
+      storageOk=false;
+      try{toast('API sync failed: '+(err?.message||err),'warn');}catch(_){ }
+      try{const r=localStorage.getItem(SK);if(r){state=sanitize(JSON.parse(r));}}catch(_){ }
+      recompute();render();
+    });
+    return;
+  }
   try{const r=localStorage.getItem(SK);if(r){state=sanitize(JSON.parse(r));return;}}catch{storageOk=false;}
   for(const k of["usdt_pro_v14","usdt_pro_v13","usdt_pro_v12","usdt_pro_v11","usdt_pro_x_v4","usdt_v10"]){
     try{const r=localStorage.getItem(k);if(r){state=sanitize(JSON.parse(r));save();return;}}catch{}
   }
 }
-function save(){try{localStorage.setItem(SK,JSON.stringify(state));storageOk=true;}catch{storageOk=false;}}
+function save(){
+  if(isApiOnlyMode()){storageOk=true;return;}
+  try{localStorage.setItem(SK,JSON.stringify(state));storageOk=true;}catch{storageOk=false;}
+}
 function saveRecompute(msg,type=""){save();recompute();render();if(msg)toast(msg,type);}
 
 // ── RANGE ────────────────────────────────────────────────────────
@@ -3047,7 +3105,7 @@ function chartOpts(extra={}){
 }
 
 // ── ACTIONS ──────────────────────────────────────────────────────
-function addTrade(){
+async function addTrade(){
   const ts=inputToTs($("#t_dt")?.value),mode=$("#t_mode_val")?.value||"USDT";
   const sell=num($("#t_sell")?.value),raw=num($("#t_amt")?.value);const fee=0;
   const usesStock=$("#t_stock")?.checked??true;
@@ -3068,8 +3126,29 @@ function addTrade(){
   if(errs.length){const el=$("#t_msg");if(el){el.textContent="Fix: "+errs.join(", ");el.className="msg err";}return;}
   const id=uid(),trade={id,ts,inputMode:mode,amountUSDT,sellPriceQAR:sell,feeQAR:fee,note:"",voided:false,usesStock,revisions:[],customerId};
   if(!state.prefs.allowInvalidTrades&&usesStock){const tmp=sanitize({...state,trades:state.trades.concat([trade])});const calc=recomputeFor(tmp).tradeCalc.get(id);if(!calc?.ok){const el=$("#t_msg");if(el){el.textContent="No eligible stock";el.className="msg err";}return;}}
-  state.trades.push(trade);if(!inRange(ts))state.range="all";
-  saveRecompute("Trade logged ✓","good");
+  if(isApiOnlyMode()){
+    try{
+      if(!(window.TaheitoAPI&&typeof window.TaheitoAPI.createTrade==='function')) throw new Error('TaheitoAPI trade client is unavailable');
+      await window.TaheitoAPI.createTrade({
+        asset_symbol:'USDT',
+        side:'sell',
+        traded_at:new Date(ts).toISOString(),
+        quantity:amountUSDT,
+        unit_price:sell,
+        fee:fee,
+        status:'active',
+        notes:''
+      });
+      await syncTradingStateFromApi();
+      toast("Trade logged via API ✓","good");
+    }catch(e){
+      const el=$("#t_msg");if(el){el.textContent="API trade save failed: "+(e?.message||e);el.className="msg err";}
+      return;
+    }
+  }else{
+    state.trades.push(trade);if(!inRange(ts))state.range="all";
+    saveRecompute("Trade logged ✓","good");
+  }
   ["t_amt"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   const tm=$("#t_msg");if(tm){tm.textContent="";tm.className="msg";}
   updateSalePreview();
@@ -3114,7 +3193,7 @@ function setBatchMode(m){
   $("#b_amt").value = ""; // Clear on toggle
 }
 
-function addBatch(){
+async function addBatch(){
   const ts=inputToTs($("#b_dt")?.value);
   const px=num($("#b_px")?.value);
   const rawAmt=num($("#b_amt")?.value);
@@ -3171,8 +3250,8 @@ function updateSalePreview(){
     <div class="pr"><span>Cost (FIFO)</span><strong>${ok?fmtQWithUnit(cost):"—"}</strong></div>
     <div class="pr" style="border-top:1px solid color-mix(in srgb,var(--brand) 20%,transparent);padding-top:6px;margin-top:4px;"><span style="font-weight:900">Net</span><strong style="color:${Number.isFinite(net)?(net>=0?"var(--good)":"var(--bad)"):"var(--muted)"};">${Number.isFinite(net)?((net>=0?"+":"")+fmtQWithUnit(net)):"—"}</strong></div>`;
 }
-function toggleVoidTrade(id){const t=state.trades.find(x=>x.id===id);if(!t)return;t.voided=!t.voided;saveRecompute(t.voided?"Trade voided":"Trade restored",t.voided?"warn":"good");}
-function deleteTrade(id, skipConfirm){
+async function toggleVoidTrade(id){const t=state.trades.find(x=>x.id===id);if(!t)return;if(isApiOnlyMode()){try{if(!(window.TaheitoAPI&&typeof window.TaheitoAPI.voidTrade==='function'))throw new Error('TaheitoAPI trade client is unavailable');await window.TaheitoAPI.voidTrade(id);await syncTradingStateFromApi();toast('Trade void toggled via API','good');}catch(e){toast('API void failed: '+(e?.message||e),'warn');}return;}t.voided=!t.voided;saveRecompute(t.voided?"Trade voided":"Trade restored",t.voided?"warn":"good");}
+async function deleteTrade(id, skipConfirm){
   const t=state.trades.find(x=>x.id===id);if(!t)return;
   if(!skipConfirm && !confirm("Delete this trade permanently? (Restore via Vault snapshot if needed)")) return;
   // Best-effort safety snapshot (Ring 1) before destructive action
@@ -3181,6 +3260,15 @@ function deleteTrade(id, skipConfirm){
       window.VaultAPI.idbSave("snap_"+Date.now(), JSON.parse(JSON.stringify(state)), "pre_delete_trade").catch(function(){});
     }
   }catch(e){}
+  if(isApiOnlyMode()){
+    try{
+      if(!(window.TaheitoAPI&&typeof window.TaheitoAPI.deleteTrade==='function')) throw new Error('TaheitoAPI trade client is unavailable');
+      await window.TaheitoAPI.deleteTrade(id);
+      await syncTradingStateFromApi();
+      toast('Trade deleted via API','warn');
+    }catch(e){toast('API trade delete failed: '+(e?.message||e),'warn');}
+    return;
+  }
   state.trades = (state.trades||[]).filter(x=>x.id!==id);
   saveRecompute("Trade deleted","warn");
 }
@@ -3290,7 +3378,7 @@ function correctTrade(id){
     });
   },0);
 }
-function deleteBatch(id, skipConfirm){
+async function deleteBatch(id, skipConfirm){
   const b=state.batches.find(x=>x.id===id);if(!b)return;
   const db=derived.batches.find(x=>x.id===id);
   const used=db?Math.max(0,b.initialUSDT-(db.remainingUSDT||0)):0;
@@ -3303,6 +3391,15 @@ function deleteBatch(id, skipConfirm){
       window.VaultAPI.idbSave("snap_"+Date.now(), JSON.parse(JSON.stringify(state)), "pre_delete_batch").catch(function(){});
     }
   }catch(e){}
+  if(isApiOnlyMode()){
+    try{
+      if(!(window.TaheitoAPI&&typeof window.TaheitoAPI.deleteBatch==='function')) throw new Error('TaheitoAPI batch client is unavailable');
+      await window.TaheitoAPI.deleteBatch(id);
+      await syncTradingStateFromApi();
+      toast('Batch deleted via API','warn');
+    }catch(e){toast('API batch delete failed: '+(e?.message||e),'warn');}
+    return;
+  }
   state.batches=(state.batches||[]).filter(x=>x.id!==id);
   saveRecompute("Batch deleted","warn");
 }
