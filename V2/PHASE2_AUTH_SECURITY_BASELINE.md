@@ -45,3 +45,11 @@ This document starts implementation planning for Phase 2 tasks in `V2/MIGRATION_
 - All write routes are behind auth/session guard.
 - Validation covers migration-sensitive payloads.
 - Audit hooks fire for every mutation endpoint.
+
+
+## Selected decisions (confirmed)
+
+1. **Auth source:** Cloudflare Access.
+2. **Audit identity field:** Prefer Access identity header (fallback to `unknown`).
+3. **Strictness policy:** Fail-closed on all write routes once guard is enabled.
+4. **Audit sink:** Logs-only.

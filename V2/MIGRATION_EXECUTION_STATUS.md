@@ -11,9 +11,10 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 Please provide/execute the following to continue Phase 2 implementation:
 
-1. Confirm whether staging migration application is complete for `001_schema_migrations.sql`.
-2. Choose auth source for write-route protection: `Cloudflare Access`, `JWT`, `API key`, or `hybrid`.
-3. Choose audit identity field and sink (logs-only, D1, or external).
+1. Run staging verification command and paste output:
+   - `npx wrangler d1 execute DB --remote --command "SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC;" --config ./wrangler.toml`
+2. Confirm this output is from the **staging** environment binding/account.
+3. Confirm whether I should begin Step 2.2 implementation with Cloudflare Access + logs-only audit sink.
 
 ## Update contract for all future status replies
 
@@ -242,7 +243,14 @@ The **Required from you (User)** line must be present after every step, even if 
 2. **Evidence:** `V2/PHASE2_AUTH_SECURITY_BASELINE.md` created with scope, sequence, required user decisions, and exit criteria.
 3. **Next step (Agent):** Implement write-route inventory and auth guard skeleton in backend after you confirm auth model.
 4. **Next phase:** Phase 2 (Auth & Security Baseline).
-5. **Required from you (User):** Confirm auth source (`Cloudflare Access`/`JWT`/`API key`/`hybrid`) and audit sink.
+5. **Required from you (User):** None.
+
+### Step 2.2 — Phase 2 security decisions recorded
+1. **Step completed:** Recorded your Phase 2 selections for auth and audit strategy.
+2. **Evidence:** User inputs: `Cloudflare Access` for auth source and `logs only` for audit sink.
+3. **Next step (Agent):** Implement write-route auth guard skeleton (Cloudflare Access header checks) and logs-only mutation audit hook.
+4. **Next phase:** Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** Provide staging migration-query output so Phase 1 staging application can be confirmed.
 
 ### Phase 2 summary
 1. **Phase status:** In Progress.
@@ -252,6 +260,6 @@ The **Required from you (User)** line must be present after every step, even if 
    - [ ] Auth/session middleware enforced on all write routes.
    - [ ] Payload validation layer added for migration-sensitive endpoints.
    - [ ] Audit logging added on mutation endpoints.
-4. **Next step (Agent):** Start Step 2.2 implementation once auth source is selected.
+4. **Next step (Agent):** Start Step 2.2 implementation using Cloudflare Access guard + logs-only audit hook.
 5. **Next phase:** Phase 2 (Auth & Security Baseline).
-6. **Required from you (User):** Provide auth and audit decisions so implementation can proceed.
+6. **Required from you (User):** Provide staging migration-query output and confirm environment scope so Phase 1 can be fully closed.
