@@ -17,6 +17,7 @@ const baseUrl = arg('--base-url', 'https://p2p-tracker.taheito26.workers.dev').r
 const skipDeploy = flag('--skip-deploy');
 const userId = arg('--user-id', 'phase3-safe-user');
 const idemKey = arg('--idempotency-key', `phase3-${Date.now()}`);
+const requestTimeoutMs = Number(arg('--request-timeout-ms', '15000'));
 
 
 function assertValidBaseUrl(value) {
@@ -28,6 +29,13 @@ function assertValidBaseUrl(value) {
   }
   if (!['http:', 'https:'].includes(parsed.protocol)) {
     throw new Error(`[phase3-safe] Invalid --base-url protocol: ${parsed.protocol}`);
+  }
+}
+
+
+function assertValidTimeoutMs(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`[phase3-safe] Invalid --request-timeout-ms: ${value}`);
   }
 }
 
@@ -46,12 +54,21 @@ function runStep(name, cmd, cmdArgs) {
 
 
 async function fetchText(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+
   let res;
   try {
-    res = await fetch(url, options);
+    res = await fetch(url, { ...options, signal: controller.signal });
   } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`[phase3-safe] request timed out after ${requestTimeoutMs}ms for ${url}`);
+    }
     throw new Error(`[phase3-safe] request failed for ${url}: ${err?.message || err}`);
+  } finally {
+    clearTimeout(timeout);
   }
+
   const text = await res.text();
   return { res, text };
 }
@@ -126,8 +143,9 @@ async function getImport(importId) {
   let failed = false;
   try {
     assertValidBaseUrl(baseUrl);
+    assertValidTimeoutMs(requestTimeoutMs);
     console.log('[phase3-safe] Starting consolidated phase3 check');
-    console.log(`[phase3-safe] baseUrl=${baseUrl} userId=${userId}`);
+    console.log(`[phase3-safe] baseUrl=${baseUrl} userId=${userId} requestTimeoutMs=${requestTimeoutMs}`);
 
     if (!skipDeploy) {
       runStep('Step A: Deploy worker', 'npx', ['wrangler', 'deploy', '--config', path.join(scriptDir, 'wrangler.toml')]);
