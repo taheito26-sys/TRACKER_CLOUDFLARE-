@@ -2290,6 +2290,122 @@ async function handleFinancials(request, env) {
       return json(request, env, { journal: rows.map(r => ({ ...r, metadata: safeJsonParse(r.metadata_json, {}) })) });
     }
 
+    if (method === 'GET' && url.pathname === '/api/deals/kpis') {
+      const statusFilter = String(url.searchParams.get('status') || '').trim().toLowerCase();
+      const typeFilter = String(url.searchParams.get('deal_type') || '').trim().toLowerCase();
+      const args = [user.userId];
+      let where = 'WHERE user_id = ?';
+      if (statusFilter) {
+        where += ' AND status = ?';
+        args.push(statusFilter);
+      }
+      if (typeFilter) {
+        where += ' AND deal_type = ?';
+        args.push(typeFilter);
+      }
+
+      const totals = await d1First(db, `
+        SELECT
+          COUNT(*) AS total_deals,
+          COALESCE(SUM(principal_amount), 0) AS principal_total,
+          COALESCE(SUM(CASE WHEN status IN ('active','due','overdue') THEN principal_amount ELSE 0 END), 0) AS open_principal,
+          COALESCE(SUM(CASE WHEN status = 'settled' THEN principal_amount ELSE 0 END), 0) AS settled_principal
+        FROM deals
+        ${where}
+      `, ...args);
+      const byStatus = await d1All(db, `
+        SELECT status, COUNT(*) AS count, COALESCE(SUM(principal_amount), 0) AS principal
+        FROM deals
+        ${where}
+        GROUP BY status
+        ORDER BY status ASC
+      `, ...args);
+      const byType = await d1All(db, `
+        SELECT deal_type, COUNT(*) AS count, COALESCE(SUM(principal_amount), 0) AS principal
+        FROM deals
+        ${where}
+        GROUP BY deal_type
+        ORDER BY deal_type ASC
+      `, ...args);
+      const settlements = await d1First(db, `
+        SELECT
+          COUNT(*) AS settlement_count,
+          COALESCE(SUM(amount), 0) AS settlement_amount
+        FROM settlements
+        WHERE user_id = ?
+      `, user.userId);
+
+      return json(request, env, {
+        kpis: {
+          total_deals: Number(totals?.total_deals || 0),
+          principal_total: Number(totals?.principal_total || 0),
+          open_principal: Number(totals?.open_principal || 0),
+          settled_principal: Number(totals?.settled_principal || 0),
+          settlement_count: Number(settlements?.settlement_count || 0),
+          settlement_amount: Number(settlements?.settlement_amount || 0),
+        },
+        by_status: byStatus.map(r => ({ status: r.status, count: Number(r.count || 0), principal: Number(r.principal || 0) })),
+        by_type: byType.map(r => ({ deal_type: r.deal_type, count: Number(r.count || 0), principal: Number(r.principal || 0) })),
+      });
+    }
+
+    if (method === 'GET' && url.pathname === '/api/dashboard/kpis') {
+      const trading = await d1First(db, `
+        SELECT
+          COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN quantity * unit_price ELSE 0 END), 0) AS sell_revenue,
+          COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN fee ELSE 0 END), 0) AS sell_fees,
+          COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN quantity ELSE 0 END), 0) AS sell_qty,
+          COUNT(CASE WHEN side = 'sell' AND status = 'active' THEN 1 END) AS sell_count
+        FROM trades
+        WHERE user_id = ?
+      `, user.userId);
+      const cost = await d1First(db, `
+        SELECT COALESCE(SUM(allocated_cost), 0) AS cogs
+        FROM trade_allocations
+        WHERE user_id = ?
+      `, user.userId);
+      const deals = await d1First(db, `
+        SELECT
+          COUNT(*) AS total_deals,
+          COALESCE(SUM(CASE WHEN status IN ('active','due','overdue') THEN principal_amount ELSE 0 END), 0) AS deals_open_principal,
+          COALESCE(SUM(CASE WHEN status = 'settled' THEN principal_amount ELSE 0 END), 0) AS deals_settled_principal
+        FROM deals
+        WHERE user_id = ?
+      `, user.userId);
+      const settlements = await d1First(db, `
+        SELECT
+          COUNT(*) AS settlement_count,
+          COALESCE(SUM(amount), 0) AS settlement_amount
+        FROM settlements
+        WHERE user_id = ?
+      `, user.userId);
+
+      const sellRevenue = Number(trading?.sell_revenue || 0);
+      const sellFees = Number(trading?.sell_fees || 0);
+      const cogs = Number(cost?.cogs || 0);
+      const grossProfit = sellRevenue - cogs;
+      const netProfit = grossProfit - sellFees;
+      const marginPct = sellRevenue > 0 ? (netProfit / sellRevenue) * 100 : 0;
+
+      return json(request, env, {
+        kpis: {
+          sell_revenue: sellRevenue,
+          cogs,
+          gross_profit: grossProfit,
+          sell_fees: sellFees,
+          net_profit: netProfit,
+          margin_pct: marginPct,
+          sell_qty: Number(trading?.sell_qty || 0),
+          sell_count: Number(trading?.sell_count || 0),
+          total_deals: Number(deals?.total_deals || 0),
+          deals_open_principal: Number(deals?.deals_open_principal || 0),
+          deals_settled_principal: Number(deals?.deals_settled_principal || 0),
+          settlement_count: Number(settlements?.settlement_count || 0),
+          settlement_amount: Number(settlements?.settlement_amount || 0),
+        },
+      });
+    }
+
     return bad(request, env, 'Not found', 404);
   } catch (err) {
     const status = Number(err?.status) || 500;

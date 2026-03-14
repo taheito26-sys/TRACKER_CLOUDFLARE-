@@ -56,8 +56,8 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Implement journal write-through for financial events
 
 ## Phase 6 — KPI Read Models
-- [ ] Implement `/api/dashboard/kpis`
-- [ ] Implement `/api/deals/kpis`
+- [x] Implement `/api/dashboard/kpis`
+- [x] Implement `/api/deals/kpis`
 - [ ] Validate KPI parity against baseline
 
 ## Phase 7 — Frontend Rewire
