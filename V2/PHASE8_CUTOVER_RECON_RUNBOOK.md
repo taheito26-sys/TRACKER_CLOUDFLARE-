@@ -27,6 +27,22 @@ Expected:
 - `kpi-parity.ok = true`
 - `cutover-readiness.ok = true`
 
+
+## 2.1) One-command readiness report
+
+You can generate a markdown evidence bundle:
+
+```bash
+node V2/scripts/phase8-readiness-check.mjs \
+  --base "$BASE" \
+  --user-id "<user>" \
+  --out V2/PHASE8_READINESS_REPORT.md
+```
+
+- Exit code `0` = all gates pass.
+- Exit code `2` = one or more gates failed.
+- Exit code `1` = script/runtime error.
+
 ## 3) Reconciliation checklist (staging)
 
 1. Import representative data subset via `/api/import/json`.
