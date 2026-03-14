@@ -2589,6 +2589,66 @@ async function computeCutoverReadiness(db, userId) {
   };
 }
 
+
+
+async function computeReconciliationSummary(db, userId) {
+  await ensureImportBridgeTables(db);
+  await ensurePhase5FinancialTables(db);
+
+  const [
+    batches,
+    trades,
+    allocations,
+    deals,
+    settlements,
+    journal,
+    trading,
+    dealsAgg,
+    settlementsAgg,
+  ] = await Promise.all([
+    d1First(db, `SELECT COUNT(*) AS c, COALESCE(SUM(quantity),0) AS qty, COALESCE(SUM(quantity * unit_cost),0) AS cost FROM batches WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c, COALESCE(SUM(CASE WHEN side='sell' AND status='active' THEN quantity ELSE 0 END),0) AS sell_qty, COALESCE(SUM(CASE WHEN side='sell' AND status='active' THEN quantity*unit_price ELSE 0 END),0) AS sell_rev FROM trades WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c, COALESCE(SUM(allocated_qty),0) AS allocated_qty, COALESCE(SUM(allocated_cost),0) AS allocated_cost FROM trade_allocations WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM deals WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM settlements WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM journal_entries WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COALESCE(SUM(CASE WHEN side='sell' AND status='active' THEN fee ELSE 0 END),0) AS sell_fees FROM trades WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COALESCE(SUM(CASE WHEN status IN ('active','due','overdue') THEN principal_amount ELSE 0 END),0) AS open_principal, COALESCE(SUM(CASE WHEN status='settled' THEN principal_amount ELSE 0 END),0) AS settled_principal FROM deals WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COALESCE(SUM(amount),0) AS settlement_amount FROM settlements WHERE user_id = ?`, userId),
+  ]);
+
+  const sellRevenue = Number(trades?.sell_rev || 0);
+  const allocatedCost = Number(allocations?.allocated_cost || 0);
+  const sellFees = Number(trading?.sell_fees || 0);
+  const netProfit = sellRevenue - allocatedCost - sellFees;
+
+  return {
+    counts: {
+      batches: Number(batches?.c || 0),
+      trades: Number(trades?.c || 0),
+      trade_allocations: Number(allocations?.c || 0),
+      deals: Number(deals?.c || 0),
+      settlements: Number(settlements?.c || 0),
+      journal_entries: Number(journal?.c || 0),
+    },
+    trading: {
+      total_batch_qty: Number(batches?.qty || 0),
+      total_batch_cost: Number(batches?.cost || 0),
+      sell_qty: Number(trades?.sell_qty || 0),
+      sell_revenue: sellRevenue,
+      allocated_qty: Number(allocations?.allocated_qty || 0),
+      allocated_cost: allocatedCost,
+      sell_fees: sellFees,
+      net_profit: netProfit,
+    },
+    deals: {
+      open_principal: Number(dealsAgg?.open_principal || 0),
+      settled_principal: Number(dealsAgg?.settled_principal || 0),
+      settlement_amount: Number(settlementsAgg?.settlement_amount || 0),
+    },
+  };
+}
+
 async function handleSystem(request, env) {
   const url = new URL(request.url);
   if (url.pathname === "/api/system/health") {
@@ -2633,7 +2693,7 @@ async function handleSystem(request, env) {
       service: "p2p-tracker",
       version,
       timestamp: nowIso(),
-      endpoints: ["/api/system/health", "/api/system/migrations", "/api/system/version", "/api/system/kpi-parity", "/api/system/cutover-readiness"],
+      endpoints: ["/api/system/health", "/api/system/migrations", "/api/system/version", "/api/system/kpi-parity", "/api/system/cutover-readiness", "/api/system/reconciliation-summary"],
     });
   }
 

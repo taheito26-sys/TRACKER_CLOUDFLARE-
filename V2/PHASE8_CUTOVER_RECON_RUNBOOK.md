@@ -18,6 +18,7 @@ curl -sS "$BASE/api/system/health"
 curl -sS "$BASE/api/system/migrations"
 curl -sS -H "X-User-Id: <user>" "$BASE/api/system/kpi-parity"
 curl -sS -H "X-User-Id: <user>" "$BASE/api/system/cutover-readiness"
+curl -sS -H "X-User-Id: <user>" "$BASE/api/system/reconciliation-summary"
 ```
 
 Expected:
@@ -26,6 +27,7 @@ Expected:
 - migrations include `001` and `002`
 - `kpi-parity.ok = true`
 - `cutover-readiness.ok = true`
+- `reconciliation-summary.ok = true`
 
 
 ## 2.1) One-command readiness report
@@ -60,6 +62,8 @@ node V2/scripts/phase8-readiness-check.mjs \
    - `GET /api/system/kpi-parity`
 6. Verify readiness:
    - `GET /api/system/cutover-readiness`
+7. Capture reconciliation summary:
+   - `GET /api/system/reconciliation-summary`
 
 ## 4) Cutover execution (production)
 

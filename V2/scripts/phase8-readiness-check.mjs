@@ -62,6 +62,7 @@ async function run() {
     migrations: await fetchJson(`${base}/api/system/migrations`),
     kpiParity: await fetchJson(`${base}/api/system/kpi-parity`, headers),
     cutoverReadiness: await fetchJson(`${base}/api/system/cutover-readiness`, headers),
+    reconciliationSummary: await fetchJson(`${base}/api/system/reconciliation-summary`, headers),
   };
 
   const migrationVersions = Array.isArray(checks.migrations?.json?.migrations)
@@ -74,6 +75,7 @@ async function run() {
     migration_002: migrationVersions.includes('002'),
     kpi_parity_ok: checks.kpiParity.ok && checks.kpiParity.json?.ok === true,
     cutover_readiness_ok: checks.cutoverReadiness.ok && checks.cutoverReadiness.json?.ok === true,
+    reconciliation_summary_ok: checks.reconciliationSummary.ok && checks.reconciliationSummary.json?.ok === true,
   };
 
   const allPass = Object.values(gates).every(Boolean);
@@ -87,7 +89,8 @@ async function run() {
     `- migration_001: **${passFail(gates.migration_001)}**\n` +
     `- migration_002: **${passFail(gates.migration_002)}**\n` +
     `- kpi_parity_ok: **${passFail(gates.kpi_parity_ok)}**\n` +
-    `- cutover_readiness_ok: **${passFail(gates.cutover_readiness_ok)}**\n\n` +
+    `- cutover_readiness_ok: **${passFail(gates.cutover_readiness_ok)}**\n` +
+    `- reconciliation_summary_ok: **${passFail(gates.reconciliation_summary_ok)}**\n\n` +
     `## Overall\n` +
     `**${allPass ? 'PASS' : 'FAIL'}**\n\n` +
     `## Endpoint Evidence\n` +
@@ -95,7 +98,8 @@ async function run() {
     `### /api/system/health (HTTP ${checks.health.status})` + toBlock(checks.health.json) + `\n` +
     `### /api/system/migrations (HTTP ${checks.migrations.status})` + toBlock(checks.migrations.json) + `\n` +
     `### /api/system/kpi-parity (HTTP ${checks.kpiParity.status})` + toBlock(checks.kpiParity.json) + `\n` +
-    `### /api/system/cutover-readiness (HTTP ${checks.cutoverReadiness.status})` + toBlock(checks.cutoverReadiness.json) + `\n`;
+    `### /api/system/cutover-readiness (HTTP ${checks.cutoverReadiness.status})` + toBlock(checks.cutoverReadiness.json) + `\n` +
+    `### /api/system/reconciliation-summary (HTTP ${checks.reconciliationSummary.status})` + toBlock(checks.reconciliationSummary.json) + `\n`;
 
   if (args.outFile) {
     fs.writeFileSync(args.outFile, report);
