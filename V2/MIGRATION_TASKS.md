@@ -41,9 +41,9 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Add audit logging on mutation endpoints
 
 ## Phase 3 — Import Bridge
-- [ ] Implement `/api/import/json`
-- [ ] Add idempotency protection for repeated imports
-- [ ] Generate reconciliation report (pre/post totals)
+- [x] Implement `/api/import/json`
+- [x] Add idempotency protection for repeated imports
+- [x] Generate reconciliation report (pre/post totals)
 
 ## Phase 4 — Trading + FIFO
 - [x] Implement server-side batches CRUD

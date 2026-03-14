@@ -1333,6 +1333,53 @@ async function ensureImportBridgeTables(db) {
       updated_at TEXT NOT NULL
     )
   `);
+
+  // Phase 3 bridge currently imports into trading domain tables.
+  // Keep these CREATE IF NOT EXISTS guards so import can run even before 002 is explicitly applied.
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS batches (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      asset_symbol TEXT NOT NULL,
+      acquired_at TEXT NOT NULL,
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      unit_cost REAL NOT NULL CHECK (unit_cost >= 0),
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS trades (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      asset_symbol TEXT NOT NULL,
+      side TEXT NOT NULL CHECK (side IN ('buy', 'sell')),
+      traded_at TEXT NOT NULL,
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      unit_price REAL NOT NULL CHECK (unit_price >= 0),
+      fee REAL NOT NULL DEFAULT 0 CHECK (fee >= 0),
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'void')),
+      source_batch_id TEXT,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS trade_allocations (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      trade_id TEXT NOT NULL,
+      batch_id TEXT NOT NULL,
+      allocated_qty REAL NOT NULL CHECK (allocated_qty > 0),
+      batch_unit_cost REAL NOT NULL CHECK (batch_unit_cost >= 0),
+      allocated_cost REAL NOT NULL CHECK (allocated_cost >= 0),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(trade_id, batch_id)
+    )
+  `);
 }
 
 async function sha256Hex(input) {
@@ -1347,9 +1394,71 @@ function summarizeImportPayload(payload) {
   const trades = Array.isArray(p.trades) ? p.trades.length : 0;
   const journal = Array.isArray(p.journal) ? p.journal.length : 0;
   const settlements = Array.isArray(p.settlements) ? p.settlements.length : 0;
-  const totalRows = deals + trades + journal + settlements;
+  const batches = Array.isArray(p.batches) ? p.batches.length : 0;
+  const totalRows = deals + trades + journal + settlements + batches;
   if (totalRows <= 0) throw new HttpError(400, 'Import payload is empty');
-  return { deals, trades, journal, settlements, totalRows };
+  return { deals, trades, journal, settlements, batches, totalRows };
+}
+
+async function getTradingCounts(db, userId) {
+  const [batches, trades, allocations] = await Promise.all([
+    d1First(db, `SELECT COUNT(*) AS c FROM batches WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM trades WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM trade_allocations WHERE user_id = ?`, userId),
+  ]);
+  return {
+    batches: Number(batches?.c || 0),
+    trades: Number(trades?.c || 0),
+    trade_allocations: Number(allocations?.c || 0),
+  };
+}
+
+function parseImportBatches(payload) {
+  const rows = Array.isArray(payload?.batches) ? payload.batches : [];
+  return rows.map((r, idx) => {
+    const row = asPlainObject(r);
+    return {
+      id: String(row.id || randomId('bat_imp_')).trim(),
+      asset_symbol: normalizeAssetSymbol(row.asset_symbol || row.asset || 'USDT'),
+      acquired_at: toIsoTimestamp(row.acquired_at || row.date || row.created_at, `batches[${idx}].acquired_at`),
+      quantity: Number(row.quantity),
+      unit_cost: row.unit_cost == null ? 0 : Number(row.unit_cost),
+      notes: optionalStringField(row, 'notes', { max: 1000, fallback: '' }),
+    };
+  }).map((row, idx) => {
+    if (!row.id) throw new HttpError(400, `batches[${idx}].id is required`);
+    if (!Number.isFinite(row.quantity) || row.quantity <= 0) throw new HttpError(400, `batches[${idx}].quantity must be greater than zero`);
+    if (!Number.isFinite(row.unit_cost) || row.unit_cost < 0) throw new HttpError(400, `batches[${idx}].unit_cost must be zero or greater`);
+    return row;
+  });
+}
+
+function parseImportTrades(payload) {
+  const rows = Array.isArray(payload?.trades) ? payload.trades : [];
+  return rows.map((r, idx) => {
+    const row = asPlainObject(r);
+    const side = String(row.side || '').trim().toLowerCase();
+    const status = String(row.status || 'active').trim().toLowerCase();
+    return {
+      id: String(row.id || randomId('trd_imp_')).trim(),
+      asset_symbol: normalizeAssetSymbol(row.asset_symbol || row.asset || 'USDT'),
+      side,
+      status,
+      traded_at: toIsoTimestamp(row.traded_at || row.date || row.created_at, `trades[${idx}].traded_at`),
+      quantity: Number(row.quantity),
+      unit_price: row.unit_price == null ? 0 : Number(row.unit_price),
+      fee: row.fee == null ? 0 : Number(row.fee),
+      notes: optionalStringField(row, 'notes', { max: 1000, fallback: '' }),
+    };
+  }).map((row, idx) => {
+    if (!row.id) throw new HttpError(400, `trades[${idx}].id is required`);
+    if (!['buy', 'sell'].includes(row.side)) throw new HttpError(400, `trades[${idx}].side must be buy or sell`);
+    if (!['active', 'void'].includes(row.status)) throw new HttpError(400, `trades[${idx}].status must be active or void`);
+    if (!Number.isFinite(row.quantity) || row.quantity <= 0) throw new HttpError(400, `trades[${idx}].quantity must be greater than zero`);
+    if (!Number.isFinite(row.unit_price) || row.unit_price < 0) throw new HttpError(400, `trades[${idx}].unit_price must be zero or greater`);
+    if (!Number.isFinite(row.fee) || row.fee < 0) throw new HttpError(400, `trades[${idx}].fee must be zero or greater`);
+    return row;
+  });
 }
 
 async function handleImport(request, env) {
@@ -1384,14 +1493,49 @@ async function handleImport(request, env) {
         });
       }
 
+      const batches = parseImportBatches(body);
+      const trades = parseImportTrades(body);
+      const assetsTouched = new Set([...batches.map((b) => b.asset_symbol), ...trades.map((t) => t.asset_symbol)]);
+      const before = await getTradingCounts(db, user.userId);
+
+      for (const b of batches) {
+        await d1Run(db, `
+          INSERT OR REPLACE INTO batches
+            (id, user_id, asset_symbol, acquired_at, quantity, unit_cost, notes, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, b.id, user.userId, b.asset_symbol, b.acquired_at, b.quantity, b.unit_cost, b.notes, nowIso(), nowIso());
+      }
+      for (const t of trades) {
+        await d1Run(db, `
+          INSERT OR REPLACE INTO trades
+            (id, user_id, asset_symbol, side, traded_at, quantity, unit_price, fee, status, source_batch_id, notes, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, t.id, user.userId, t.asset_symbol, t.side, t.traded_at, t.quantity, t.unit_price, t.fee, t.status, null, t.notes, nowIso(), nowIso());
+      }
+      const fifo = [];
+      for (const symbol of assetsTouched) {
+        fifo.push(await recomputeFifoForAsset(db, user.userId, symbol));
+      }
+      const after = await getTradingCounts(db, user.userId);
+      const reconciliation = {
+        before,
+        imported: { batches: batches.length, trades: trades.length },
+        after,
+        delta: {
+          batches: after.batches - before.batches,
+          trades: after.trades - before.trades,
+          trade_allocations: after.trade_allocations - before.trade_allocations,
+        },
+      };
+
       const row = {
         id: randomId('imp_'),
         idempotency_key: idempotencyKey,
         actor_user_id: user.userId,
         payload_hash: payloadHash,
         payload_json: JSON.stringify(body),
-        totals_json: JSON.stringify(totals),
-        status: 'accepted',
+        totals_json: JSON.stringify({ ...totals, reconciliation }),
+        status: 'completed',
         created_at: nowIso(),
         updated_at: nowIso(),
       };
@@ -1409,11 +1553,17 @@ async function handleImport(request, env) {
         actor_user_id: user.userId,
         entity_type: 'import_job',
         entity_id: row.id,
-        action: 'import_json_accepted',
-        detail: { idempotency_key: row.idempotency_key, totals },
+        action: 'import_json_completed',
+        detail: { idempotency_key: row.idempotency_key, totals, reconciliation },
       });
 
-      return json(request, env, { ok: true, reused: false, import_job: { ...row, totals } }, 202);
+      return json(request, env, {
+        ok: true,
+        reused: false,
+        import_job: { ...row, totals: { ...totals, reconciliation } },
+        reconciliation,
+        fifo,
+      }, 202);
     }
 
     if (method === 'GET' && path.match(/^\/json\/[^/]+$/)) {
