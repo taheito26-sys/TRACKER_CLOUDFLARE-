@@ -11,10 +11,10 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 Please provide/execute the following to continue Phase 2 implementation:
 
-1. Run staging verification command and paste output:
-   - `npx wrangler d1 execute DB --remote --command "SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC;" --config ./wrangler.toml`
-2. Confirm this output is from the **staging** environment binding/account.
-3. Confirm whether I should begin Step 2.2 implementation with Cloudflare Access + logs-only audit sink.
+1. Deploy backend with latest changes in production:
+   - `npx wrangler deploy --config ./wrangler.toml`
+2. Confirm Cloudflare Access headers are present for production write traffic.
+3. Paste one sample write-route result (success or 401) so auth guard behavior is validated.
 
 ## Update contract for all future status replies
 
@@ -252,6 +252,13 @@ The **Required from you (User)** line must be present after every step, even if 
 4. **Next phase:** Phase 2 (Auth & Security Baseline).
 5. **Required from you (User):** Provide staging migration-query output so Phase 1 staging application can be confirmed.
 
+### Step 2.3 — Write-route Cloudflare Access guard + logs-only audit skeleton
+1. **Step completed:** Implemented write-route auth guard skeleton and logs-only mutation audit hook in backend Worker runtime.
+2. **Evidence:** `backend/src/index.js` now enforces write-route checks when `AUTH_SOURCE=cloudflare-access` and emits `mutation_audit` logs with actor/method/path/status.
+3. **Next step (Agent):** Add payload validation layer for migration-sensitive write endpoints (Phase 2 task 2).
+4. **Next phase:** Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** Deploy updated backend and confirm write-route behavior under Cloudflare Access in production.
+
 ### Phase 2 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
@@ -260,6 +267,6 @@ The **Required from you (User)** line must be present after every step, even if 
    - [ ] Auth/session middleware enforced on all write routes.
    - [ ] Payload validation layer added for migration-sensitive endpoints.
    - [ ] Audit logging added on mutation endpoints.
-4. **Next step (Agent):** Start Step 2.2 implementation using Cloudflare Access guard + logs-only audit hook.
+4. **Next step (Agent):** Implement payload validation layer for migration-sensitive write endpoints.
 5. **Next phase:** Phase 2 (Auth & Security Baseline).
-6. **Required from you (User):** Provide staging migration-query output and confirm environment scope so Phase 1 can be fully closed.
+6. **Required from you (User):** Deploy production update and share one write-route auth outcome sample.

@@ -160,6 +160,51 @@ async function listSchemaMigrations(db) {
     `SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC`
   );
 }
+
+function isWriteMethod(method) {
+  const m = String(method || '').toUpperCase();
+  return m === 'POST' || m === 'PUT' || m === 'PATCH' || m === 'DELETE';
+}
+function getCloudflareAccessActor(request) {
+  const email = normalizeEmail(request.headers.get('cf-access-authenticated-user-email'));
+  if (email) return { actor: email, source: 'cf-access-authenticated-user-email' };
+  const userId = String(request.headers.get('cf-access-authenticated-user-id') || '').trim();
+  if (userId) return { actor: userId, source: 'cf-access-authenticated-user-id' };
+  const jwtAssertion = String(request.headers.get('cf-access-jwt-assertion') || '').trim();
+  if (jwtAssertion) return { actor: 'cf-access-jwt', source: 'cf-access-jwt-assertion' };
+  return null;
+}
+function resolveWriteAuth(request, env) {
+  const enabled = String(env.AUTH_SOURCE || '').trim().toLowerCase() === 'cloudflare-access';
+  if (!enabled) {
+    return { ok: true, actor: 'auth-disabled', mode: 'off' };
+  }
+  const actor = getCloudflareAccessActor(request);
+  if (!actor) {
+    return {
+      ok: false,
+      mode: 'cloudflare-access',
+      actor: 'anonymous',
+      response: bad(request, env, 'Unauthorized: missing Cloudflare Access identity headers', 401),
+    };
+  }
+  return { ok: true, actor: actor.actor, mode: 'cloudflare-access', source: actor.source };
+}
+function auditWrite(request, meta = {}) {
+  const payload = {
+    type: 'mutation_audit',
+    method: request.method,
+    path: new URL(request.url).pathname,
+    actor: meta.actor || 'unknown',
+    auth_mode: meta.mode || 'unknown',
+    auth_source: meta.source || null,
+    status: meta.status ?? null,
+    outcome: meta.outcome || 'unknown',
+    at: nowIso(),
+  };
+  if (meta.error) payload.error = String(meta.error);
+  console.log(JSON.stringify(payload));
+}
 function merchantId() {
   const bytes = new Uint8Array(4);
   crypto.getRandomValues(bytes);
@@ -1443,16 +1488,56 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
+
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/system")) {
-      const system = await handleSystem(request, env);
-      if (system) return system;
+    const isApiPath = url.pathname.startsWith('/api/');
+    const isWrite = isApiPath && isWriteMethod(request.method);
+    let authMeta = { ok: true, actor: 'system', mode: 'off' };
+
+    if (isWrite) {
+      authMeta = resolveWriteAuth(request, env);
+      if (!authMeta.ok) {
+        auditWrite(request, {
+          actor: authMeta.actor,
+          mode: authMeta.mode,
+          source: authMeta.source,
+          status: authMeta.response?.status || 401,
+          outcome: 'denied',
+          error: 'missing_or_invalid_access_identity',
+        });
+        return authMeta.response;
+      }
     }
-    if (url.pathname.startsWith("/api/merchant")) {
-      return handleMerchant(request, env);
+
+    let response;
+    try {
+      if (url.pathname.startsWith("/api/system")) {
+        const system = await handleSystem(request, env);
+        if (system) response = system;
+      }
+      if (!response && url.pathname.startsWith("/api/merchant")) {
+        response = await handleMerchant(request, env);
+      }
+      if (!response) {
+        const p2p = await handleP2P(request, env);
+        if (p2p) response = p2p;
+      }
+      if (!response) response = bad(request, env, "Not found", 404);
+    } catch (err) {
+      console.error('[worker] unhandled fetch error:', err?.stack || err?.message || String(err));
+      response = bad(request, env, err?.message || 'Internal error', err?.status || 500);
     }
-    const p2p = await handleP2P(request, env);
-    if (p2p) return p2p;
-    return bad(request, env, "Not found", 404);
+
+    if (isWrite) {
+      auditWrite(request, {
+        actor: authMeta.actor,
+        mode: authMeta.mode,
+        source: authMeta.source,
+        status: response.status,
+        outcome: response.ok ? 'success' : 'error',
+      });
+    }
+
+    return response;
   },
 };

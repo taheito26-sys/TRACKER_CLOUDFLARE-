@@ -53,3 +53,12 @@ This document starts implementation planning for Phase 2 tasks in `V2/MIGRATION_
 2. **Audit identity field:** Prefer Access identity header (fallback to `unknown`).
 3. **Strictness policy:** Fail-closed on all write routes once guard is enabled.
 4. **Audit sink:** Logs-only.
+
+
+## Step 2.2 implementation status
+
+Implemented in `backend/src/index.js`:
+- Write-method detection (`POST`/`PUT`/`PATCH`/`DELETE`) for `/api/*` routes.
+- Cloudflare Access auth guard controlled by `env.AUTH_SOURCE == "cloudflare-access"`.
+- Fail-closed `401` response for write requests missing Access identity headers.
+- Logs-only mutation audit events via `console.log` JSON payloads.
