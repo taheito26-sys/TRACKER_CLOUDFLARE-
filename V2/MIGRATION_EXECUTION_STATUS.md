@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 14/43 tasks (33%)  `████████░░░░░░░░░░░░░░░░`
+**Progress:** 15/44 tasks (34%)  `████████░░░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -168,6 +168,13 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 3. **Next step (Agent):** Validate user output contains v4 banner and re-assess endpoint 404 diagnostics.
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Pull latest code and rerun verifier; paste output with `2026-03-13-v4` banner.
+
+### Step 1.17 — Added one-shot Phase 1 executor
+1. **Step completed:** Added scripts to execute deploy + migration + verification in a single command for faster field execution.
+2. **Evidence:** `backend/run-phase1-oneshot.ps1` and `backend/run-phase1-oneshot.cmd`; runbook section “Phase 1 one-shot executor (time saver)”.
+3. **Next step (Agent):** Parse one-shot output to mark staging migration + endpoint checks together when successful.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Run `.\run-phase1-oneshot.ps1` from `backend/` and paste full output.
 
 ### Phase 1 summary
 1. **Phase status:** In Progress.

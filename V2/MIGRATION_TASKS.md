@@ -27,6 +27,7 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Harden verifier to avoid Windows Node assertion crash
 - [x] Remove timer-based exit path from verifier to prevent UV_HANDLE_CLOSING crash
 - [x] Fix Windows explicit cmd invocation docs (`cmd /c .\verify-system.cmd`)
+- [x] Add one-shot Phase 1 executor (deploy + migrate + verify)
 - [ ] Apply `001_schema_migrations.sql` in staging
 - [ ] Apply `001_schema_migrations.sql` in production
 - [ ] Validate `/api/system/health`

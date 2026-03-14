@@ -22,6 +22,30 @@ cd backend
 npx wrangler d1 execute crypto-tracker --local --file=./migrations/001_schema_migrations.sql
 ```
 
+## Phase 1 one-shot executor (time saver)
+
+If you want to run multiple Phase 1 steps in one shot (deploy + migration + verify):
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+.\run-phase1-oneshot.ps1
+```
+
+Or from CMD:
+
+```cmd
+run-phase1-oneshot.cmd
+```
+
+Optional flags:
+
+```powershell
+.\run-phase1-oneshot.ps1 -SkipDeploy
+.\run-phase1-oneshot.ps1 -SkipMigration
+.\run-phase1-oneshot.ps1 -SkipVerify
+.\run-phase1-oneshot.ps1 -DbName "crypto-tracker" -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
+```
+
 ## Verify migration registry table
 
 ```bash
