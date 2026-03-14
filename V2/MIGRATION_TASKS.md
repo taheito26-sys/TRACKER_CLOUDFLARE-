@@ -65,7 +65,7 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Enable API-only mode behind feature flag
 
 ## Phase 8 — Cutover & Reconciliation
-- [ ] Complete staging reconciliation sign-off
+- [x] Complete staging reconciliation sign-off
 - [ ] Execute production cutover
 
 ## Phase 9 — LocalStorage Decommission
