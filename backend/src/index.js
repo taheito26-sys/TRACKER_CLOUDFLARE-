@@ -87,7 +87,7 @@ function corsHeaders(request, env) {
   const origin = request.headers.get("Origin");
   return {
     "Access-Control-Allow-Origin": allowedOrigin(origin, env),
-    "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-User-Email, X-User-Id, X-Compat-User",
     "Access-Control-Allow-Credentials": "true",
     "Cache-Control": "no-store",
@@ -1333,6 +1333,53 @@ async function ensureImportBridgeTables(db) {
       updated_at TEXT NOT NULL
     )
   `);
+
+  // Phase 3 bridge currently imports into trading domain tables.
+  // Keep these CREATE IF NOT EXISTS guards so import can run even before 002 is explicitly applied.
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS batches (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      asset_symbol TEXT NOT NULL,
+      acquired_at TEXT NOT NULL,
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      unit_cost REAL NOT NULL CHECK (unit_cost >= 0),
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS trades (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      asset_symbol TEXT NOT NULL,
+      side TEXT NOT NULL CHECK (side IN ('buy', 'sell')),
+      traded_at TEXT NOT NULL,
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      unit_price REAL NOT NULL CHECK (unit_price >= 0),
+      fee REAL NOT NULL DEFAULT 0 CHECK (fee >= 0),
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'void')),
+      source_batch_id TEXT,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS trade_allocations (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      trade_id TEXT NOT NULL,
+      batch_id TEXT NOT NULL,
+      allocated_qty REAL NOT NULL CHECK (allocated_qty > 0),
+      batch_unit_cost REAL NOT NULL CHECK (batch_unit_cost >= 0),
+      allocated_cost REAL NOT NULL CHECK (allocated_cost >= 0),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(trade_id, batch_id)
+    )
+  `);
 }
 
 async function sha256Hex(input) {
@@ -1347,9 +1394,71 @@ function summarizeImportPayload(payload) {
   const trades = Array.isArray(p.trades) ? p.trades.length : 0;
   const journal = Array.isArray(p.journal) ? p.journal.length : 0;
   const settlements = Array.isArray(p.settlements) ? p.settlements.length : 0;
-  const totalRows = deals + trades + journal + settlements;
+  const batches = Array.isArray(p.batches) ? p.batches.length : 0;
+  const totalRows = deals + trades + journal + settlements + batches;
   if (totalRows <= 0) throw new HttpError(400, 'Import payload is empty');
-  return { deals, trades, journal, settlements, totalRows };
+  return { deals, trades, journal, settlements, batches, totalRows };
+}
+
+async function getTradingCounts(db, userId) {
+  const [batches, trades, allocations] = await Promise.all([
+    d1First(db, `SELECT COUNT(*) AS c FROM batches WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM trades WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM trade_allocations WHERE user_id = ?`, userId),
+  ]);
+  return {
+    batches: Number(batches?.c || 0),
+    trades: Number(trades?.c || 0),
+    trade_allocations: Number(allocations?.c || 0),
+  };
+}
+
+function parseImportBatches(payload) {
+  const rows = Array.isArray(payload?.batches) ? payload.batches : [];
+  return rows.map((r, idx) => {
+    const row = asPlainObject(r);
+    return {
+      id: String(row.id || randomId('bat_imp_')).trim(),
+      asset_symbol: normalizeAssetSymbol(row.asset_symbol || row.asset || 'USDT'),
+      acquired_at: toIsoTimestamp(row.acquired_at || row.date || row.created_at, `batches[${idx}].acquired_at`),
+      quantity: Number(row.quantity),
+      unit_cost: row.unit_cost == null ? 0 : Number(row.unit_cost),
+      notes: optionalStringField(row, 'notes', { max: 1000, fallback: '' }),
+    };
+  }).map((row, idx) => {
+    if (!row.id) throw new HttpError(400, `batches[${idx}].id is required`);
+    if (!Number.isFinite(row.quantity) || row.quantity <= 0) throw new HttpError(400, `batches[${idx}].quantity must be greater than zero`);
+    if (!Number.isFinite(row.unit_cost) || row.unit_cost < 0) throw new HttpError(400, `batches[${idx}].unit_cost must be zero or greater`);
+    return row;
+  });
+}
+
+function parseImportTrades(payload) {
+  const rows = Array.isArray(payload?.trades) ? payload.trades : [];
+  return rows.map((r, idx) => {
+    const row = asPlainObject(r);
+    const side = String(row.side || '').trim().toLowerCase();
+    const status = String(row.status || 'active').trim().toLowerCase();
+    return {
+      id: String(row.id || randomId('trd_imp_')).trim(),
+      asset_symbol: normalizeAssetSymbol(row.asset_symbol || row.asset || 'USDT'),
+      side,
+      status,
+      traded_at: toIsoTimestamp(row.traded_at || row.date || row.created_at, `trades[${idx}].traded_at`),
+      quantity: Number(row.quantity),
+      unit_price: row.unit_price == null ? 0 : Number(row.unit_price),
+      fee: row.fee == null ? 0 : Number(row.fee),
+      notes: optionalStringField(row, 'notes', { max: 1000, fallback: '' }),
+    };
+  }).map((row, idx) => {
+    if (!row.id) throw new HttpError(400, `trades[${idx}].id is required`);
+    if (!['buy', 'sell'].includes(row.side)) throw new HttpError(400, `trades[${idx}].side must be buy or sell`);
+    if (!['active', 'void'].includes(row.status)) throw new HttpError(400, `trades[${idx}].status must be active or void`);
+    if (!Number.isFinite(row.quantity) || row.quantity <= 0) throw new HttpError(400, `trades[${idx}].quantity must be greater than zero`);
+    if (!Number.isFinite(row.unit_price) || row.unit_price < 0) throw new HttpError(400, `trades[${idx}].unit_price must be zero or greater`);
+    if (!Number.isFinite(row.fee) || row.fee < 0) throw new HttpError(400, `trades[${idx}].fee must be zero or greater`);
+    return row;
+  });
 }
 
 async function handleImport(request, env) {
@@ -1384,14 +1493,49 @@ async function handleImport(request, env) {
         });
       }
 
+      const batches = parseImportBatches(body);
+      const trades = parseImportTrades(body);
+      const assetsTouched = new Set([...batches.map((b) => b.asset_symbol), ...trades.map((t) => t.asset_symbol)]);
+      const before = await getTradingCounts(db, user.userId);
+
+      for (const b of batches) {
+        await d1Run(db, `
+          INSERT OR REPLACE INTO batches
+            (id, user_id, asset_symbol, acquired_at, quantity, unit_cost, notes, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, b.id, user.userId, b.asset_symbol, b.acquired_at, b.quantity, b.unit_cost, b.notes, nowIso(), nowIso());
+      }
+      for (const t of trades) {
+        await d1Run(db, `
+          INSERT OR REPLACE INTO trades
+            (id, user_id, asset_symbol, side, traded_at, quantity, unit_price, fee, status, source_batch_id, notes, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, t.id, user.userId, t.asset_symbol, t.side, t.traded_at, t.quantity, t.unit_price, t.fee, t.status, null, t.notes, nowIso(), nowIso());
+      }
+      const fifo = [];
+      for (const symbol of assetsTouched) {
+        fifo.push(await recomputeFifoForAsset(db, user.userId, symbol));
+      }
+      const after = await getTradingCounts(db, user.userId);
+      const reconciliation = {
+        before,
+        imported: { batches: batches.length, trades: trades.length },
+        after,
+        delta: {
+          batches: after.batches - before.batches,
+          trades: after.trades - before.trades,
+          trade_allocations: after.trade_allocations - before.trade_allocations,
+        },
+      };
+
       const row = {
         id: randomId('imp_'),
         idempotency_key: idempotencyKey,
         actor_user_id: user.userId,
         payload_hash: payloadHash,
         payload_json: JSON.stringify(body),
-        totals_json: JSON.stringify(totals),
-        status: 'accepted',
+        totals_json: JSON.stringify({ ...totals, reconciliation }),
+        status: 'completed',
         created_at: nowIso(),
         updated_at: nowIso(),
       };
@@ -1409,11 +1553,17 @@ async function handleImport(request, env) {
         actor_user_id: user.userId,
         entity_type: 'import_job',
         entity_id: row.id,
-        action: 'import_json_accepted',
-        detail: { idempotency_key: row.idempotency_key, totals },
+        action: 'import_json_completed',
+        detail: { idempotency_key: row.idempotency_key, totals, reconciliation },
       });
 
-      return json(request, env, { ok: true, reused: false, import_job: { ...row, totals } }, 202);
+      return json(request, env, {
+        ok: true,
+        reused: false,
+        import_job: { ...row, totals: { ...totals, reconciliation } },
+        reconciliation,
+        fifo,
+      }, 202);
     }
 
     if (method === 'GET' && path.match(/^\/json\/[^/]+$/)) {
@@ -1427,6 +1577,299 @@ async function handleImport(request, env) {
   } catch (err) {
     const status = Number(err?.status) || 500;
     return bad(request, env, err?.message || 'Import API error', status);
+  }
+}
+
+
+
+function toIsoTimestamp(value, fieldName) {
+  const raw = String(value || '').trim();
+  if (!raw) throw new HttpError(400, `${fieldName} is required`);
+  const dt = new Date(raw);
+  if (Number.isNaN(dt.getTime())) throw new HttpError(400, `${fieldName} must be a valid datetime`);
+  return dt.toISOString();
+}
+function normalizeAssetSymbol(value) {
+  const symbol = String(value || '').trim().toUpperCase();
+  if (!symbol) throw new HttpError(400, 'asset_symbol is required');
+  if (!/^[A-Z0-9_-]{2,15}$/.test(symbol)) throw new HttpError(400, 'asset_symbol format is invalid');
+  return symbol;
+}
+
+async function recomputeFifoForAsset(db, userId, assetSymbol) {
+  const batches = await d1All(db, `
+    SELECT id, acquired_at, quantity, unit_cost
+    FROM batches
+    WHERE user_id = ? AND asset_symbol = ?
+    ORDER BY acquired_at ASC, id ASC
+  `, userId, assetSymbol);
+  const trades = await d1All(db, `
+    SELECT id, traded_at, quantity
+    FROM trades
+    WHERE user_id = ? AND asset_symbol = ? AND side = 'sell' AND status = 'active'
+    ORDER BY traded_at ASC, id ASC
+  `, userId, assetSymbol);
+
+  await d1Run(db, `
+    DELETE FROM trade_allocations
+    WHERE user_id = ?
+      AND trade_id IN (
+        SELECT id FROM trades WHERE user_id = ? AND asset_symbol = ?
+      )
+  `, userId, userId, assetSymbol);
+
+  const remaining = new Map();
+  for (const b of batches) remaining.set(b.id, Number(b.quantity || 0));
+
+  const shortages = [];
+  for (const trade of trades) {
+    let qtyLeft = Number(trade.quantity || 0);
+    let firstBatchId = null;
+
+    for (const batch of batches) {
+      const rem = Number(remaining.get(batch.id) || 0);
+      if (qtyLeft <= 0) break;
+      if (rem <= 0) continue;
+      const allocatedQty = Math.min(rem, qtyLeft);
+      if (allocatedQty <= 0) continue;
+      if (!firstBatchId) firstBatchId = batch.id;
+
+      await d1Run(db, `
+        INSERT INTO trade_allocations
+          (id, user_id, trade_id, batch_id, allocated_qty, batch_unit_cost, allocated_cost, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        randomId('alloc_'),
+        userId,
+        trade.id,
+        batch.id,
+        allocatedQty,
+        Number(batch.unit_cost || 0),
+        allocatedQty * Number(batch.unit_cost || 0),
+        nowIso(),
+        nowIso()
+      );
+
+      remaining.set(batch.id, rem - allocatedQty);
+      qtyLeft -= allocatedQty;
+    }
+
+    await d1Run(db, `UPDATE trades SET source_batch_id = ?, updated_at = ? WHERE id = ?`, firstBatchId, nowIso(), trade.id);
+
+    if (qtyLeft > 0) shortages.push({ trade_id: trade.id, unallocated_qty: qtyLeft });
+  }
+
+  return {
+    asset_symbol: assetSymbol,
+    batches: batches.length,
+    trades: trades.length,
+    shortages,
+  };
+}
+
+async function handleTrading(request, env) {
+  if (!env.DB) return bad(request, env, 'D1 binding DB is not configured', 500);
+  const db = env.DB;
+  const url = new URL(request.url);
+  const method = request.method.toUpperCase();
+
+  let user;
+  try {
+    user = await getUserContext(request, env);
+  } catch (err) {
+    return bad(request, env, err.message || 'Unauthorized', 401);
+  }
+
+  try {
+    const batchMatch = url.pathname.match(/^\/api\/batches\/([^/]+)$/);
+    const tradeMatch = url.pathname.match(/^\/api\/trades\/([^/]+)$/);
+    const tradeVoidMatch = url.pathname.match(/^\/api\/trades\/([^/]+)\/void$/);
+
+    if (method === 'GET' && url.pathname === '/api/batches') {
+      const assetFilter = String(url.searchParams.get('asset_symbol') || '').trim().toUpperCase();
+      const rows = assetFilter
+        ? await d1All(db, `
+            SELECT b.*,
+              COALESCE(SUM(ta.allocated_qty), 0) AS allocated_qty,
+              (b.quantity - COALESCE(SUM(ta.allocated_qty), 0)) AS remaining_qty
+            FROM batches b
+            LEFT JOIN trade_allocations ta ON ta.batch_id = b.id AND ta.user_id = b.user_id
+            WHERE b.user_id = ? AND b.asset_symbol = ?
+            GROUP BY b.id
+            ORDER BY b.acquired_at ASC, b.id ASC
+          `, user.userId, assetFilter)
+        : await d1All(db, `
+            SELECT b.*,
+              COALESCE(SUM(ta.allocated_qty), 0) AS allocated_qty,
+              (b.quantity - COALESCE(SUM(ta.allocated_qty), 0)) AS remaining_qty
+            FROM batches b
+            LEFT JOIN trade_allocations ta ON ta.batch_id = b.id AND ta.user_id = b.user_id
+            WHERE b.user_id = ?
+            GROUP BY b.id
+            ORDER BY b.acquired_at ASC, b.id ASC
+          `, user.userId);
+      return json(request, env, { batches: rows });
+    }
+
+    if (method === 'POST' && url.pathname === '/api/batches') {
+      const body = asPlainObject(await readJson(request));
+      const row = {
+        id: randomId('bat_'),
+        user_id: user.userId,
+        asset_symbol: normalizeAssetSymbol(body.asset_symbol),
+        acquired_at: toIsoTimestamp(body.acquired_at, 'acquired_at'),
+        quantity: requirePositiveNumberField(body, 'quantity'),
+        unit_cost: optionalNumberField(body, 'unit_cost', 0),
+        notes: optionalStringField(body, 'notes', { max: 1000, fallback: '' }),
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      if (row.unit_cost < 0) throw new HttpError(400, 'unit_cost must be zero or greater');
+      await d1Run(db, `
+        INSERT INTO batches (id, user_id, asset_symbol, acquired_at, quantity, unit_cost, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, row.id, row.user_id, row.asset_symbol, row.acquired_at, row.quantity, row.unit_cost, row.notes, row.created_at, row.updated_at);
+      const fifo = await recomputeFifoForAsset(db, user.userId, row.asset_symbol);
+      return json(request, env, { ok: true, batch: row, fifo }, 201);
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && batchMatch) {
+      const id = batchMatch[1];
+      const existing = await d1First(db, `SELECT * FROM batches WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Batch not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const updated = {
+        asset_symbol: body.asset_symbol != null ? normalizeAssetSymbol(body.asset_symbol) : existing.asset_symbol,
+        acquired_at: body.acquired_at != null ? toIsoTimestamp(body.acquired_at, 'acquired_at') : existing.acquired_at,
+        quantity: body.quantity != null ? requirePositiveNumberField(body, 'quantity') : Number(existing.quantity),
+        unit_cost: body.unit_cost != null ? optionalNumberField(body, 'unit_cost', 0) : Number(existing.unit_cost),
+        notes: body.notes != null ? optionalStringField(body, 'notes', { max: 1000, fallback: '' }) : String(existing.notes || ''),
+      };
+      if (updated.unit_cost < 0) throw new HttpError(400, 'unit_cost must be zero or greater');
+      await d1Run(db, `
+        UPDATE batches
+        SET asset_symbol = ?, acquired_at = ?, quantity = ?, unit_cost = ?, notes = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+      `, updated.asset_symbol, updated.acquired_at, updated.quantity, updated.unit_cost, updated.notes, nowIso(), id, user.userId);
+      const fifo = await recomputeFifoForAsset(db, user.userId, updated.asset_symbol);
+      if (updated.asset_symbol !== existing.asset_symbol) await recomputeFifoForAsset(db, user.userId, existing.asset_symbol);
+      return json(request, env, { ok: true, batch: { ...existing, ...updated, id }, fifo });
+    }
+
+    if (method === 'DELETE' && batchMatch) {
+      const id = batchMatch[1];
+      const existing = await d1First(db, `SELECT * FROM batches WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Batch not found', 404);
+      await d1Run(db, `DELETE FROM batches WHERE id = ? AND user_id = ?`, id, user.userId);
+      const fifo = await recomputeFifoForAsset(db, user.userId, existing.asset_symbol);
+      return json(request, env, { ok: true, deleted: id, fifo });
+    }
+
+    if (method === 'GET' && url.pathname === '/api/trades') {
+      const rows = await d1All(db, `
+        SELECT t.*,
+          COALESCE(SUM(ta.allocated_qty), 0) AS allocated_qty,
+          COALESCE(SUM(ta.allocated_cost), 0) AS allocated_cost
+        FROM trades t
+        LEFT JOIN trade_allocations ta ON ta.trade_id = t.id AND ta.user_id = t.user_id
+        WHERE t.user_id = ?
+        GROUP BY t.id
+        ORDER BY t.traded_at ASC, t.id ASC
+      `, user.userId);
+      return json(request, env, { trades: rows });
+    }
+
+    if (method === 'POST' && url.pathname === '/api/trades') {
+      const body = asPlainObject(await readJson(request));
+      const row = {
+        id: randomId('trd_'),
+        user_id: user.userId,
+        asset_symbol: normalizeAssetSymbol(body.asset_symbol),
+        side: String(body.side || '').trim().toLowerCase(),
+        traded_at: toIsoTimestamp(body.traded_at, 'traded_at'),
+        quantity: requirePositiveNumberField(body, 'quantity'),
+        unit_price: optionalNumberField(body, 'unit_price', 0),
+        fee: optionalNumberField(body, 'fee', 0),
+        status: String(body.status || 'active').trim().toLowerCase(),
+        notes: optionalStringField(body, 'notes', { max: 1000, fallback: '' }),
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      if (!['buy', 'sell'].includes(row.side)) throw new HttpError(400, 'side must be buy or sell');
+      if (!['active', 'void'].includes(row.status)) throw new HttpError(400, 'status must be active or void');
+      if (row.unit_price < 0) throw new HttpError(400, 'unit_price must be zero or greater');
+      if (row.fee < 0) throw new HttpError(400, 'fee must be zero or greater');
+
+      await d1Run(db, `
+        INSERT INTO trades
+          (id, user_id, asset_symbol, side, traded_at, quantity, unit_price, fee, status, source_batch_id, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        row.id, row.user_id, row.asset_symbol, row.side, row.traded_at, row.quantity, row.unit_price,
+        row.fee, row.status, null, row.notes, row.created_at, row.updated_at
+      );
+      const fifo = await recomputeFifoForAsset(db, user.userId, row.asset_symbol);
+      return json(request, env, { ok: true, trade: row, fifo }, 201);
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && tradeMatch) {
+      const id = tradeMatch[1];
+      const existing = await d1First(db, `SELECT * FROM trades WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Trade not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const updated = {
+        asset_symbol: body.asset_symbol != null ? normalizeAssetSymbol(body.asset_symbol) : existing.asset_symbol,
+        side: body.side != null ? String(body.side).trim().toLowerCase() : existing.side,
+        traded_at: body.traded_at != null ? toIsoTimestamp(body.traded_at, 'traded_at') : existing.traded_at,
+        quantity: body.quantity != null ? requirePositiveNumberField(body, 'quantity') : Number(existing.quantity),
+        unit_price: body.unit_price != null ? optionalNumberField(body, 'unit_price', 0) : Number(existing.unit_price),
+        fee: body.fee != null ? optionalNumberField(body, 'fee', 0) : Number(existing.fee),
+        status: body.status != null ? String(body.status).trim().toLowerCase() : existing.status,
+        notes: body.notes != null ? optionalStringField(body, 'notes', { max: 1000, fallback: '' }) : String(existing.notes || ''),
+      };
+      if (!['buy', 'sell'].includes(updated.side)) throw new HttpError(400, 'side must be buy or sell');
+      if (!['active', 'void'].includes(updated.status)) throw new HttpError(400, 'status must be active or void');
+      if (updated.unit_price < 0) throw new HttpError(400, 'unit_price must be zero or greater');
+      if (updated.fee < 0) throw new HttpError(400, 'fee must be zero or greater');
+
+      await d1Run(db, `
+        UPDATE trades
+        SET asset_symbol = ?, side = ?, traded_at = ?, quantity = ?, unit_price = ?, fee = ?, status = ?, notes = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+      `,
+        updated.asset_symbol, updated.side, updated.traded_at, updated.quantity, updated.unit_price,
+        updated.fee, updated.status, updated.notes, nowIso(), id, user.userId
+      );
+      const fifo = await recomputeFifoForAsset(db, user.userId, updated.asset_symbol);
+      if (updated.asset_symbol !== existing.asset_symbol) await recomputeFifoForAsset(db, user.userId, existing.asset_symbol);
+      return json(request, env, { ok: true, trade: { ...existing, ...updated, id }, fifo });
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && tradeVoidMatch) {
+      const id = tradeVoidMatch[1];
+      const existing = await d1First(db, `SELECT * FROM trades WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Trade not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const nextStatus = String(body.status || (existing.status === 'void' ? 'active' : 'void')).trim().toLowerCase();
+      if (!['active', 'void'].includes(nextStatus)) throw new HttpError(400, 'status must be active or void');
+      await d1Run(db, `UPDATE trades SET status = ?, updated_at = ? WHERE id = ? AND user_id = ?`, nextStatus, nowIso(), id, user.userId);
+      const fifo = await recomputeFifoForAsset(db, user.userId, existing.asset_symbol);
+      return json(request, env, { ok: true, id, status: nextStatus, fifo });
+    }
+
+    if (method === 'DELETE' && tradeMatch) {
+      const id = tradeMatch[1];
+      const existing = await d1First(db, `SELECT * FROM trades WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Trade not found', 404);
+      await d1Run(db, `DELETE FROM trades WHERE id = ? AND user_id = ?`, id, user.userId);
+      const fifo = await recomputeFifoForAsset(db, user.userId, existing.asset_symbol);
+      return json(request, env, { ok: true, deleted: id, fifo });
+    }
+
+    return bad(request, env, 'Not found', 404);
+  } catch (err) {
+    const status = Number(err?.status) || 500;
+    return bad(request, env, err?.message || 'Trading API error', status);
   }
 }
 
@@ -1669,6 +2112,9 @@ export default {
       }
       if (!response && url.pathname.startsWith('/api/import')) {
         response = await handleImport(request, env);
+      }
+      if (!response && (url.pathname.startsWith('/api/batches') || url.pathname.startsWith('/api/trades'))) {
+        response = await handleTrading(request, env);
       }
       if (!response) {
         const p2p = await handleP2P(request, env);
