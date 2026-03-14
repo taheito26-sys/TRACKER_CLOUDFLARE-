@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const REQUEST_TIMEOUT_MS = Number(process.env.PHASE8_TIMEOUT_MS || 15000);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const migrationProgressPath = path.resolve(__dirname, '..', 'MIGRATION_PROGRESS.md');
 
 function usage() {
   console.log(`Usage:
@@ -43,6 +48,17 @@ function passFail(v) {
   return v ? 'PASS' : 'FAIL';
 }
 
+function readOverallProgress() {
+  try {
+    const content = fs.readFileSync(migrationProgressPath, 'utf8');
+    const match = content.match(/\*\*Overall Progress:\*\*\s*([^\n]+)/);
+    if (!match) return null;
+    return String(match[1]).trim();
+  } catch {
+    return null;
+  }
+}
+
 function toBlock(value) {
   return `\n\n\
 \`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;
@@ -61,6 +77,7 @@ async function run() {
 
   const base = String(args.base).replace(/\/+$/, '');
   const headers = { 'X-User-Id': String(args.userId) };
+  const overallProgress = readOverallProgress();
 
   const checks = {
     version: await fetchJson(`${base}/api/system/version`),
@@ -95,6 +112,7 @@ async function run() {
     `- Base URL: \`${base}\`\n` +
     `- User ID header: \`${args.userId}\`\n` +
     `- Request timeout (ms): \`${REQUEST_TIMEOUT_MS}\`\n` +
+    `- Overall migration progress: \`${overallProgress || 'unknown'}\`\n` +
     `- Generated: ${new Date().toISOString()}\n\n` +
     `## Gate Results\n` +
     `- health_ok: **${passFail(gates.health_ok)}**\n` +
@@ -122,6 +140,9 @@ async function run() {
   }
 
   console.log(`[phase8] overall=${allPass ? 'PASS' : 'FAIL'}`);
+  if (overallProgress) {
+    console.log(`[phase8] migration-progress=${overallProgress}`);
+  }
   process.exitCode = allPass ? 0 : 2;
 }
 
