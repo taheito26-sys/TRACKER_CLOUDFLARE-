@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 17/46 tasks (37%)  `█████████░░░░░░░░░░░░░░░`
+**Progress:** 19/46 tasks (41%)  `██████████░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -9,16 +9,11 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 ## Required from you now (Operator checklist)
 
-Please provide/execute the following so Phase 1 can be closed:
+Please provide/execute the following to close remaining Phase 1 rollout items:
 
-1. Confirm target environment: `local`, `staging`, or `production`.
-2. Confirm Worker base URL to validate: e.g. `https://p2p-tracker.taheito26.workers.dev`.
-3. From your machine (Cloudflare-authenticated), run:
-   - `cd C:\TRACKER_CLOUDFLARE-\backend`
-   - `.\run-phase1-oneshot.ps1 -D1Target "DB"`
-4. Paste the full output, especially Step B (migration) and Step C (verify) results.
-5. If Step B fails, rerun with explicit remote migration command and paste output:
-   - `npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql --config ./wrangler.toml`
+1. Confirm whether this successful verification run should be recorded as `staging` or `production` evidence.
+2. If this was staging only, run the same deploy + verifier flow in production and paste output.
+3. Confirm whether I should mark `Apply 001_schema_migrations.sql in staging` and/or `production` as complete in `V2/MIGRATION_TASKS.md`.
 
 ## Update contract for all future status replies
 
@@ -208,6 +203,13 @@ The **Required from you (User)** line must be present after every step, even if 
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run one-shot again and paste output; verify banner shows `2026-03-14-v5`.
 
+### Step 1.19 — Remote verification passed (health + migrations)
+1. **Step completed:** Parsed your pasted operator output showing successful deploy and successful verifier results against `https://p2p-tracker.taheito26.workers.dev`.
+2. **Evidence:** `/api/system/health` returned `ok: true`; `/api/system/migrations` returned version `001`; verifier summary printed `health.ok=true version001=true` and `[verify] PASS`.
+3. **Next step (Agent):** Keep Phase 1 execution status in sync and close remaining environment-specific migration checklist items after your environment confirmation.
+4. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** Confirm whether this PASS output is staging or production evidence, then confirm if I should check off the corresponding migration-application tasks.
+
 ### Phase 1 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
@@ -215,10 +217,10 @@ The **Required from you (User)** line must be present after every step, even if 
    - System health/migrations endpoints added.
    - Migration runbook added.
 3. **Exit criteria status:**
-   - [ ] D1 migration registry applied in staging/prod.
-   - [ ] `/api/system/health` validated against deployed Worker. *(blocked in agent environment: CONNECT tunnel 403; user-side now reports 404 indicating likely outdated deployment)*
-   - [ ] `/api/system/migrations` returns applied version `001`. *(blocked in agent environment: CONNECT tunnel 403; user-side now reports 404 indicating likely outdated deployment)*
-4. **Next step (Agent):** Parse verifier output and check off Phase 1 endpoint gates if both checks pass.
+   - [ ] D1 migration registry applied in staging/prod. *(pending environment confirmation)*
+   - [x] `/api/system/health` validated against deployed Worker.
+   - [x] `/api/system/migrations` returns applied version `001`.
+4. **Next step (Agent):** Close remaining Phase 1 migration-application checklist entries once environment scope is confirmed.
 5. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
-6. **Required from you (User):** Run Node verifier from `backend/` and paste full output so Phase 1 gates can be checked off.
+6. **Required from you (User):** Confirm environment scope (staging vs production) for the PASS output and whether `Apply 001` tasks can be checked off.
 

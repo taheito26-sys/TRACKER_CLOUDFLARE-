@@ -268,7 +268,7 @@ If verifier output shows HTML bodies, you are likely hitting the wrong target (f
 
 ## Expected results
 
-- Verifier banner should show: `verify-system-endpoints.mjs 2026-03-14-v7`.
+- Verifier banner should show `verify-system-endpoints.mjs 2026-03-14-v5` or newer.
 
 - `/api/system/health` returns `ok: true` and `bindings.db: true`.
 - `/api/system/migrations` includes version `001`.
