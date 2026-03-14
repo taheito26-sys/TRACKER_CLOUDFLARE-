@@ -45,6 +45,17 @@ node V2/scripts/phase8-readiness-check.mjs \
 - Exit code `2` = one or more gates failed.
 - Exit code `1` = script/runtime error.
 
+
+## 2.2) Auto-kick next step
+
+To automatically kick the next Phase 8 step after each commit/deploy, run:
+
+```bash
+PHASE8_BASE="$BASE" PHASE8_USER_ID="<user>" node V2/scripts/phase8-autokick.mjs
+```
+
+This wrapper executes `phase8-readiness-check.mjs`, writes `V2/PHASE8_READINESS_REPORT.md`, and prints the immediate next action based on result.
+
 ## 3) Reconciliation checklist (staging)
 
 1. Import representative data subset via `/api/import/json`.
