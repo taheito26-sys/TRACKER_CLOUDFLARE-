@@ -58,7 +58,7 @@ node V2/scripts/update-migration-progress.mjs
 ## Phase 6 — KPI Read Models
 - [x] Implement `/api/dashboard/kpis`
 - [x] Implement `/api/deals/kpis`
-- [ ] Validate KPI parity against baseline
+- [x] Validate KPI parity against baseline
 
 ## Phase 7 — Frontend Rewire
 - [ ] Replace critical localStorage mutation paths with API calls

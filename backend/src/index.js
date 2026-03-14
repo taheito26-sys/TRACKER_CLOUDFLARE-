@@ -2467,6 +2467,83 @@ async function handleP2P(request, env) {
   return null;
 }
 
+
+
+async function computeKpiParity(db, userId) {
+  const dashboardTrading = await d1First(db, `
+    SELECT
+      COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN quantity * unit_price ELSE 0 END), 0) AS sell_revenue,
+      COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN fee ELSE 0 END), 0) AS sell_fees
+    FROM trades
+    WHERE user_id = ?
+  `, userId);
+  const dashboardCost = await d1First(db, `SELECT COALESCE(SUM(allocated_cost),0) AS cogs FROM trade_allocations WHERE user_id = ?`, userId);
+  const dealsTotals = await d1First(db, `
+    SELECT
+      COUNT(*) AS total_deals,
+      COALESCE(SUM(CASE WHEN status IN ('active','due','overdue') THEN principal_amount ELSE 0 END), 0) AS deals_open_principal,
+      COALESCE(SUM(CASE WHEN status = 'settled' THEN principal_amount ELSE 0 END), 0) AS deals_settled_principal
+    FROM deals
+    WHERE user_id = ?
+  `, userId);
+  const settlementsTotals = await d1First(db, `
+    SELECT
+      COUNT(*) AS settlement_count,
+      COALESCE(SUM(amount), 0) AS settlement_amount
+    FROM settlements
+    WHERE user_id = ?
+  `, userId);
+
+  const sellRevenue = Number(dashboardTrading?.sell_revenue || 0);
+  const sellFees = Number(dashboardTrading?.sell_fees || 0);
+  const cogs = Number(dashboardCost?.cogs || 0);
+  const grossProfit = sellRevenue - cogs;
+  const netProfit = grossProfit - sellFees;
+
+  // Independent baseline recompute using raw tables
+  const baseline = await d1First(db, `
+    SELECT
+      COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN quantity * unit_price ELSE 0 END), 0) AS sell_revenue,
+      COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN fee ELSE 0 END), 0) AS sell_fees,
+      COUNT(CASE WHEN side = 'sell' AND status = 'active' THEN 1 END) AS sell_count
+    FROM trades
+    WHERE user_id = ?
+  `, userId);
+  const baselineDeals = await d1First(db, `
+    SELECT
+      COUNT(*) AS total_deals,
+      COALESCE(SUM(CASE WHEN status IN ('active','due','overdue') THEN principal_amount ELSE 0 END), 0) AS open_principal,
+      COALESCE(SUM(CASE WHEN status = 'settled' THEN principal_amount ELSE 0 END), 0) AS settled_principal
+    FROM deals
+    WHERE user_id = ?
+  `, userId);
+
+  const checks = {
+    sell_revenue: Number(baseline?.sell_revenue || 0) === sellRevenue,
+    sell_fees: Number(baseline?.sell_fees || 0) === sellFees,
+    total_deals: Number(baselineDeals?.total_deals || 0) === Number(dealsTotals?.total_deals || 0),
+    deals_open_principal: Number(baselineDeals?.open_principal || 0) === Number(dealsTotals?.deals_open_principal || 0),
+    deals_settled_principal: Number(baselineDeals?.settled_principal || 0) === Number(dealsTotals?.deals_settled_principal || 0),
+  };
+
+  return {
+    ok: Object.values(checks).every(Boolean),
+    checks,
+    dashboard: {
+      sell_revenue: sellRevenue,
+      sell_fees: sellFees,
+      cogs,
+      gross_profit: grossProfit,
+      net_profit: netProfit,
+      total_deals: Number(dealsTotals?.total_deals || 0),
+      deals_open_principal: Number(dealsTotals?.deals_open_principal || 0),
+      deals_settled_principal: Number(dealsTotals?.deals_settled_principal || 0),
+      settlement_count: Number(settlementsTotals?.settlement_count || 0),
+      settlement_amount: Number(settlementsTotals?.settlement_amount || 0),
+    },
+  };
+}
+
 async function handleSystem(request, env) {
   const url = new URL(request.url);
   if (url.pathname === "/api/system/health") {
@@ -2511,8 +2588,26 @@ async function handleSystem(request, env) {
       service: "p2p-tracker",
       version,
       timestamp: nowIso(),
-      endpoints: ["/api/system/health", "/api/system/migrations", "/api/system/version"],
+      endpoints: ["/api/system/health", "/api/system/migrations", "/api/system/version", "/api/system/kpi-parity"],
     });
+  }
+
+  if (url.pathname === "/api/system/kpi-parity") {
+    if (!env.DB) return bad(request, env, "D1 binding DB is not configured", 500);
+    let user;
+    try {
+      user = await getUserContext(request, env);
+    } catch (err) {
+      return bad(request, env, err.message || "Unauthorized", 401);
+    }
+    try {
+      await ensureImportBridgeTables(env.DB);
+      await ensurePhase5FinancialTables(env.DB);
+      const parity = await computeKpiParity(env.DB, user.userId);
+      return json(request, env, { ok: parity.ok, parity, timestamp: nowIso() }, parity.ok ? 200 : 409);
+    } catch (err) {
+      return bad(request, env, err.message || "Failed to compute KPI parity", 500);
+    }
   }
 
   return null;
