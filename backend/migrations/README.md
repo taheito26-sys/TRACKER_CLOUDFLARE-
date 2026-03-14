@@ -103,6 +103,24 @@ What to paste back in chat:
 - HTTP status line (or status code) from this request.
 - Response body JSON (especially `Unauthorized: missing Cloudflare Access identity headers` if 401).
 
+### What "representative payload sample" means
+
+A representative payload sample is one real JSON body your client sends to a write endpoint.
+
+Examples:
+
+```json
+{"body":"hello"}
+```
+for `POST /api/merchant/messages/<relationshipId>/messages`
+
+```json
+{"relationship_id":"rel_123","title":"Deal A","amount":1200,"currency":"USDT"}
+```
+for `POST /api/merchant/deals`
+
+If you do not share samples, default validation is used for core required fields.
+
 ### How to confirm Cloudflare Access headers on production write requests
 
 Use this flow to capture proof that the write guard sees Cloudflare Access identity headers and to produce one write-route sample outcome.
@@ -142,6 +160,32 @@ npx wrangler d1 execute DB --remote --command "SELECT id, version, description, 
 - description similar to `bootstrap schema migration registry`
 
 Then paste the command output in chat and explicitly state it was executed against **staging**.
+
+## Phase 2 consolidated safe runner (recommended)
+
+To reduce migration risk from manual multi-step execution, run one consolidated command:
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+.\run-phase2-safe-check.ps1
+```
+
+What it does in one flow:
+1. Deploy worker (`wrangler deploy`)
+2. Verify `/api/system/*` endpoints
+3. Probe unauth write guard (`POST /api/merchant/messages`) and expect `401`
+
+If deploy already ran, skip it:
+
+```powershell
+.\run-phase2-safe-check.ps1 -SkipDeploy
+```
+
+Node direct usage:
+
+```powershell
+node .\run-phase2-safe-check.mjs --base-url "https://p2p-tracker.taheito26.workers.dev" --expect-status 401
+```
 
 ## Verify migration registry table
 

@@ -77,3 +77,17 @@ cd C:\TRACKER_CLOUDFLARE-\backend
 npx wrangler tail --format pretty --config .\wrangler.toml
 # in second terminal send one POST/PATCH request to a write route
 ```
+
+
+## Clarification: "representative payload sample"
+
+This means a real JSON request body example for a write endpoint (for example `POST /api/merchant/messages` or `POST /api/merchant/deals`).
+
+Why it helps:
+- lets us prioritize validation rules for the payload shapes you use most in production,
+- avoids over-restricting fields that your clients actually send.
+
+If you do not provide samples, we use safe defaults and implement validation on known core fields first.
+
+
+- Consolidated operator runner added: `backend/run-phase2-safe-check.*` (deploy + system verify + unauth write-guard probe).

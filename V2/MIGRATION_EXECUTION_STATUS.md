@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 21/46 tasks (46%)  `███████████░░░░░░░░░░░░░`
+**Progress:** 22/46 tasks (48%)  `████████████░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -11,8 +11,10 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 Please provide/execute the following to continue Phase 2 implementation:
 
-1. Confirm go-ahead to implement payload validation layer on migration-sensitive write endpoints.
-2. (Optional) Provide one representative payload sample for each critical write route you want validated first.
+1. Run consolidated command from `backend/`:
+   - `.\run-phase2-safe-check.ps1`
+2. Paste full output and one `mutation_audit` line from `npx wrangler tail --format pretty --config ./wrangler.toml`.
+3. Confirm go-ahead for audit logging persistence enhancements next.
 
 ## Update contract for all future status replies
 
@@ -253,7 +255,7 @@ The **Required from you (User)** line must be present after every step, even if 
 ### Step 2.3 — Write-route Cloudflare Access guard + logs-only audit skeleton
 1. **Step completed:** Implemented write-route auth guard skeleton and logs-only mutation audit hook in backend Worker runtime.
 2. **Evidence:** `backend/src/index.js` now enforces write-route checks when `AUTH_SOURCE=cloudflare-access` and emits `mutation_audit` logs with actor/method/path/status.
-3. **Next step (Agent):** Add payload validation layer for migration-sensitive write endpoints (Phase 2 task 2).
+3. **Next step (Agent):** Verify payload validation behavior in production request traces and then implement audit logging persistence enhancements.
 4. **Next phase:** Phase 2 (Auth & Security Baseline).
 5. **Required from you (User):** Deploy updated backend and confirm write-route behavior under Cloudflare Access in production.
 
@@ -271,14 +273,28 @@ The **Required from you (User)** line must be present after every step, even if 
 4. **Next phase:** Phase 2 (Auth & Security Baseline).
 5. **Required from you (User):** Confirm go-ahead for payload validation implementation scope/order.
 
+### Step 2.6 — Payload validation layer implemented for critical write routes
+1. **Step completed:** Implemented payload validation helpers and applied them to migration-sensitive merchant write endpoints.
+2. **Evidence:** `backend/src/index.js` now validates required strings, positive numeric fields, metadata object shape, and bounded note/body fields for deals/messages/settlement/profit/close flows.
+3. **Next step (Agent):** Implement audit logging persistence enhancements (beyond logs-only) planning and hooks.
+4. **Next phase:** Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** Optional: share representative payloads to refine strictness; otherwise I proceed with defaults.
+
+### Step 2.7 — Consolidated Phase 2 safe runner added
+1. **Step completed:** Added a single command runner to reduce breakage risk from manual multi-step deploy/verify/probe sequences.
+2. **Evidence:** `backend/run-phase2-safe-check.mjs` + `.ps1` + `.cmd` now execute deploy + system verify + unauth write-guard probe in one flow.
+3. **Next step (Agent):** Parse consolidated runner output and then implement audit logging persistence enhancements.
+4. **Next phase:** Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** Run `.\run-phase2-safe-check.ps1` and paste full output.
+
 ### Phase 2 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
    - Kickoff baseline document created.
 3. **Exit criteria status:**
    - [x] Auth/session middleware enforced on all write routes.
-   - [ ] Payload validation layer added for migration-sensitive endpoints.
+   - [x] Payload validation layer added for migration-sensitive endpoints.
    - [ ] Audit logging added on mutation endpoints.
-4. **Next step (Agent):** Implement payload validation layer for migration-sensitive write endpoints (starting with `/api/merchant/messages` and critical mutation routes).
+4. **Next step (Agent):** Implement audit logging enhancements and decide persistence strategy beyond logs-only baseline.
 5. **Next phase:** Phase 2 (Auth & Security Baseline).
 6. **Required from you (User):** Deploy production update and share one write-route auth outcome sample.

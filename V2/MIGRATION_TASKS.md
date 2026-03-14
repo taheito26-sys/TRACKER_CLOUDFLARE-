@@ -37,7 +37,7 @@ node V2/scripts/update-migration-progress.mjs
 
 ## Phase 2 — Auth & Security Baseline
 - [x] Enforce auth/session middleware on all write routes
-- [ ] Add payload validation layer for migration-sensitive endpoints
+- [x] Add payload validation layer for migration-sensitive endpoints
 - [ ] Add audit logging on mutation endpoints
 
 ## Phase 3 — Import Bridge
