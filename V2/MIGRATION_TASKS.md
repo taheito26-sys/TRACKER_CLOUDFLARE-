@@ -46,9 +46,9 @@ node V2/scripts/update-migration-progress.mjs
 - [ ] Generate reconciliation report (pre/post totals)
 
 ## Phase 4 — Trading + FIFO
-- [ ] Implement server-side batches CRUD
-- [ ] Implement server-side trades CRUD with FIFO recompute
-- [ ] Persist allocations to `trade_allocations`
+- [x] Implement server-side batches CRUD
+- [x] Implement server-side trades CRUD with FIFO recompute
+- [x] Persist allocations to `trade_allocations`
 
 ## Phase 5 — Deals + Settlement + Journal
 - [ ] Implement deals lifecycle endpoints
