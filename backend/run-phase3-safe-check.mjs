@@ -163,7 +163,13 @@ async function getImport(importId) {
     console.log('[phase3-safe] PASS: import bridge baseline endpoints verified');
   } catch (err) {
     failed = true;
-    console.error(String(err?.message || err));
+    const message = String(err?.message || err);
+    console.error(message);
+    if (message.includes('all-system-endpoints-404=true')) {
+      console.error('[phase3-safe] Next action: deploy this worker target and rerun phase3 check.');
+      console.error('[phase3-safe] Deploy command: npx wrangler deploy --config ./wrangler.toml');
+      console.error('[phase3-safe] Rerun command: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs);
+    }
     console.error('[phase3-safe] Hint: if Step A fails on Windows, run `npx wrangler deploy --config ./wrangler.toml` and rerun with --skip-deploy.');
     console.error('[phase3-safe] Required from you (User): paste full output of this command.');
   } finally {
