@@ -96,6 +96,10 @@ if (anyHtml) {
 console.log(`[summary] health.ok=${healthOk} version001=${hasVersion001}`);
 if (!healthOk || !hasVersion001) {
   console.error('[verify] FAIL: expected health.ok=true and migration version 001 present');
+  console.error('[verify] Required from you (User):');
+  console.error(`[verify]   1) Re-run migration: npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql --config ./wrangler.toml`);
+  console.error(`[verify]   2) Re-check migration versions: npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config ./wrangler.toml`);
+  console.error(`[verify]   3) Re-run verifier from backend/: node ./scripts/verify-system-endpoints.mjs --base-url "${normalizeBase(baseUrl)}"`);
   process.exitCode = 1;
   // Intentionally avoid abrupt process.exit() and timers on Windows to prevent async handle assertion crashes.
 } else {

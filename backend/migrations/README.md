@@ -122,6 +122,22 @@ curl.exe -v "https://<worker-domain>/api/system/health"
 Test-NetConnection p2p-tracker.taheito26.workers.dev -Port 443
 ```
 
+### If verifier reports `health.ok=false version001=false`
+
+Run these two commands and paste outputs:
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config .\wrangler.toml
+node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.taheito26.workers.dev"
+```
+
+If `001` is missing, re-apply migration:
+
+```powershell
+npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql --config .\wrangler.toml
+```
+
 ### One-command PowerShell validation script
 
 From `backend/` run:
