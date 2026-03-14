@@ -197,10 +197,22 @@ function isWriteMethod(method) {
 function getCloudflareAccessActor(request) {
   const email = normalizeEmail(request.headers.get('cf-access-authenticated-user-email'));
   if (email) return { actor: email, source: 'cf-access-authenticated-user-email' };
+
   const userId = String(request.headers.get('cf-access-authenticated-user-id') || '').trim();
   if (userId) return { actor: userId, source: 'cf-access-authenticated-user-id' };
+
+  const serviceTokenId = String(request.headers.get('cf-access-service-token-id') || '').trim();
+  if (serviceTokenId) return { actor: `service-token:${serviceTokenId}`, source: 'cf-access-service-token-id' };
+
+  const serviceTokenName = String(request.headers.get('cf-access-service-token-name') || '').trim();
+  if (serviceTokenName) return { actor: `service-token:${serviceTokenName}`, source: 'cf-access-service-token-name' };
+
+  const clientId = String(request.headers.get('cf-access-client-id') || '').trim();
+  if (clientId) return { actor: `service-token-client:${clientId}`, source: 'cf-access-client-id' };
+
   const jwtAssertion = String(request.headers.get('cf-access-jwt-assertion') || '').trim();
   if (jwtAssertion) return { actor: 'cf-access-jwt', source: 'cf-access-jwt-assertion' };
+
   return null;
 }
 function resolveWriteAuth(request, env) {
@@ -214,7 +226,7 @@ function resolveWriteAuth(request, env) {
       ok: false,
       mode: 'cloudflare-access',
       actor: 'anonymous',
-      response: bad(request, env, 'Unauthorized: missing Cloudflare Access identity headers', 401),
+      response: bad(request, env, 'Unauthorized: missing Cloudflare Access identity headers (expected one of cf-access-authenticated-user-*, cf-access-service-token-*, cf-access-client-id, cf-access-jwt-assertion)', 401),
     };
   }
   return { ok: true, actor: actor.actor, mode: 'cloudflare-access', source: actor.source };
