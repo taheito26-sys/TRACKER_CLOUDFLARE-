@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 15/44 tasks (34%)  `████████░░░░░░░░░░░░░░░░`
+**Progress:** 17/46 tasks (37%)  `█████████░░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -164,10 +164,10 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 ### Step 1.16 — Verifier v4: removed timer-based fail path
 1. **Step completed:** Updated verifier to v4 and removed timer-based delay on failure to avoid Windows async-handle assertion edge cases.
-2. **Evidence:** `backend/scripts/verify-system-endpoints.mjs` now uses `process.exitCode` only; runbook now expects v4 banner.
-3. **Next step (Agent):** Validate user output contains v4 banner and re-assess endpoint 404 diagnostics.
+2. **Evidence:** `backend/scripts/verify-system-endpoints.mjs` now uses `process.exitCode` only; runbook now expects v5 banner.
+3. **Next step (Agent):** Validate user output contains v5 banner and re-assess endpoint 404 diagnostics.
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
-5. **Required from you (User):** Pull latest code and rerun verifier; paste output with `2026-03-13-v4` banner.
+5. **Required from you (User):** Pull latest code and rerun verifier; paste output with `2026-03-14-v5` banner.
 
 ### Step 1.17 — Added one-shot Phase 1 executor
 1. **Step completed:** Added scripts to execute deploy + migration + verification in a single command for faster field execution.
@@ -175,6 +175,13 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 3. **Next step (Agent):** Parse one-shot output to mark staging migration + endpoint checks together when successful.
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run `.\run-phase1-oneshot.ps1` from `backend/` and paste full output.
+
+### Step 1.18 — One-shot fail-fast + wrong-target HTML diagnostics
+1. **Step completed:** Hardened one-shot executor to fail fast on deploy/migration/verify errors and upgraded verifier to detect HTML responses (wrong deployment target hint).
+2. **Evidence:** `backend/run-phase1-oneshot.ps1`/`.cmd` now propagate non-zero failures; `backend/scripts/verify-system-endpoints.mjs` v5 prints HTML-target diagnostics.
+3. **Next step (Agent):** Use v5 output to confirm whether `p2p-tracker` points to backend Worker or frontend route.
+4. **Next phase:** Phase 1 (Platform & Schema Foundation).
+5. **Required from you (User):** Run one-shot again and paste output; verify banner shows `2026-03-14-v5`.
 
 ### Phase 1 summary
 1. **Phase status:** In Progress.

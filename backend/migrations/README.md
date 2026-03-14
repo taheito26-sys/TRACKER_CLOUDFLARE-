@@ -37,6 +37,8 @@ Or from CMD:
 run-phase1-oneshot.cmd
 ```
 
+The one-shot script now **fails fast**: if deploy, migration, or verify fails, it exits non-zero and stops subsequent success reporting.
+
 Optional flags:
 
 ```powershell
@@ -179,6 +181,8 @@ If you are currently inside `backend/scripts`, first move to backend root:
 cd ..
 .\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
 ```
+
+If verifier output shows HTML bodies, you are likely hitting the wrong target (frontend/site route) instead of backend Worker API.
 
 ## Expected results
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const args = process.argv.slice(2);
-const SCRIPT_VERSION = '2026-03-13-v4';
+const SCRIPT_VERSION = '2026-03-14-v5';
 let baseUrl = 'https://p2p-tracker.taheito26.workers.dev';
 for (let i = 0; i < args.length; i++) {
   if ((args[i] === '--base-url' || args[i] === '-b') && args[i + 1]) {
@@ -27,6 +27,12 @@ async function getJson(endpoint) {
   }
 }
 
+
+function looksLikeHtml(text) {
+  const t = String(text || '').trim().toLowerCase();
+  return t.startsWith('<!doctype html') || t.startsWith('<html') || t.includes('<body');
+}
+
 function printResult(name, result) {
   if (result.ok) {
     console.log(`[result] ${name} status=${result.status}`);
@@ -35,6 +41,7 @@ function printResult(name, result) {
     console.log(`[error] ${name} status=${result.status} url=${result.url}`);
     if (result.error) console.log(`[error-message] ${result.error}`);
     if (result.text) console.log(`[error-body] ${result.text}`);
+    if (looksLikeHtml(result.text)) console.log('[diag] Response body looks like HTML (likely frontend/site deployment, not backend API worker).');
   }
 }
 
@@ -79,6 +86,11 @@ if (!health.ok || !migrations.ok || !version.ok) {
     }
     console.log('[diag] If this is not the backend worker, confirm you deployed backend/src/index.js to p2p-tracker and re-run verification.');
   }
+}
+
+const anyHtml = [health, migrations, version].some((r) => !r.ok && looksLikeHtml(r.text));
+if (anyHtml) {
+  console.log('[diag] Target may be wrong: API URL appears to return HTML instead of JSON. Verify backend worker route/domain.');
 }
 
 console.log(`[summary] health.ok=${healthOk} version001=${hasVersion001}`);
