@@ -36,7 +36,7 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Validate `/api/system/migrations` includes `001`
 
 ## Phase 2 — Auth & Security Baseline
-- [ ] Enforce auth/session middleware on all write routes
+- [x] Enforce auth/session middleware on all write routes
 - [ ] Add payload validation layer for migration-sensitive endpoints
 - [ ] Add audit logging on mutation endpoints
 

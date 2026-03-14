@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 20/46 tasks (43%)  `██████████░░░░░░░░░░░░░░`
+**Progress:** 21/46 tasks (46%)  `███████████░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -11,11 +11,8 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 Please provide/execute the following to continue Phase 2 implementation:
 
-1. Run `npx wrangler tail --format pretty --config ./wrangler.toml` from `backend/`.
-2. Send one production write-route request (unauthenticated probe is okay) and capture HTTP result.
-3. Paste both artifacts:
-   - HTTP response snippet (status + body)
-   - one `mutation_audit` log line (`auth_mode`, `auth_source`, `actor`, `status`, `outcome`).
+1. Confirm go-ahead to implement payload validation layer on migration-sensitive write endpoints.
+2. (Optional) Provide one representative payload sample for each critical write route you want validated first.
 
 ## Update contract for all future status replies
 
@@ -267,14 +264,21 @@ The **Required from you (User)** line must be present after every step, even if 
 4. **Next phase:** Phase 2 (Auth & Security Baseline).
 5. **Required from you (User):** Run the evidence collection steps and paste one HTTP result plus one `mutation_audit` log line.
 
+### Step 2.5 — Production write-guard validation evidence recorded
+1. **Step completed:** Recorded your production write-route probe and mutation audit evidence confirming Cloudflare Access fail-closed behavior.
+2. **Evidence:** Posted log shows `POST /api/merchant/messages` with `status:401`, `auth_mode:"cloudflare-access"`, `actor:"anonymous"`, `outcome:"denied"`, error `missing_or_invalid_access_identity`.
+3. **Next step (Agent):** Begin payload validation layer implementation for migration-sensitive write routes.
+4. **Next phase:** Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** Confirm go-ahead for payload validation implementation scope/order.
+
 ### Phase 2 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
    - Kickoff baseline document created.
 3. **Exit criteria status:**
-   - [ ] Auth/session middleware enforced on all write routes.
+   - [x] Auth/session middleware enforced on all write routes.
    - [ ] Payload validation layer added for migration-sensitive endpoints.
    - [ ] Audit logging added on mutation endpoints.
-4. **Next step (Agent):** Implement payload validation layer for migration-sensitive write endpoints.
+4. **Next step (Agent):** Implement payload validation layer for migration-sensitive write endpoints (starting with `/api/merchant/messages` and critical mutation routes).
 5. **Next phase:** Phase 2 (Auth & Security Baseline).
 6. **Required from you (User):** Deploy production update and share one write-route auth outcome sample.
