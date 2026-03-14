@@ -2865,6 +2865,10 @@ function save(){
   if(isApiOnlyMode()){storageOk=true;return;}
   try{localStorage.setItem(SK,JSON.stringify(state));storageOk=true;}catch{storageOk=false;}
 }
+function writeMainStateToStorage(nextState){
+  if(isApiOnlyMode()) return false;
+  try{localStorage.setItem(SK,JSON.stringify(nextState||{}));storageOk=true;return true;}catch{storageOk=false;return false;}
+}
 function saveRecompute(msg,type=""){save();recompute();render();if(msg)toast(msg,type);}
 
 // ── RANGE ────────────────────────────────────────────────────────
@@ -6243,7 +6247,7 @@ function renderVault(){
         if (!confirm("⚠ Checksum mismatch — the snapshot may be corrupted. Restore anyway?")) return;
       }
       if (typeof applyRestore==="function") { applyRestore(snap.state); toast("✓ Restored from local snapshot","good"); }
-      else { try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk){localStorage.setItem(sk,JSON.stringify(snap.state));location.reload();}}catch(e){toast("Restore failed: "+e.message,"warn");} }
+      else { try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk&&!isApiOnlyMode()){localStorage.setItem(sk,JSON.stringify(snap.state));location.reload();}}catch(e){toast("Restore failed: "+e.message,"warn");} }
     });
   };
 
@@ -6534,7 +6538,7 @@ function renderVault(){
         var chk = window.VaultAPI.stateChecksum(res.state);
         if(res.checksum && res.checksum!==chk && !confirm("⚠ Checksum mismatch. Restore anyway?")) return;
         if(typeof applyRestore==="function") applyRestore(res.state);
-        else{ try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk){localStorage.setItem(sk,JSON.stringify(res.state));location.reload();}}catch(e){toast("Restore failed","warn");return;} }
+        else{ try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk&&!isApiOnlyMode()){localStorage.setItem(sk,JSON.stringify(res.state));location.reload();}}catch(e){toast("Restore failed","warn");return;} }
         toast("✓ Restored from cloud","good");
       } else toast("Restore failed","warn");
     }).catch(function(e){ toast("Restore error: "+e.message,"warn"); });
@@ -6658,7 +6662,7 @@ function renderVault(){
     var mode = (document.querySelector('input[name="vaultMergeMode"]:checked')||{}).value||"merge";
     var merged = window.VaultAPI.mergeStates(currentState, _importedState, sections, mode);
     if(typeof applyRestore==="function"){ applyRestore(merged); toast("✓ Applied ("+mode+" mode)","good"); }
-    else{ try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk){localStorage.setItem(sk,JSON.stringify(merged));toast("Applied. Reload to see changes.","good");}}catch(e){toast("Apply failed","warn");} }
+    else{ try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk&&!isApiOnlyMode()){localStorage.setItem(sk,JSON.stringify(merged));toast("Applied. Reload to see changes.","good");}}catch(e){toast("Apply failed","warn");} }
     document.getElementById("vaultImportPreview").style.display = "none";
   });
 
@@ -7352,7 +7356,7 @@ function gasRestore() {
         var mc = document.getElementById("m_c"); if (mc) mc.addEventListener("click", closeModal);
         var mr = document.getElementById("m_r"); if (mr) mr.addEventListener("click", function() {
           try {
-            localStorage.setItem(SK, JSON.stringify(backup.state));
+            if(!writeMainStateToStorage(backup.state)) throw new Error("Restore blocked in API-only mode");
             load(); recompute(); render();
             _gasLastSync = Date.now(); gasSaveConfig();
             toast("✓ Restored from Cloud", "good");
@@ -7495,7 +7499,7 @@ function gasBkpRestore(vid){
       if (!res || res.ok === false) throw new Error((res && res.error) || "Restore rejected");
       if (!res.state) { toast("No backup content", "warn"); return; }
       try {
-        localStorage.setItem(SK, JSON.stringify(res.state));
+        if(!writeMainStateToStorage(res.state)) throw new Error("Restore blocked in API-only mode");
         load(); recompute(); render();
         closeModal();
         toast("✓ Restored version " + String(vid).slice(0,8), "good");
@@ -7659,7 +7663,7 @@ function authGoogleLogin(idToken){
       authSave();
 
       if (res.state) {
-        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
+        writeMainStateToStorage(res.state);
       }
 
       hideLoginScreen();
@@ -7829,7 +7833,7 @@ function authLogin(){
       authSave();
 
       if (res.state) {
-        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
+        writeMainStateToStorage(res.state);
       }
 
       hideLoginScreen();
@@ -7870,7 +7874,7 @@ function authRegister(){
       authSave();
 
       if (res.state) {
-        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
+        writeMainStateToStorage(res.state);
       }
 
       hideLoginScreen();
@@ -7897,7 +7901,7 @@ function gasRestoreSilent() {
   return gasPost({ action: "restore", email: _authUser.email, token: _authToken })
     .then(function(res){
       if (res && res.state) {
-        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
+        writeMainStateToStorage(res.state);
       }
     }).catch(function(){});
 }
@@ -8670,7 +8674,7 @@ window.addEventListener("DOMContentLoaded", function(){
             document.getElementById("m_c")?.addEventListener("click", closeModal);
             document.getElementById("m_r")?.addEventListener("click", function(){
               try {
-                localStorage.setItem(SK, JSON.stringify(stateObj || {}));
+                if(!writeMainStateToStorage(stateObj || {})){ if (typeof toast === "function") toast("Restore blocked in API-only mode","warn"); return; }
                 if (typeof load === "function") load();
                 if (typeof recompute === "function") recompute();
                 if (typeof render === "function") render();
@@ -10702,8 +10706,7 @@ function runSettingsTest() {
         _emitRaw("data", "restore", { fromSnapshot: snapId, snapTs: snap ? snap.ts : null }, _stateSummary(typeof state !== "undefined" ? state : null), _stateSummary(restored), "user");
         if (typeof state !== "undefined" && typeof sanitize === "function") {
           Object.assign(state, sanitize(restored));
-          var SK = "usdt_pro_v15";
-          try { localStorage.setItem(SK, JSON.stringify(state)); } catch(e) {}
+          writeMainStateToStorage(state);
           if (typeof recompute === "function") recompute();
           if (typeof render === "function") render();
           if (typeof toast === "function") toast("✓ Restored to " + _fmtDateTime(snap ? snap.ts : Date.now()), "good");
