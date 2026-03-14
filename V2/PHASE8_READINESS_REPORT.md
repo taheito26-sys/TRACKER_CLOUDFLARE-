@@ -4,7 +4,7 @@
 - User ID header: `compat:ops@example.com`
 - Request timeout (ms): `20000`
 - Overall migration progress: `0/0 tasks (0%)  `░░░░░░░░░░░░░░░░░░░░░░░░``
-- Generated: 2026-03-14T21:43:10.908Z
+- Generated: 2026-03-14T22:09:45.818Z
 
 ## Gate Results
 - health_ok: **FAIL**
