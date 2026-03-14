@@ -87,7 +87,7 @@ function corsHeaders(request, env) {
   const origin = request.headers.get("Origin");
   return {
     "Access-Control-Allow-Origin": allowedOrigin(origin, env),
-    "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-User-Email, X-User-Id, X-Compat-User",
     "Access-Control-Allow-Credentials": "true",
     "Cache-Control": "no-store",
@@ -1333,6 +1333,53 @@ async function ensureImportBridgeTables(db) {
       updated_at TEXT NOT NULL
     )
   `);
+
+  // Phase 3 bridge currently imports into trading domain tables.
+  // Keep these CREATE IF NOT EXISTS guards so import can run even before 002 is explicitly applied.
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS batches (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      asset_symbol TEXT NOT NULL,
+      acquired_at TEXT NOT NULL,
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      unit_cost REAL NOT NULL CHECK (unit_cost >= 0),
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS trades (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      asset_symbol TEXT NOT NULL,
+      side TEXT NOT NULL CHECK (side IN ('buy', 'sell')),
+      traded_at TEXT NOT NULL,
+      quantity REAL NOT NULL CHECK (quantity > 0),
+      unit_price REAL NOT NULL CHECK (unit_price >= 0),
+      fee REAL NOT NULL DEFAULT 0 CHECK (fee >= 0),
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'void')),
+      source_batch_id TEXT,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS trade_allocations (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      trade_id TEXT NOT NULL,
+      batch_id TEXT NOT NULL,
+      allocated_qty REAL NOT NULL CHECK (allocated_qty > 0),
+      batch_unit_cost REAL NOT NULL CHECK (batch_unit_cost >= 0),
+      allocated_cost REAL NOT NULL CHECK (allocated_cost >= 0),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(trade_id, batch_id)
+    )
+  `);
 }
 
 async function sha256Hex(input) {
@@ -1347,9 +1394,71 @@ function summarizeImportPayload(payload) {
   const trades = Array.isArray(p.trades) ? p.trades.length : 0;
   const journal = Array.isArray(p.journal) ? p.journal.length : 0;
   const settlements = Array.isArray(p.settlements) ? p.settlements.length : 0;
-  const totalRows = deals + trades + journal + settlements;
+  const batches = Array.isArray(p.batches) ? p.batches.length : 0;
+  const totalRows = deals + trades + journal + settlements + batches;
   if (totalRows <= 0) throw new HttpError(400, 'Import payload is empty');
-  return { deals, trades, journal, settlements, totalRows };
+  return { deals, trades, journal, settlements, batches, totalRows };
+}
+
+async function getTradingCounts(db, userId) {
+  const [batches, trades, allocations] = await Promise.all([
+    d1First(db, `SELECT COUNT(*) AS c FROM batches WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM trades WHERE user_id = ?`, userId),
+    d1First(db, `SELECT COUNT(*) AS c FROM trade_allocations WHERE user_id = ?`, userId),
+  ]);
+  return {
+    batches: Number(batches?.c || 0),
+    trades: Number(trades?.c || 0),
+    trade_allocations: Number(allocations?.c || 0),
+  };
+}
+
+function parseImportBatches(payload) {
+  const rows = Array.isArray(payload?.batches) ? payload.batches : [];
+  return rows.map((r, idx) => {
+    const row = asPlainObject(r);
+    return {
+      id: String(row.id || randomId('bat_imp_')).trim(),
+      asset_symbol: normalizeAssetSymbol(row.asset_symbol || row.asset || 'USDT'),
+      acquired_at: toIsoTimestamp(row.acquired_at || row.date || row.created_at, `batches[${idx}].acquired_at`),
+      quantity: Number(row.quantity),
+      unit_cost: row.unit_cost == null ? 0 : Number(row.unit_cost),
+      notes: optionalStringField(row, 'notes', { max: 1000, fallback: '' }),
+    };
+  }).map((row, idx) => {
+    if (!row.id) throw new HttpError(400, `batches[${idx}].id is required`);
+    if (!Number.isFinite(row.quantity) || row.quantity <= 0) throw new HttpError(400, `batches[${idx}].quantity must be greater than zero`);
+    if (!Number.isFinite(row.unit_cost) || row.unit_cost < 0) throw new HttpError(400, `batches[${idx}].unit_cost must be zero or greater`);
+    return row;
+  });
+}
+
+function parseImportTrades(payload) {
+  const rows = Array.isArray(payload?.trades) ? payload.trades : [];
+  return rows.map((r, idx) => {
+    const row = asPlainObject(r);
+    const side = String(row.side || '').trim().toLowerCase();
+    const status = String(row.status || 'active').trim().toLowerCase();
+    return {
+      id: String(row.id || randomId('trd_imp_')).trim(),
+      asset_symbol: normalizeAssetSymbol(row.asset_symbol || row.asset || 'USDT'),
+      side,
+      status,
+      traded_at: toIsoTimestamp(row.traded_at || row.date || row.created_at, `trades[${idx}].traded_at`),
+      quantity: Number(row.quantity),
+      unit_price: row.unit_price == null ? 0 : Number(row.unit_price),
+      fee: row.fee == null ? 0 : Number(row.fee),
+      notes: optionalStringField(row, 'notes', { max: 1000, fallback: '' }),
+    };
+  }).map((row, idx) => {
+    if (!row.id) throw new HttpError(400, `trades[${idx}].id is required`);
+    if (!['buy', 'sell'].includes(row.side)) throw new HttpError(400, `trades[${idx}].side must be buy or sell`);
+    if (!['active', 'void'].includes(row.status)) throw new HttpError(400, `trades[${idx}].status must be active or void`);
+    if (!Number.isFinite(row.quantity) || row.quantity <= 0) throw new HttpError(400, `trades[${idx}].quantity must be greater than zero`);
+    if (!Number.isFinite(row.unit_price) || row.unit_price < 0) throw new HttpError(400, `trades[${idx}].unit_price must be zero or greater`);
+    if (!Number.isFinite(row.fee) || row.fee < 0) throw new HttpError(400, `trades[${idx}].fee must be zero or greater`);
+    return row;
+  });
 }
 
 async function handleImport(request, env) {
@@ -1384,14 +1493,49 @@ async function handleImport(request, env) {
         });
       }
 
+      const batches = parseImportBatches(body);
+      const trades = parseImportTrades(body);
+      const assetsTouched = new Set([...batches.map((b) => b.asset_symbol), ...trades.map((t) => t.asset_symbol)]);
+      const before = await getTradingCounts(db, user.userId);
+
+      for (const b of batches) {
+        await d1Run(db, `
+          INSERT OR REPLACE INTO batches
+            (id, user_id, asset_symbol, acquired_at, quantity, unit_cost, notes, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, b.id, user.userId, b.asset_symbol, b.acquired_at, b.quantity, b.unit_cost, b.notes, nowIso(), nowIso());
+      }
+      for (const t of trades) {
+        await d1Run(db, `
+          INSERT OR REPLACE INTO trades
+            (id, user_id, asset_symbol, side, traded_at, quantity, unit_price, fee, status, source_batch_id, notes, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, t.id, user.userId, t.asset_symbol, t.side, t.traded_at, t.quantity, t.unit_price, t.fee, t.status, null, t.notes, nowIso(), nowIso());
+      }
+      const fifo = [];
+      for (const symbol of assetsTouched) {
+        fifo.push(await recomputeFifoForAsset(db, user.userId, symbol));
+      }
+      const after = await getTradingCounts(db, user.userId);
+      const reconciliation = {
+        before,
+        imported: { batches: batches.length, trades: trades.length },
+        after,
+        delta: {
+          batches: after.batches - before.batches,
+          trades: after.trades - before.trades,
+          trade_allocations: after.trade_allocations - before.trade_allocations,
+        },
+      };
+
       const row = {
         id: randomId('imp_'),
         idempotency_key: idempotencyKey,
         actor_user_id: user.userId,
         payload_hash: payloadHash,
         payload_json: JSON.stringify(body),
-        totals_json: JSON.stringify(totals),
-        status: 'accepted',
+        totals_json: JSON.stringify({ ...totals, reconciliation }),
+        status: 'completed',
         created_at: nowIso(),
         updated_at: nowIso(),
       };
@@ -1409,11 +1553,17 @@ async function handleImport(request, env) {
         actor_user_id: user.userId,
         entity_type: 'import_job',
         entity_id: row.id,
-        action: 'import_json_accepted',
-        detail: { idempotency_key: row.idempotency_key, totals },
+        action: 'import_json_completed',
+        detail: { idempotency_key: row.idempotency_key, totals, reconciliation },
       });
 
-      return json(request, env, { ok: true, reused: false, import_job: { ...row, totals } }, 202);
+      return json(request, env, {
+        ok: true,
+        reused: false,
+        import_job: { ...row, totals: { ...totals, reconciliation } },
+        reconciliation,
+        fifo,
+      }, 202);
     }
 
     if (method === 'GET' && path.match(/^\/json\/[^/]+$/)) {
@@ -1427,6 +1577,299 @@ async function handleImport(request, env) {
   } catch (err) {
     const status = Number(err?.status) || 500;
     return bad(request, env, err?.message || 'Import API error', status);
+  }
+}
+
+
+
+function toIsoTimestamp(value, fieldName) {
+  const raw = String(value || '').trim();
+  if (!raw) throw new HttpError(400, `${fieldName} is required`);
+  const dt = new Date(raw);
+  if (Number.isNaN(dt.getTime())) throw new HttpError(400, `${fieldName} must be a valid datetime`);
+  return dt.toISOString();
+}
+function normalizeAssetSymbol(value) {
+  const symbol = String(value || '').trim().toUpperCase();
+  if (!symbol) throw new HttpError(400, 'asset_symbol is required');
+  if (!/^[A-Z0-9_-]{2,15}$/.test(symbol)) throw new HttpError(400, 'asset_symbol format is invalid');
+  return symbol;
+}
+
+async function recomputeFifoForAsset(db, userId, assetSymbol) {
+  const batches = await d1All(db, `
+    SELECT id, acquired_at, quantity, unit_cost
+    FROM batches
+    WHERE user_id = ? AND asset_symbol = ?
+    ORDER BY acquired_at ASC, id ASC
+  `, userId, assetSymbol);
+  const trades = await d1All(db, `
+    SELECT id, traded_at, quantity
+    FROM trades
+    WHERE user_id = ? AND asset_symbol = ? AND side = 'sell' AND status = 'active'
+    ORDER BY traded_at ASC, id ASC
+  `, userId, assetSymbol);
+
+  await d1Run(db, `
+    DELETE FROM trade_allocations
+    WHERE user_id = ?
+      AND trade_id IN (
+        SELECT id FROM trades WHERE user_id = ? AND asset_symbol = ?
+      )
+  `, userId, userId, assetSymbol);
+
+  const remaining = new Map();
+  for (const b of batches) remaining.set(b.id, Number(b.quantity || 0));
+
+  const shortages = [];
+  for (const trade of trades) {
+    let qtyLeft = Number(trade.quantity || 0);
+    let firstBatchId = null;
+
+    for (const batch of batches) {
+      const rem = Number(remaining.get(batch.id) || 0);
+      if (qtyLeft <= 0) break;
+      if (rem <= 0) continue;
+      const allocatedQty = Math.min(rem, qtyLeft);
+      if (allocatedQty <= 0) continue;
+      if (!firstBatchId) firstBatchId = batch.id;
+
+      await d1Run(db, `
+        INSERT INTO trade_allocations
+          (id, user_id, trade_id, batch_id, allocated_qty, batch_unit_cost, allocated_cost, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        randomId('alloc_'),
+        userId,
+        trade.id,
+        batch.id,
+        allocatedQty,
+        Number(batch.unit_cost || 0),
+        allocatedQty * Number(batch.unit_cost || 0),
+        nowIso(),
+        nowIso()
+      );
+
+      remaining.set(batch.id, rem - allocatedQty);
+      qtyLeft -= allocatedQty;
+    }
+
+    await d1Run(db, `UPDATE trades SET source_batch_id = ?, updated_at = ? WHERE id = ?`, firstBatchId, nowIso(), trade.id);
+
+    if (qtyLeft > 0) shortages.push({ trade_id: trade.id, unallocated_qty: qtyLeft });
+  }
+
+  return {
+    asset_symbol: assetSymbol,
+    batches: batches.length,
+    trades: trades.length,
+    shortages,
+  };
+}
+
+async function handleTrading(request, env) {
+  if (!env.DB) return bad(request, env, 'D1 binding DB is not configured', 500);
+  const db = env.DB;
+  const url = new URL(request.url);
+  const method = request.method.toUpperCase();
+
+  let user;
+  try {
+    user = await getUserContext(request, env);
+  } catch (err) {
+    return bad(request, env, err.message || 'Unauthorized', 401);
+  }
+
+  try {
+    const batchMatch = url.pathname.match(/^\/api\/batches\/([^/]+)$/);
+    const tradeMatch = url.pathname.match(/^\/api\/trades\/([^/]+)$/);
+    const tradeVoidMatch = url.pathname.match(/^\/api\/trades\/([^/]+)\/void$/);
+
+    if (method === 'GET' && url.pathname === '/api/batches') {
+      const assetFilter = String(url.searchParams.get('asset_symbol') || '').trim().toUpperCase();
+      const rows = assetFilter
+        ? await d1All(db, `
+            SELECT b.*,
+              COALESCE(SUM(ta.allocated_qty), 0) AS allocated_qty,
+              (b.quantity - COALESCE(SUM(ta.allocated_qty), 0)) AS remaining_qty
+            FROM batches b
+            LEFT JOIN trade_allocations ta ON ta.batch_id = b.id AND ta.user_id = b.user_id
+            WHERE b.user_id = ? AND b.asset_symbol = ?
+            GROUP BY b.id
+            ORDER BY b.acquired_at ASC, b.id ASC
+          `, user.userId, assetFilter)
+        : await d1All(db, `
+            SELECT b.*,
+              COALESCE(SUM(ta.allocated_qty), 0) AS allocated_qty,
+              (b.quantity - COALESCE(SUM(ta.allocated_qty), 0)) AS remaining_qty
+            FROM batches b
+            LEFT JOIN trade_allocations ta ON ta.batch_id = b.id AND ta.user_id = b.user_id
+            WHERE b.user_id = ?
+            GROUP BY b.id
+            ORDER BY b.acquired_at ASC, b.id ASC
+          `, user.userId);
+      return json(request, env, { batches: rows });
+    }
+
+    if (method === 'POST' && url.pathname === '/api/batches') {
+      const body = asPlainObject(await readJson(request));
+      const row = {
+        id: randomId('bat_'),
+        user_id: user.userId,
+        asset_symbol: normalizeAssetSymbol(body.asset_symbol),
+        acquired_at: toIsoTimestamp(body.acquired_at, 'acquired_at'),
+        quantity: requirePositiveNumberField(body, 'quantity'),
+        unit_cost: optionalNumberField(body, 'unit_cost', 0),
+        notes: optionalStringField(body, 'notes', { max: 1000, fallback: '' }),
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      if (row.unit_cost < 0) throw new HttpError(400, 'unit_cost must be zero or greater');
+      await d1Run(db, `
+        INSERT INTO batches (id, user_id, asset_symbol, acquired_at, quantity, unit_cost, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, row.id, row.user_id, row.asset_symbol, row.acquired_at, row.quantity, row.unit_cost, row.notes, row.created_at, row.updated_at);
+      const fifo = await recomputeFifoForAsset(db, user.userId, row.asset_symbol);
+      return json(request, env, { ok: true, batch: row, fifo }, 201);
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && batchMatch) {
+      const id = batchMatch[1];
+      const existing = await d1First(db, `SELECT * FROM batches WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Batch not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const updated = {
+        asset_symbol: body.asset_symbol != null ? normalizeAssetSymbol(body.asset_symbol) : existing.asset_symbol,
+        acquired_at: body.acquired_at != null ? toIsoTimestamp(body.acquired_at, 'acquired_at') : existing.acquired_at,
+        quantity: body.quantity != null ? requirePositiveNumberField(body, 'quantity') : Number(existing.quantity),
+        unit_cost: body.unit_cost != null ? optionalNumberField(body, 'unit_cost', 0) : Number(existing.unit_cost),
+        notes: body.notes != null ? optionalStringField(body, 'notes', { max: 1000, fallback: '' }) : String(existing.notes || ''),
+      };
+      if (updated.unit_cost < 0) throw new HttpError(400, 'unit_cost must be zero or greater');
+      await d1Run(db, `
+        UPDATE batches
+        SET asset_symbol = ?, acquired_at = ?, quantity = ?, unit_cost = ?, notes = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+      `, updated.asset_symbol, updated.acquired_at, updated.quantity, updated.unit_cost, updated.notes, nowIso(), id, user.userId);
+      const fifo = await recomputeFifoForAsset(db, user.userId, updated.asset_symbol);
+      if (updated.asset_symbol !== existing.asset_symbol) await recomputeFifoForAsset(db, user.userId, existing.asset_symbol);
+      return json(request, env, { ok: true, batch: { ...existing, ...updated, id }, fifo });
+    }
+
+    if (method === 'DELETE' && batchMatch) {
+      const id = batchMatch[1];
+      const existing = await d1First(db, `SELECT * FROM batches WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Batch not found', 404);
+      await d1Run(db, `DELETE FROM batches WHERE id = ? AND user_id = ?`, id, user.userId);
+      const fifo = await recomputeFifoForAsset(db, user.userId, existing.asset_symbol);
+      return json(request, env, { ok: true, deleted: id, fifo });
+    }
+
+    if (method === 'GET' && url.pathname === '/api/trades') {
+      const rows = await d1All(db, `
+        SELECT t.*,
+          COALESCE(SUM(ta.allocated_qty), 0) AS allocated_qty,
+          COALESCE(SUM(ta.allocated_cost), 0) AS allocated_cost
+        FROM trades t
+        LEFT JOIN trade_allocations ta ON ta.trade_id = t.id AND ta.user_id = t.user_id
+        WHERE t.user_id = ?
+        GROUP BY t.id
+        ORDER BY t.traded_at ASC, t.id ASC
+      `, user.userId);
+      return json(request, env, { trades: rows });
+    }
+
+    if (method === 'POST' && url.pathname === '/api/trades') {
+      const body = asPlainObject(await readJson(request));
+      const row = {
+        id: randomId('trd_'),
+        user_id: user.userId,
+        asset_symbol: normalizeAssetSymbol(body.asset_symbol),
+        side: String(body.side || '').trim().toLowerCase(),
+        traded_at: toIsoTimestamp(body.traded_at, 'traded_at'),
+        quantity: requirePositiveNumberField(body, 'quantity'),
+        unit_price: optionalNumberField(body, 'unit_price', 0),
+        fee: optionalNumberField(body, 'fee', 0),
+        status: String(body.status || 'active').trim().toLowerCase(),
+        notes: optionalStringField(body, 'notes', { max: 1000, fallback: '' }),
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      if (!['buy', 'sell'].includes(row.side)) throw new HttpError(400, 'side must be buy or sell');
+      if (!['active', 'void'].includes(row.status)) throw new HttpError(400, 'status must be active or void');
+      if (row.unit_price < 0) throw new HttpError(400, 'unit_price must be zero or greater');
+      if (row.fee < 0) throw new HttpError(400, 'fee must be zero or greater');
+
+      await d1Run(db, `
+        INSERT INTO trades
+          (id, user_id, asset_symbol, side, traded_at, quantity, unit_price, fee, status, source_batch_id, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        row.id, row.user_id, row.asset_symbol, row.side, row.traded_at, row.quantity, row.unit_price,
+        row.fee, row.status, null, row.notes, row.created_at, row.updated_at
+      );
+      const fifo = await recomputeFifoForAsset(db, user.userId, row.asset_symbol);
+      return json(request, env, { ok: true, trade: row, fifo }, 201);
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && tradeMatch) {
+      const id = tradeMatch[1];
+      const existing = await d1First(db, `SELECT * FROM trades WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Trade not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const updated = {
+        asset_symbol: body.asset_symbol != null ? normalizeAssetSymbol(body.asset_symbol) : existing.asset_symbol,
+        side: body.side != null ? String(body.side).trim().toLowerCase() : existing.side,
+        traded_at: body.traded_at != null ? toIsoTimestamp(body.traded_at, 'traded_at') : existing.traded_at,
+        quantity: body.quantity != null ? requirePositiveNumberField(body, 'quantity') : Number(existing.quantity),
+        unit_price: body.unit_price != null ? optionalNumberField(body, 'unit_price', 0) : Number(existing.unit_price),
+        fee: body.fee != null ? optionalNumberField(body, 'fee', 0) : Number(existing.fee),
+        status: body.status != null ? String(body.status).trim().toLowerCase() : existing.status,
+        notes: body.notes != null ? optionalStringField(body, 'notes', { max: 1000, fallback: '' }) : String(existing.notes || ''),
+      };
+      if (!['buy', 'sell'].includes(updated.side)) throw new HttpError(400, 'side must be buy or sell');
+      if (!['active', 'void'].includes(updated.status)) throw new HttpError(400, 'status must be active or void');
+      if (updated.unit_price < 0) throw new HttpError(400, 'unit_price must be zero or greater');
+      if (updated.fee < 0) throw new HttpError(400, 'fee must be zero or greater');
+
+      await d1Run(db, `
+        UPDATE trades
+        SET asset_symbol = ?, side = ?, traded_at = ?, quantity = ?, unit_price = ?, fee = ?, status = ?, notes = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+      `,
+        updated.asset_symbol, updated.side, updated.traded_at, updated.quantity, updated.unit_price,
+        updated.fee, updated.status, updated.notes, nowIso(), id, user.userId
+      );
+      const fifo = await recomputeFifoForAsset(db, user.userId, updated.asset_symbol);
+      if (updated.asset_symbol !== existing.asset_symbol) await recomputeFifoForAsset(db, user.userId, existing.asset_symbol);
+      return json(request, env, { ok: true, trade: { ...existing, ...updated, id }, fifo });
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && tradeVoidMatch) {
+      const id = tradeVoidMatch[1];
+      const existing = await d1First(db, `SELECT * FROM trades WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Trade not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const nextStatus = String(body.status || (existing.status === 'void' ? 'active' : 'void')).trim().toLowerCase();
+      if (!['active', 'void'].includes(nextStatus)) throw new HttpError(400, 'status must be active or void');
+      await d1Run(db, `UPDATE trades SET status = ?, updated_at = ? WHERE id = ? AND user_id = ?`, nextStatus, nowIso(), id, user.userId);
+      const fifo = await recomputeFifoForAsset(db, user.userId, existing.asset_symbol);
+      return json(request, env, { ok: true, id, status: nextStatus, fifo });
+    }
+
+    if (method === 'DELETE' && tradeMatch) {
+      const id = tradeMatch[1];
+      const existing = await d1First(db, `SELECT * FROM trades WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Trade not found', 404);
+      await d1Run(db, `DELETE FROM trades WHERE id = ? AND user_id = ?`, id, user.userId);
+      const fifo = await recomputeFifoForAsset(db, user.userId, existing.asset_symbol);
+      return json(request, env, { ok: true, deleted: id, fifo });
+    }
+
+    return bad(request, env, 'Not found', 404);
+  } catch (err) {
+    const status = Number(err?.status) || 500;
+    return bad(request, env, err?.message || 'Trading API error', status);
   }
 }
 
@@ -1523,6 +1966,453 @@ async function pollAndStore(env) {
   await env.P2P_KV.put(`p2p:day:${today}`, JSON.stringify(day), { expirationTtl: 172800 });
   return { snapshot, history, day };
 }
+
+
+async function ensurePhase5FinancialTables(db) {
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS deals (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      deal_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      principal_amount REAL NOT NULL CHECK (principal_amount > 0),
+      currency TEXT NOT NULL,
+      status TEXT NOT NULL,
+      issued_at TEXT NOT NULL,
+      due_at TEXT,
+      settled_at TEXT,
+      metadata_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+  await d1Run(db, `CREATE INDEX IF NOT EXISTS idx_deals_user_status_time ON deals(user_id, status, issued_at, id)`);
+
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS settlements (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      deal_ids_json TEXT NOT NULL,
+      amount REAL NOT NULL CHECK (amount > 0),
+      currency TEXT NOT NULL,
+      status TEXT NOT NULL,
+      note TEXT,
+      settled_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+  await d1Run(db, `CREATE INDEX IF NOT EXISTS idx_settlements_user_time ON settlements(user_id, settled_at, id)`);
+
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS journal_entries (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      entry_type TEXT NOT NULL,
+      ref_type TEXT NOT NULL,
+      ref_id TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT NOT NULL,
+      debit_account TEXT,
+      credit_account TEXT,
+      note TEXT,
+      metadata_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+  await d1Run(db, `CREATE INDEX IF NOT EXISTS idx_journal_entries_user_time ON journal_entries(user_id, created_at, id)`);
+}
+
+function normalizeCurrency(value, fieldName = 'currency') {
+  const c = String(value || '').trim().toUpperCase();
+  if (!c) throw new HttpError(400, `${fieldName} is required`);
+  if (!/^[A-Z]{3,8}$/.test(c)) throw new HttpError(400, `${fieldName} format is invalid`);
+  return c;
+}
+
+function parseDealType(value) {
+  const v = String(value || '').trim().toLowerCase();
+  const allowed = ['advance', 'purchase', 'profit_share', 'pool', 'general'];
+  if (!allowed.includes(v)) throw new HttpError(400, `deal_type must be one of: ${allowed.join(', ')}`);
+  return v;
+}
+
+function parseDealStatus(value) {
+  const v = String(value || '').trim().toLowerCase();
+  const allowed = ['active', 'due', 'overdue', 'settled', 'cancelled'];
+  if (!allowed.includes(v)) throw new HttpError(400, `status must be one of: ${allowed.join(', ')}`);
+  return v;
+}
+
+async function writeJournalEntry(db, userId, entry) {
+  const row = {
+    id: randomId('jrn_'),
+    user_id: userId,
+    entry_type: String(entry.entry_type || 'event').trim().toLowerCase(),
+    ref_type: String(entry.ref_type || 'unknown').trim().toLowerCase(),
+    ref_id: String(entry.ref_id || '').trim(),
+    amount: Number(entry.amount || 0),
+    currency: normalizeCurrency(entry.currency || 'QAR'),
+    debit_account: optionalStringField(entry, 'debit_account', { max: 120, fallback: '' }),
+    credit_account: optionalStringField(entry, 'credit_account', { max: 120, fallback: '' }),
+    note: optionalStringField(entry, 'note', { max: 1000, fallback: '' }),
+    metadata_json: JSON.stringify(asPlainObject(entry.metadata)),
+    created_at: nowIso(),
+  };
+  if (!row.ref_id) throw new HttpError(400, 'Journal ref_id is required');
+  if (!Number.isFinite(row.amount)) throw new HttpError(400, 'Journal amount must be a valid number');
+
+  await d1Run(db, `
+    INSERT INTO journal_entries
+      (id, user_id, entry_type, ref_type, ref_id, amount, currency, debit_account, credit_account, note, metadata_json, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, row.id, row.user_id, row.entry_type, row.ref_type, row.ref_id, row.amount, row.currency, row.debit_account, row.credit_account, row.note, row.metadata_json, row.created_at);
+  return row;
+}
+
+async function handleFinancials(request, env) {
+  if (!env.DB) return bad(request, env, 'D1 binding DB is not configured', 500);
+  const db = env.DB;
+  const url = new URL(request.url);
+  const method = request.method.toUpperCase();
+
+  let user;
+  try {
+    user = await getUserContext(request, env);
+  } catch (err) {
+    return bad(request, env, err.message || 'Unauthorized', 401);
+  }
+
+  try {
+    await ensurePhase5FinancialTables(db);
+
+    const dealByIdMatch = url.pathname.match(/^\/api\/deals\/([^/]+)$/);
+    const dealSettleMatch = url.pathname.match(/^\/api\/deals\/([^/]+)\/settle$/);
+    const settlementByIdMatch = url.pathname.match(/^\/api\/settlements\/([^/]+)$/);
+
+    if (method === 'GET' && url.pathname === '/api/deals') {
+      const status = String(url.searchParams.get('status') || '').trim().toLowerCase();
+      const dealType = String(url.searchParams.get('deal_type') || '').trim().toLowerCase();
+      let rows;
+      if (status && dealType) {
+        rows = await d1All(db, `SELECT * FROM deals WHERE user_id = ? AND status = ? AND deal_type = ? ORDER BY issued_at DESC, id DESC`, user.userId, status, dealType);
+      } else if (status) {
+        rows = await d1All(db, `SELECT * FROM deals WHERE user_id = ? AND status = ? ORDER BY issued_at DESC, id DESC`, user.userId, status);
+      } else if (dealType) {
+        rows = await d1All(db, `SELECT * FROM deals WHERE user_id = ? AND deal_type = ? ORDER BY issued_at DESC, id DESC`, user.userId, dealType);
+      } else {
+        rows = await d1All(db, `SELECT * FROM deals WHERE user_id = ? ORDER BY issued_at DESC, id DESC`, user.userId);
+      }
+      return json(request, env, { deals: rows.map(r => ({ ...r, metadata: safeJsonParse(r.metadata_json, {}) })) });
+    }
+
+    if (method === 'POST' && url.pathname === '/api/deals') {
+      const body = asPlainObject(await readJson(request));
+      const row = {
+        id: randomId('deal_'),
+        user_id: user.userId,
+        deal_type: parseDealType(body.deal_type || 'general'),
+        title: requireStringField(body, 'title', { min: 3, max: 160 }),
+        principal_amount: requirePositiveNumberField(body, 'principal_amount'),
+        currency: normalizeCurrency(body.currency || 'QAR'),
+        status: parseDealStatus(String(body.status || 'active')),
+        issued_at: toIsoTimestamp(body.issued_at || nowIso(), 'issued_at'),
+        due_at: body.due_at ? toIsoTimestamp(body.due_at, 'due_at') : null,
+        settled_at: null,
+        metadata_json: JSON.stringify(asPlainObject(body.metadata)),
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      await d1Run(db, `
+        INSERT INTO deals
+          (id, user_id, deal_type, title, principal_amount, currency, status, issued_at, due_at, settled_at, metadata_json, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, row.id, row.user_id, row.deal_type, row.title, row.principal_amount, row.currency, row.status, row.issued_at, row.due_at, row.settled_at, row.metadata_json, row.created_at, row.updated_at);
+
+      const journal = await writeJournalEntry(db, user.userId, {
+        entry_type: 'deal_created',
+        ref_type: 'deal',
+        ref_id: row.id,
+        amount: row.principal_amount,
+        currency: row.currency,
+        debit_account: 'deal_receivable',
+        credit_account: 'cash_out',
+        note: `Deal created: ${row.title}`,
+        metadata: { deal_type: row.deal_type },
+      });
+
+      return json(request, env, { ok: true, deal: { ...row, metadata: safeJsonParse(row.metadata_json, {}) }, journal }, 201);
+    }
+
+    if (method === 'GET' && dealByIdMatch) {
+      const id = dealByIdMatch[1];
+      const row = await d1First(db, `SELECT * FROM deals WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!row) return bad(request, env, 'Deal not found', 404);
+      return json(request, env, { deal: { ...row, metadata: safeJsonParse(row.metadata_json, {}) } });
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && dealByIdMatch) {
+      const id = dealByIdMatch[1];
+      const existing = await d1First(db, `SELECT * FROM deals WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Deal not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const next = {
+        deal_type: body.deal_type != null ? parseDealType(body.deal_type) : existing.deal_type,
+        title: body.title != null ? requireStringField(body, 'title', { min: 3, max: 160 }) : existing.title,
+        principal_amount: body.principal_amount != null ? requirePositiveNumberField(body, 'principal_amount') : Number(existing.principal_amount),
+        currency: body.currency != null ? normalizeCurrency(body.currency) : existing.currency,
+        status: body.status != null ? parseDealStatus(body.status) : existing.status,
+        issued_at: body.issued_at != null ? toIsoTimestamp(body.issued_at, 'issued_at') : existing.issued_at,
+        due_at: body.due_at != null ? (body.due_at ? toIsoTimestamp(body.due_at, 'due_at') : null) : existing.due_at,
+        settled_at: body.settled_at != null ? (body.settled_at ? toIsoTimestamp(body.settled_at, 'settled_at') : null) : existing.settled_at,
+        metadata_json: body.metadata != null ? JSON.stringify(asPlainObject(body.metadata)) : existing.metadata_json,
+      };
+      await d1Run(db, `
+        UPDATE deals
+        SET deal_type = ?, title = ?, principal_amount = ?, currency = ?, status = ?, issued_at = ?, due_at = ?, settled_at = ?, metadata_json = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+      `, next.deal_type, next.title, next.principal_amount, next.currency, next.status, next.issued_at, next.due_at, next.settled_at, next.metadata_json, nowIso(), id, user.userId);
+      const row = await d1First(db, `SELECT * FROM deals WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      return json(request, env, { ok: true, deal: { ...row, metadata: safeJsonParse(row.metadata_json, {}) } });
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && dealSettleMatch) {
+      const id = dealSettleMatch[1];
+      const deal = await d1First(db, `SELECT * FROM deals WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!deal) return bad(request, env, 'Deal not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const amount = body.amount == null ? Number(deal.principal_amount) : requirePositiveNumberField(body, 'amount');
+      const currency = normalizeCurrency(body.currency || deal.currency);
+      const settledAt = body.settled_at ? toIsoTimestamp(body.settled_at, 'settled_at') : nowIso();
+      const settlement = {
+        id: randomId('set_'),
+        user_id: user.userId,
+        deal_ids_json: JSON.stringify([deal.id]),
+        amount,
+        currency,
+        status: 'completed',
+        note: optionalStringField(body, 'note', { max: 1000, fallback: '' }),
+        settled_at: settledAt,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      await d1Run(db, `
+        INSERT INTO settlements
+          (id, user_id, deal_ids_json, amount, currency, status, note, settled_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, settlement.id, settlement.user_id, settlement.deal_ids_json, settlement.amount, settlement.currency, settlement.status, settlement.note, settlement.settled_at, settlement.created_at, settlement.updated_at);
+      await d1Run(db, `UPDATE deals SET status = 'settled', settled_at = ?, updated_at = ? WHERE id = ? AND user_id = ?`, settledAt, nowIso(), deal.id, user.userId);
+      const journal = await writeJournalEntry(db, user.userId, {
+        entry_type: 'deal_settled',
+        ref_type: 'settlement',
+        ref_id: settlement.id,
+        amount: settlement.amount,
+        currency: settlement.currency,
+        debit_account: 'cash_in',
+        credit_account: 'deal_receivable',
+        note: settlement.note || `Deal settled: ${deal.title}`,
+        metadata: { deal_id: deal.id },
+      });
+      return json(request, env, { ok: true, settlement: { ...settlement, deal_ids: [deal.id] }, journal });
+    }
+
+    if (method === 'GET' && url.pathname === '/api/settlements') {
+      const rows = await d1All(db, `SELECT * FROM settlements WHERE user_id = ? ORDER BY settled_at DESC, id DESC`, user.userId);
+      return json(request, env, { settlements: rows.map(r => ({ ...r, deal_ids: safeJsonParse(r.deal_ids_json, []) })) });
+    }
+
+    if (method === 'POST' && url.pathname === '/api/settlements') {
+      const body = asPlainObject(await readJson(request));
+      const dealIds = Array.isArray(body.deal_ids) ? body.deal_ids.map(x => String(x || '').trim()).filter(Boolean) : [];
+      if (!dealIds.length) throw new HttpError(400, 'deal_ids must contain at least one deal id');
+      const amount = requirePositiveNumberField(body, 'amount');
+      const currency = normalizeCurrency(body.currency || 'QAR');
+      const settledAt = body.settled_at ? toIsoTimestamp(body.settled_at, 'settled_at') : nowIso();
+      const status = String(body.status || 'pending').trim().toLowerCase();
+      if (!['pending', 'completed', 'cancelled'].includes(status)) throw new HttpError(400, 'status must be pending, completed, or cancelled');
+
+      const existingDeals = await d1All(db, `SELECT id FROM deals WHERE user_id = ? AND id IN (${dealIds.map(() => '?').join(',')})`, user.userId, ...dealIds);
+      if (existingDeals.length !== dealIds.length) throw new HttpError(400, 'One or more deal_ids do not exist');
+
+      const row = {
+        id: randomId('set_'),
+        user_id: user.userId,
+        deal_ids_json: JSON.stringify(dealIds),
+        amount,
+        currency,
+        status,
+        note: optionalStringField(body, 'note', { max: 1000, fallback: '' }),
+        settled_at: settledAt,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      await d1Run(db, `
+        INSERT INTO settlements
+          (id, user_id, deal_ids_json, amount, currency, status, note, settled_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, row.id, row.user_id, row.deal_ids_json, row.amount, row.currency, row.status, row.note, row.settled_at, row.created_at, row.updated_at);
+
+      if (status === 'completed') {
+        await d1Run(db, `UPDATE deals SET status = 'settled', settled_at = ?, updated_at = ? WHERE user_id = ? AND id IN (${dealIds.map(() => '?').join(',')})`, settledAt, nowIso(), user.userId, ...dealIds);
+      }
+
+      const journal = await writeJournalEntry(db, user.userId, {
+        entry_type: 'settlement_recorded',
+        ref_type: 'settlement',
+        ref_id: row.id,
+        amount: row.amount,
+        currency: row.currency,
+        debit_account: 'cash_in',
+        credit_account: 'deal_receivable',
+        note: row.note || 'Settlement recorded',
+        metadata: { deal_ids: dealIds, status: row.status },
+      });
+
+      return json(request, env, { ok: true, settlement: { ...row, deal_ids: dealIds }, journal }, 201);
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && settlementByIdMatch) {
+      const id = settlementByIdMatch[1];
+      const existing = await d1First(db, `SELECT * FROM settlements WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Settlement not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const nextStatus = body.status != null ? String(body.status).trim().toLowerCase() : String(existing.status || '').trim().toLowerCase();
+      if (!['pending', 'completed', 'cancelled'].includes(nextStatus)) throw new HttpError(400, 'status must be pending, completed, or cancelled');
+      const nextNote = body.note != null ? optionalStringField(body, 'note', { max: 1000, fallback: '' }) : String(existing.note || '');
+      await d1Run(db, `UPDATE settlements SET status = ?, note = ?, updated_at = ? WHERE id = ? AND user_id = ?`, nextStatus, nextNote, nowIso(), id, user.userId);
+      const row = await d1First(db, `SELECT * FROM settlements WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      return json(request, env, { ok: true, settlement: { ...row, deal_ids: safeJsonParse(row.deal_ids_json, []) } });
+    }
+
+    if (method === 'GET' && url.pathname === '/api/journal') {
+      const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500);
+      const rows = await d1All(db, `SELECT * FROM journal_entries WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ?`, user.userId, limit);
+      return json(request, env, { journal: rows.map(r => ({ ...r, metadata: safeJsonParse(r.metadata_json, {}) })) });
+    }
+
+    if (method === 'GET' && url.pathname === '/api/deals/kpis') {
+      const statusFilter = String(url.searchParams.get('status') || '').trim().toLowerCase();
+      const typeFilter = String(url.searchParams.get('deal_type') || '').trim().toLowerCase();
+      const args = [user.userId];
+      let where = 'WHERE user_id = ?';
+      if (statusFilter) {
+        where += ' AND status = ?';
+        args.push(statusFilter);
+      }
+      if (typeFilter) {
+        where += ' AND deal_type = ?';
+        args.push(typeFilter);
+      }
+
+      const totals = await d1First(db, `
+        SELECT
+          COUNT(*) AS total_deals,
+          COALESCE(SUM(principal_amount), 0) AS principal_total,
+          COALESCE(SUM(CASE WHEN status IN ('active','due','overdue') THEN principal_amount ELSE 0 END), 0) AS open_principal,
+          COALESCE(SUM(CASE WHEN status = 'settled' THEN principal_amount ELSE 0 END), 0) AS settled_principal
+        FROM deals
+        ${where}
+      `, ...args);
+      const byStatus = await d1All(db, `
+        SELECT status, COUNT(*) AS count, COALESCE(SUM(principal_amount), 0) AS principal
+        FROM deals
+        ${where}
+        GROUP BY status
+        ORDER BY status ASC
+      `, ...args);
+      const byType = await d1All(db, `
+        SELECT deal_type, COUNT(*) AS count, COALESCE(SUM(principal_amount), 0) AS principal
+        FROM deals
+        ${where}
+        GROUP BY deal_type
+        ORDER BY deal_type ASC
+      `, ...args);
+      const settlements = await d1First(db, `
+        SELECT
+          COUNT(*) AS settlement_count,
+          COALESCE(SUM(amount), 0) AS settlement_amount
+        FROM settlements
+        WHERE user_id = ?
+      `, user.userId);
+
+      return json(request, env, {
+        kpis: {
+          total_deals: Number(totals?.total_deals || 0),
+          principal_total: Number(totals?.principal_total || 0),
+          open_principal: Number(totals?.open_principal || 0),
+          settled_principal: Number(totals?.settled_principal || 0),
+          settlement_count: Number(settlements?.settlement_count || 0),
+          settlement_amount: Number(settlements?.settlement_amount || 0),
+        },
+        by_status: byStatus.map(r => ({ status: r.status, count: Number(r.count || 0), principal: Number(r.principal || 0) })),
+        by_type: byType.map(r => ({ deal_type: r.deal_type, count: Number(r.count || 0), principal: Number(r.principal || 0) })),
+      });
+    }
+
+    if (method === 'GET' && url.pathname === '/api/dashboard/kpis') {
+      const trading = await d1First(db, `
+        SELECT
+          COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN quantity * unit_price ELSE 0 END), 0) AS sell_revenue,
+          COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN fee ELSE 0 END), 0) AS sell_fees,
+          COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN quantity ELSE 0 END), 0) AS sell_qty,
+          COUNT(CASE WHEN side = 'sell' AND status = 'active' THEN 1 END) AS sell_count
+        FROM trades
+        WHERE user_id = ?
+      `, user.userId);
+      const cost = await d1First(db, `
+        SELECT COALESCE(SUM(allocated_cost), 0) AS cogs
+        FROM trade_allocations
+        WHERE user_id = ?
+      `, user.userId);
+      const deals = await d1First(db, `
+        SELECT
+          COUNT(*) AS total_deals,
+          COALESCE(SUM(CASE WHEN status IN ('active','due','overdue') THEN principal_amount ELSE 0 END), 0) AS deals_open_principal,
+          COALESCE(SUM(CASE WHEN status = 'settled' THEN principal_amount ELSE 0 END), 0) AS deals_settled_principal
+        FROM deals
+        WHERE user_id = ?
+      `, user.userId);
+      const settlements = await d1First(db, `
+        SELECT
+          COUNT(*) AS settlement_count,
+          COALESCE(SUM(amount), 0) AS settlement_amount
+        FROM settlements
+        WHERE user_id = ?
+      `, user.userId);
+
+      const sellRevenue = Number(trading?.sell_revenue || 0);
+      const sellFees = Number(trading?.sell_fees || 0);
+      const cogs = Number(cost?.cogs || 0);
+      const grossProfit = sellRevenue - cogs;
+      const netProfit = grossProfit - sellFees;
+      const marginPct = sellRevenue > 0 ? (netProfit / sellRevenue) * 100 : 0;
+
+      return json(request, env, {
+        kpis: {
+          sell_revenue: sellRevenue,
+          cogs,
+          gross_profit: grossProfit,
+          sell_fees: sellFees,
+          net_profit: netProfit,
+          margin_pct: marginPct,
+          sell_qty: Number(trading?.sell_qty || 0),
+          sell_count: Number(trading?.sell_count || 0),
+          total_deals: Number(deals?.total_deals || 0),
+          deals_open_principal: Number(deals?.deals_open_principal || 0),
+          deals_settled_principal: Number(deals?.deals_settled_principal || 0),
+          settlement_count: Number(settlements?.settlement_count || 0),
+          settlement_amount: Number(settlements?.settlement_amount || 0),
+        },
+      });
+    }
+
+    return bad(request, env, 'Not found', 404);
+  } catch (err) {
+    const status = Number(err?.status) || 500;
+    return bad(request, env, err?.message || 'Financial API error', status);
+  }
+}
+
 async function handleP2P(request, env) {
   const url = new URL(request.url);
   if (url.pathname === "/api/p2p" || url.pathname === "/") {
@@ -1577,6 +2467,83 @@ async function handleP2P(request, env) {
   return null;
 }
 
+
+
+async function computeKpiParity(db, userId) {
+  const dashboardTrading = await d1First(db, `
+    SELECT
+      COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN quantity * unit_price ELSE 0 END), 0) AS sell_revenue,
+      COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN fee ELSE 0 END), 0) AS sell_fees
+    FROM trades
+    WHERE user_id = ?
+  `, userId);
+  const dashboardCost = await d1First(db, `SELECT COALESCE(SUM(allocated_cost),0) AS cogs FROM trade_allocations WHERE user_id = ?`, userId);
+  const dealsTotals = await d1First(db, `
+    SELECT
+      COUNT(*) AS total_deals,
+      COALESCE(SUM(CASE WHEN status IN ('active','due','overdue') THEN principal_amount ELSE 0 END), 0) AS deals_open_principal,
+      COALESCE(SUM(CASE WHEN status = 'settled' THEN principal_amount ELSE 0 END), 0) AS deals_settled_principal
+    FROM deals
+    WHERE user_id = ?
+  `, userId);
+  const settlementsTotals = await d1First(db, `
+    SELECT
+      COUNT(*) AS settlement_count,
+      COALESCE(SUM(amount), 0) AS settlement_amount
+    FROM settlements
+    WHERE user_id = ?
+  `, userId);
+
+  const sellRevenue = Number(dashboardTrading?.sell_revenue || 0);
+  const sellFees = Number(dashboardTrading?.sell_fees || 0);
+  const cogs = Number(dashboardCost?.cogs || 0);
+  const grossProfit = sellRevenue - cogs;
+  const netProfit = grossProfit - sellFees;
+
+  // Independent baseline recompute using raw tables
+  const baseline = await d1First(db, `
+    SELECT
+      COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN quantity * unit_price ELSE 0 END), 0) AS sell_revenue,
+      COALESCE(SUM(CASE WHEN side = 'sell' AND status = 'active' THEN fee ELSE 0 END), 0) AS sell_fees,
+      COUNT(CASE WHEN side = 'sell' AND status = 'active' THEN 1 END) AS sell_count
+    FROM trades
+    WHERE user_id = ?
+  `, userId);
+  const baselineDeals = await d1First(db, `
+    SELECT
+      COUNT(*) AS total_deals,
+      COALESCE(SUM(CASE WHEN status IN ('active','due','overdue') THEN principal_amount ELSE 0 END), 0) AS open_principal,
+      COALESCE(SUM(CASE WHEN status = 'settled' THEN principal_amount ELSE 0 END), 0) AS settled_principal
+    FROM deals
+    WHERE user_id = ?
+  `, userId);
+
+  const checks = {
+    sell_revenue: Number(baseline?.sell_revenue || 0) === sellRevenue,
+    sell_fees: Number(baseline?.sell_fees || 0) === sellFees,
+    total_deals: Number(baselineDeals?.total_deals || 0) === Number(dealsTotals?.total_deals || 0),
+    deals_open_principal: Number(baselineDeals?.open_principal || 0) === Number(dealsTotals?.deals_open_principal || 0),
+    deals_settled_principal: Number(baselineDeals?.settled_principal || 0) === Number(dealsTotals?.deals_settled_principal || 0),
+  };
+
+  return {
+    ok: Object.values(checks).every(Boolean),
+    checks,
+    dashboard: {
+      sell_revenue: sellRevenue,
+      sell_fees: sellFees,
+      cogs,
+      gross_profit: grossProfit,
+      net_profit: netProfit,
+      total_deals: Number(dealsTotals?.total_deals || 0),
+      deals_open_principal: Number(dealsTotals?.deals_open_principal || 0),
+      deals_settled_principal: Number(dealsTotals?.deals_settled_principal || 0),
+      settlement_count: Number(settlementsTotals?.settlement_count || 0),
+      settlement_amount: Number(settlementsTotals?.settlement_amount || 0),
+    },
+  };
+}
+
 async function handleSystem(request, env) {
   const url = new URL(request.url);
   if (url.pathname === "/api/system/health") {
@@ -1621,8 +2588,26 @@ async function handleSystem(request, env) {
       service: "p2p-tracker",
       version,
       timestamp: nowIso(),
-      endpoints: ["/api/system/health", "/api/system/migrations", "/api/system/version"],
+      endpoints: ["/api/system/health", "/api/system/migrations", "/api/system/version", "/api/system/kpi-parity"],
     });
+  }
+
+  if (url.pathname === "/api/system/kpi-parity") {
+    if (!env.DB) return bad(request, env, "D1 binding DB is not configured", 500);
+    let user;
+    try {
+      user = await getUserContext(request, env);
+    } catch (err) {
+      return bad(request, env, err.message || "Unauthorized", 401);
+    }
+    try {
+      await ensureImportBridgeTables(env.DB);
+      await ensurePhase5FinancialTables(env.DB);
+      const parity = await computeKpiParity(env.DB, user.userId);
+      return json(request, env, { ok: parity.ok, parity, timestamp: nowIso() }, parity.ok ? 200 : 409);
+    } catch (err) {
+      return bad(request, env, err.message || "Failed to compute KPI parity", 500);
+    }
   }
 
   return null;
@@ -1669,6 +2654,12 @@ export default {
       }
       if (!response && url.pathname.startsWith('/api/import')) {
         response = await handleImport(request, env);
+      }
+      if (!response && (url.pathname.startsWith('/api/batches') || url.pathname.startsWith('/api/trades'))) {
+        response = await handleTrading(request, env);
+      }
+      if (!response && (url.pathname.startsWith('/api/deals') || url.pathname.startsWith('/api/settlements') || url.pathname.startsWith('/api/journal'))) {
+        response = await handleFinancials(request, env);
       }
       if (!response) {
         const p2p = await handleP2P(request, env);
