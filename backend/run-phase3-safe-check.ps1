@@ -29,7 +29,7 @@ for ($i = 0; $i -lt $args.Count; $i++) {
       $i++
       $timeoutRaw = [string]$args[$i]
       if (-not [int]::TryParse($timeoutRaw, [ref]$RequestTimeoutMs)) {
-        throw "Invalid integer for $arg: $timeoutRaw"
+        throw "Invalid integer for ${arg}: $timeoutRaw"
       }
       continue
     }
