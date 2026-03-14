@@ -3,6 +3,8 @@ $SkipDeploy = $false
 $UserId = "phase3-safe-user"
 $IdempotencyKey = $null
 $RequestTimeoutMs = 15000
+$CfAccessClientId = $null
+$CfAccessClientSecret = $null
 
 for ($i = 0; $i -lt $args.Count; $i++) {
   $arg = [string]$args[$i]
@@ -34,6 +36,17 @@ for ($i = 0; $i -lt $args.Count; $i++) {
       continue
     }
 
+
+    '^(-|--)?cf-?access-?client-?id$' {
+      if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
+      $i++; $CfAccessClientId = [string]$args[$i]; continue
+    }
+
+    '^(-|--)?cf-?access-?client-?secret$' {
+      if ($i + 1 -ge $args.Count) { throw "Missing value for $arg" }
+      $i++; $CfAccessClientSecret = [string]$args[$i]; continue
+    }
+
     '^(-|--)?kebab-?case$' {
       # Compatibility no-op flag for prior guidance.
       continue
@@ -52,6 +65,8 @@ $nodeArgs = @(".\run-phase3-safe-check.mjs", "--base-url", $BaseUrl, "--user-id"
 if ($SkipDeploy) { $nodeArgs += "--skip-deploy" }
 if ($IdempotencyKey) { $nodeArgs += @("--idempotency-key", $IdempotencyKey) }
 if ($RequestTimeoutMs -gt 0) { $nodeArgs += @("--request-timeout-ms", "$RequestTimeoutMs") }
+if ($CfAccessClientId) { $nodeArgs += @("--cf-access-client-id", $CfAccessClientId) }
+if ($CfAccessClientSecret) { $nodeArgs += @("--cf-access-client-secret", $CfAccessClientSecret) }
 
 node @nodeArgs
 exit $LASTEXITCODE

@@ -18,6 +18,8 @@ const skipDeploy = flag('--skip-deploy');
 const userId = arg('--user-id', 'phase3-safe-user');
 const idemKey = arg('--idempotency-key', `phase3-${Date.now()}`);
 const requestTimeoutMs = Number(arg('--request-timeout-ms', '15000'));
+const cfAccessClientId = arg('--cf-access-client-id', '').trim();
+const cfAccessClientSecret = arg('--cf-access-client-secret', '').trim();
 
 
 function assertValidBaseUrl(value) {
@@ -82,6 +84,14 @@ function parseJsonIfPossible(text) {
   }
 }
 
+
+function accessHeaders() {
+  const headers = {};
+  if (cfAccessClientId) headers['CF-Access-Client-Id'] = cfAccessClientId;
+  if (cfAccessClientSecret) headers['CF-Access-Client-Secret'] = cfAccessClientSecret;
+  return headers;
+}
+
 async function verifySystemEndpointsInline() {
   console.log('[phase3-safe] Step B: Verify system endpoints (inline)');
   const endpoints = ['/api/system/health', '/api/system/migrations', '/api/system/version'];
@@ -120,11 +130,15 @@ async function postImport() {
     headers: {
       'Content-Type': 'application/json',
       'X-User-Id': userId,
+      ...accessHeaders(),
     },
     body: JSON.stringify(payload),
   });
   console.log(`[phase3-safe] import POST status=${res.status}`);
   if (body) console.log(`[phase3-safe] import POST body=${body}`);
+  if (res.status === 401) {
+    throw new Error('[phase3-safe] import POST unauthorized (401). Provide Cloudflare Access service token via --cf-access-client-id/--cf-access-client-secret, or run from an allowed Access-authenticated context.');
+  }
   if (res.status !== 202 && res.status !== 200) throw new Error(`[phase3-safe] import POST unexpected status ${res.status}`);
   const json = parseJsonIfPossible(body) || {};
   return json?.import_job?.id;
@@ -132,7 +146,7 @@ async function postImport() {
 
 async function getImport(importId) {
   const { res, text: body } = await fetchText(`${baseUrl}/api/import/json/${importId}`, {
-    headers: { 'X-User-Id': userId },
+    headers: { 'X-User-Id': userId, ...accessHeaders() },
   });
   console.log(`[phase3-safe] import GET status=${res.status}`);
   if (body) console.log(`[phase3-safe] import GET body=${body}`);
@@ -145,7 +159,7 @@ async function getImport(importId) {
     assertValidBaseUrl(baseUrl);
     assertValidTimeoutMs(requestTimeoutMs);
     console.log('[phase3-safe] Starting consolidated phase3 check');
-    console.log(`[phase3-safe] baseUrl=${baseUrl} userId=${userId} requestTimeoutMs=${requestTimeoutMs}`);
+    console.log(`[phase3-safe] baseUrl=${baseUrl} userId=${userId} requestTimeoutMs=${requestTimeoutMs} cfAccessHeaders=${cfAccessClientId && cfAccessClientSecret ? 'present' : 'absent'}`);
 
     if (!skipDeploy) {
       runStep('Step A: Deploy worker', 'npx', ['wrangler', 'deploy', '--config', path.join(scriptDir, 'wrangler.toml')]);
@@ -165,6 +179,10 @@ async function getImport(importId) {
     failed = true;
     const message = String(err?.message || err);
     console.error(message);
+    if (message.includes('import POST unauthorized (401)')) {
+      console.error('[phase3-safe] Next action: rerun with Access service token headers.');
+      console.error('[phase3-safe] Example: node ./run-phase3-safe-check.mjs --skip-deploy --base-url ' + baseUrl + ' --user-id ' + userId + ' --request-timeout-ms ' + requestTimeoutMs + ' --cf-access-client-id <id> --cf-access-client-secret <secret>');
+    }
     if (message.includes('all-system-endpoints-404=true')) {
       console.error('[phase3-safe] Next action: deploy this worker target and rerun phase3 check.');
       console.error('[phase3-safe] Deploy command: npx wrangler deploy --config ./wrangler.toml');
