@@ -41,28 +41,28 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Add audit logging on mutation endpoints
 
 ## Phase 3 — Import Bridge
-- [x] Implement `/api/import/json`
-- [x] Add idempotency protection for repeated imports
-- [x] Generate reconciliation report (pre/post totals)
+- [ ] Implement `/api/import/json`
+- [ ] Add idempotency protection for repeated imports
+- [ ] Generate reconciliation report (pre/post totals)
 
 ## Phase 4 — Trading + FIFO
-- [x] Implement server-side batches CRUD
-- [x] Implement server-side trades CRUD with FIFO recompute
-- [x] Persist allocations to `trade_allocations`
+- [ ] Implement server-side batches CRUD
+- [ ] Implement server-side trades CRUD with FIFO recompute
+- [ ] Persist allocations to `trade_allocations`
 
 ## Phase 5 — Deals + Settlement + Journal
-- [x] Implement deals lifecycle endpoints
-- [x] Implement settlement write/read endpoints
-- [x] Implement journal write-through for financial events
+- [ ] Implement deals lifecycle endpoints
+- [ ] Implement settlement write/read endpoints
+- [ ] Implement journal write-through for financial events
 
 ## Phase 6 — KPI Read Models
-- [x] Implement `/api/dashboard/kpis`
-- [x] Implement `/api/deals/kpis`
-- [x] Validate KPI parity against baseline
+- [ ] Implement `/api/dashboard/kpis`
+- [ ] Implement `/api/deals/kpis`
+- [ ] Validate KPI parity against baseline
 
 ## Phase 7 — Frontend Rewire
-- [x] Replace critical localStorage mutation paths with API calls
-- [x] Enable API-only mode behind feature flag
+- [ ] Replace critical localStorage mutation paths with API calls
+- [ ] Enable API-only mode behind feature flag
 
 ## Phase 8 — Cutover & Reconciliation
 - [ ] Complete staging reconciliation sign-off
