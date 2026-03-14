@@ -18,22 +18,30 @@ const skipDeploy = flag('--skip-deploy');
 const userId = arg('--user-id', 'phase3-safe-user');
 const idemKey = arg('--idempotency-key', `phase3-${Date.now()}`);
 
-function quote(argValue) {
-  const v = String(argValue);
-  if (!/[\s"']/g.test(v)) return v;
-  return `"${v.replace(/"/g, '\\"')}"`;
+
+function assertValidBaseUrl(value) {
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(`[phase3-safe] Invalid --base-url: ${value}`);
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error(`[phase3-safe] Invalid --base-url protocol: ${parsed.protocol}`);
+  }
 }
 
 function runStep(name, cmd, cmdArgs) {
   console.log(`[phase3-safe] ${name}`);
-  const parts = [cmd, ...cmdArgs].map(quote);
-  const command = parts.join(' ');
-  const out = spawnSync(command, {
+  const out = spawnSync(cmd, cmdArgs, {
     stdio: 'inherit',
-    shell: true,
+    shell: process.platform === 'win32',
   });
-  const code = Number(out.status ?? out.signal ?? 1);
-  if (code !== 0) throw new Error(`[phase3-safe] ${name} failed with exit code ${code}`);
+  const code = Number(out.status ?? 1);
+  if (code !== 0) {
+    const signal = out.signal ? ` signal=${out.signal}` : '';
+    throw new Error(`[phase3-safe] ${name} failed with exit code ${code}${signal}`);
+  }
 }
 
 
@@ -117,6 +125,7 @@ async function getImport(importId) {
 (async () => {
   let failed = false;
   try {
+    assertValidBaseUrl(baseUrl);
     console.log('[phase3-safe] Starting consolidated phase3 check');
     console.log(`[phase3-safe] baseUrl=${baseUrl} userId=${userId}`);
 
