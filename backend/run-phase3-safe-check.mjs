@@ -55,9 +55,13 @@ async function verifySystemEndpointsInline() {
   const mig = results['/api/system/migrations'];
   const versionOk = results['/api/system/version']?.ok;
   const has001 = !!(mig?.ok && Array.isArray(mig?.data?.migrations) && mig.data.migrations.some((m) => String(m?.version) === '001'));
+  const all404 = endpoints.every((ep) => results[ep]?.status === 404);
 
   if (!healthOk || !has001 || !versionOk) {
-    throw new Error(`[phase3-safe] Inline verify failed: health.ok=${healthOk} version001=${has001} versionEndpoint=${versionOk}`);
+    const staleDeployHint = all404
+      ? ' all-system-endpoints-404=true (likely stale deployment or wrong --base-url)'
+      : '';
+    throw new Error(`[phase3-safe] Inline verify failed: health.ok=${healthOk} version001=${has001} versionEndpoint=${versionOk}${staleDeployHint}`);
   }
   console.log('[phase3-safe] Step B PASS: system endpoints validated');
 }
@@ -95,6 +99,7 @@ async function getImport(importId) {
 }
 
 (async () => {
+  let failed = false;
   try {
     console.log('[phase3-safe] Starting consolidated phase3 check');
     console.log(`[phase3-safe] baseUrl=${baseUrl} userId=${userId}`);
@@ -114,9 +119,15 @@ async function getImport(importId) {
 
     console.log('[phase3-safe] PASS: import bridge baseline endpoints verified');
   } catch (err) {
+    failed = true;
     console.error(String(err?.message || err));
     console.error('[phase3-safe] Hint: if Step A fails on Windows, run `npx wrangler deploy --config ./wrangler.toml` and rerun with --skip-deploy.');
     console.error('[phase3-safe] Required from you (User): paste full output of this command.');
-    process.exit(1);
+  } finally {
+    if (failed) {
+      process.exitCode = 1;
+      // Let Node exit gracefully on Windows to avoid libuv async-handle assertion crashes.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
   }
 })();
