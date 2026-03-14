@@ -102,7 +102,7 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     }
 
     default {
-      throw "Unknown argument: $rawArg"
+      throw "Unknown argument: $rawArg. Supported: -SkipDeploy -BaseUrl -UserId -RequestTimeoutMs -VerifyRetries -VerifyRetryDelayMs -CfAccessClientId -CfAccessClientSecret. If this looks valid, update your local script from latest branch."
     }
   }
 }
