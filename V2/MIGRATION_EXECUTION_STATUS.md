@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 19/46 tasks (41%)  `██████████░░░░░░░░░░░░░░`
+**Progress:** 20/46 tasks (43%)  `██████████░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -9,11 +9,12 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 ## Required from you now (Operator checklist)
 
-Please provide/execute the following to close remaining Phase 1 rollout items:
+Please provide/execute the following to continue Phase 2 implementation:
 
-1. Confirm whether this successful verification run should be recorded as `staging` or `production` evidence.
-2. If this was staging only, run the same deploy + verifier flow in production and paste output.
-3. Confirm whether I should mark `Apply 001_schema_migrations.sql in staging` and/or `production` as complete in `V2/MIGRATION_TASKS.md`.
+1. Run staging verification command and paste output:
+   - `npx wrangler d1 execute DB --remote --command "SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC;" --config ./wrangler.toml`
+2. Confirm this output is from the **staging** environment binding/account.
+3. Confirm whether I should begin Step 2.2 implementation with Cloudflare Access + logs-only audit sink.
 
 ## Update contract for all future status replies
 
@@ -30,7 +31,8 @@ The **Required from you (User)** line must be present after every step, even if 
 
 - **Phase 0 (Program Setup):** In Progress
 - **Phase 1 (Platform & Schema Foundation):** In Progress
-- **Phase 2+:** Not Started
+- **Phase 2 (Auth & Security Baseline):** In Progress
+- **Phase 3+:** Not Started
 
 ---
 
@@ -210,6 +212,13 @@ The **Required from you (User)** line must be present after every step, even if 
 4. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
 5. **Required from you (User):** Confirm whether this PASS output is staging or production evidence, then confirm if I should check off the corresponding migration-application tasks.
 
+### Step 1.20 — Environment scope confirmed as production
+1. **Step completed:** Recorded your confirmation that the successful deployment/verification evidence is for `production`.
+2. **Evidence:** User message: `production`; prior verifier evidence already shows `health.ok=true` and migration version `001` on target URL.
+3. **Next step (Agent):** Keep checklist and progress synchronized and close remaining Phase 1 items after staging confirmation.
+4. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** Confirm staging completion status for `001_schema_migrations.sql` and whether to proceed to Phase 2.
+
 ### Phase 1 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
@@ -217,10 +226,40 @@ The **Required from you (User)** line must be present after every step, even if 
    - System health/migrations endpoints added.
    - Migration runbook added.
 3. **Exit criteria status:**
-   - [ ] D1 migration registry applied in staging/prod. *(pending environment confirmation)*
+   - [ ] D1 migration registry applied in staging/prod. *(production confirmed; staging confirmation pending)*
    - [x] `/api/system/health` validated against deployed Worker.
    - [x] `/api/system/migrations` returns applied version `001`.
 4. **Next step (Agent):** Close remaining Phase 1 migration-application checklist entries once environment scope is confirmed.
 5. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
 6. **Required from you (User):** Confirm environment scope (staging vs production) for the PASS output and whether `Apply 001` tasks can be checked off.
 
+
+---
+
+## Phase 2 — Auth & Security Baseline
+
+### Step 2.1 — Phase 2 kickoff and execution baseline
+1. **Step completed:** Began Phase 2 by publishing an implementation baseline and execution sequence.
+2. **Evidence:** `V2/PHASE2_AUTH_SECURITY_BASELINE.md` created with scope, sequence, required user decisions, and exit criteria.
+3. **Next step (Agent):** Implement write-route inventory and auth guard skeleton in backend after you confirm auth model.
+4. **Next phase:** Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** None.
+
+### Step 2.2 — Phase 2 security decisions recorded
+1. **Step completed:** Recorded your Phase 2 selections for auth and audit strategy.
+2. **Evidence:** User inputs: `Cloudflare Access` for auth source and `logs only` for audit sink.
+3. **Next step (Agent):** Implement write-route auth guard skeleton (Cloudflare Access header checks) and logs-only mutation audit hook.
+4. **Next phase:** Phase 2 (Auth & Security Baseline).
+5. **Required from you (User):** Provide staging migration-query output so Phase 1 staging application can be confirmed.
+
+### Phase 2 summary
+1. **Phase status:** In Progress.
+2. **Completed in this phase:**
+   - Kickoff baseline document created.
+3. **Exit criteria status:**
+   - [ ] Auth/session middleware enforced on all write routes.
+   - [ ] Payload validation layer added for migration-sensitive endpoints.
+   - [ ] Audit logging added on mutation endpoints.
+4. **Next step (Agent):** Start Step 2.2 implementation using Cloudflare Access guard + logs-only audit hook.
+5. **Next phase:** Phase 2 (Auth & Security Baseline).
+6. **Required from you (User):** Provide staging migration-query output and confirm environment scope so Phase 1 can be fully closed.

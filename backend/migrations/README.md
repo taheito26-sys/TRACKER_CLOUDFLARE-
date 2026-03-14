@@ -77,6 +77,21 @@ Optional flags:
 .\run-phase1-oneshot.ps1 -D1Target "DB" -DbName "crypto-tracker" -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
 ```
 
+### How to confirm staging migration `001_schema_migrations.sql` is complete
+
+Use the staging account/environment context and run:
+
+```powershell
+cd C:\TRACKER_CLOUDFLARE-\backend
+npx wrangler d1 execute DB --remote --command "SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC;" --config .\wrangler.toml
+```
+
+`001_schema_migrations.sql` is confirmed in staging when the output contains a row with:
+- `version = 001`
+- description similar to `bootstrap schema migration registry`
+
+Then paste the command output in chat and explicitly state it was executed against **staging**.
+
 ## Verify migration registry table
 
 ```bash
