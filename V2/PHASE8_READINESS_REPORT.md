@@ -4,7 +4,7 @@
 - User ID header: `compat:ops@example.com`
 - Request timeout (ms): `20000`
 - Overall migration progress: `0/0 tasks (0%)  `░░░░░░░░░░░░░░░░░░░░░░░░``
-- Generated: 2026-03-14T22:20:42.438Z
+- Generated: 2026-03-14T22:30:49.360Z
 
 ## Gate Results
 - health_ok: **PASS**
@@ -26,7 +26,7 @@
   "ok": true,
   "service": "p2p-tracker",
   "version": "unknown",
-  "timestamp": "2026-03-14T22:20:37.114Z",
+  "timestamp": "2026-03-14T22:30:44.159Z",
   "endpoints": [
     "/api/system/health",
     "/api/system/migrations",
@@ -43,7 +43,7 @@
 {
   "ok": true,
   "service": "p2p-tracker",
-  "timestamp": "2026-03-14T22:20:37.143Z",
+  "timestamp": "2026-03-14T22:30:44.188Z",
   "bindings": {
     "db": true,
     "kv": true,
@@ -99,7 +99,7 @@
       "settlement_amount": 0
     }
   },
-  "timestamp": "2026-03-14T22:20:39.457Z"
+  "timestamp": "2026-03-14T22:30:46.528Z"
 }
 ```
 ### /api/system/cutover-readiness (HTTP 409)
@@ -151,7 +151,7 @@
       }
     }
   },
-  "timestamp": "2026-03-14T22:20:41.933Z"
+  "timestamp": "2026-03-14T22:30:48.860Z"
 }
 ```
 ### /api/system/reconciliation-summary (HTTP 200)
@@ -184,6 +184,6 @@
       "settlement_amount": 0
     }
   },
-  "timestamp": "2026-03-14T22:20:43.330Z"
+  "timestamp": "2026-03-14T22:30:50.262Z"
 }
 ```
