@@ -15,11 +15,19 @@ function flag(name) {
   return args.includes(name);
 }
 
+function parseIntArg(name, fallback, { min = Number.NEGATIVE_INFINITY } = {}) {
+  const value = Number(arg(name, String(fallback)));
+  if (!Number.isInteger(value) || value < min) {
+    throw new Error(`[phase2-safe] Invalid ${name}: expected integer >= ${min}`);
+  }
+  return value;
+}
+
 const baseUrl = arg('--base-url', 'https://p2p-tracker.taheito26.workers.dev').replace(/\/$/, '');
 const skipDeploy = flag('--skip-deploy');
-const expectStatus = Number(arg('--expect-status', '401'));
-const verifyRetries = Number(arg('--verify-retries', '3'));
-const verifyRetryDelayMs = Number(arg('--verify-retry-delay-ms', '1500'));
+const expectStatus = parseIntArg('--expect-status', 401, { min: 100 });
+const verifyRetries = parseIntArg('--verify-retries', 3, { min: 1 });
+const verifyRetryDelayMs = parseIntArg('--verify-retry-delay-ms', 1500, { min: 0 });
 
 function runStep(name, cmd, cmdArgs) {
   console.log(`[phase2-safe] ${name}`);
@@ -38,7 +46,7 @@ function runVerifyOnce() {
 }
 
 async function runVerifyWithRetries() {
-  let lastErr;
+  let lastErr = new Error('[phase2-safe] Step B failed without an explicit error');
   for (let attempt = 1; attempt <= verifyRetries; attempt++) {
     try {
       if (attempt > 1) {
