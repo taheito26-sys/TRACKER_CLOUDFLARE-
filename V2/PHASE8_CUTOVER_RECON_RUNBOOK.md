@@ -25,6 +25,7 @@ Expected:
 
 - `health.ok = true`
 - migrations include `001` and `002`
+- `/api/system/version.endpoints` includes `/api/system/reconciliation-summary`
 - `kpi-parity.ok = true`
 - `cutover-readiness.ok = true`
 - `reconciliation-summary.ok = true`
@@ -54,7 +55,9 @@ To automatically kick the next Phase 8 step after each commit/deploy, run:
 PHASE8_BASE="$BASE" PHASE8_USER_ID="<user>" node V2/scripts/phase8-autokick.mjs
 ```
 
-This wrapper executes `phase8-readiness-check.mjs`, writes `V2/PHASE8_READINESS_REPORT.md`, and prints the immediate next action based on result.
+This wrapper executes `phase8-readiness-check.mjs` (script path resolved relative to itself), writes `V2/PHASE8_READINESS_REPORT.md`, and prints the immediate next action based on result.
+
+Optional: set `PHASE8_TIMEOUT_MS` to override HTTP request timeout (default `15000`).
 
 ## 3) Reconciliation checklist (staging)
 

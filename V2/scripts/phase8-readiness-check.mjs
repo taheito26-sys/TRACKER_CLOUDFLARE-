@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 
+const REQUEST_TIMEOUT_MS = Number(process.env.PHASE8_TIMEOUT_MS || 15000);
+
 function usage() {
   console.log(`Usage:
   node V2/scripts/phase8-readiness-check.mjs --base <url> --user-id <id> [--out <file>]
 
 Example:
-  node V2/scripts/phase8-readiness-check.mjs \
-    --base https://p2p-tracker.taheito26.workers.dev \
-    --user-id compat:ops@example.com \
+  node V2/scripts/phase8-readiness-check.mjs \\
+    --base https://p2p-tracker.taheito26.workers.dev \\
+    --user-id compat:ops@example.com \\
     --out V2/PHASE8_READINESS_REPORT.md
 `);
 }
@@ -21,12 +23,16 @@ function parseArgs(argv) {
     else if (a === '--user-id') out.userId = argv[++i];
     else if (a === '--out') out.outFile = argv[++i];
     else if (a === '--help' || a === '-h') out.help = true;
+    else throw new Error(`Unknown argument: ${a}`);
   }
   return out;
 }
 
 async function fetchJson(url, headers = {}) {
-  const res = await fetch(url, { headers });
+  const res = await fetch(url, {
+    headers,
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
   const text = await res.text();
   let json = null;
   try { json = text ? JSON.parse(text) : {}; } catch { json = { raw: text }; }
@@ -69,10 +75,15 @@ async function run() {
     ? checks.migrations.json.migrations.map((m) => String(m.version || ''))
     : [];
 
+  const advertisedEndpoints = Array.isArray(checks.version?.json?.endpoints)
+    ? checks.version.json.endpoints.map((e) => String(e))
+    : [];
+
   const gates = {
     health_ok: checks.health.ok && checks.health.json?.ok === true,
     migration_001: migrationVersions.includes('001'),
     migration_002: migrationVersions.includes('002'),
+    endpoint_reconciliation_advertised: advertisedEndpoints.includes('/api/system/reconciliation-summary'),
     kpi_parity_ok: checks.kpiParity.ok && checks.kpiParity.json?.ok === true,
     cutover_readiness_ok: checks.cutoverReadiness.ok && checks.cutoverReadiness.json?.ok === true,
     reconciliation_summary_ok: checks.reconciliationSummary.ok && checks.reconciliationSummary.json?.ok === true,
@@ -83,11 +94,13 @@ async function run() {
   const report = `# Phase 8 Readiness Report\n\n` +
     `- Base URL: \`${base}\`\n` +
     `- User ID header: \`${args.userId}\`\n` +
+    `- Request timeout (ms): \`${REQUEST_TIMEOUT_MS}\`\n` +
     `- Generated: ${new Date().toISOString()}\n\n` +
     `## Gate Results\n` +
     `- health_ok: **${passFail(gates.health_ok)}**\n` +
     `- migration_001: **${passFail(gates.migration_001)}**\n` +
     `- migration_002: **${passFail(gates.migration_002)}**\n` +
+    `- endpoint_reconciliation_advertised: **${passFail(gates.endpoint_reconciliation_advertised)}**\n` +
     `- kpi_parity_ok: **${passFail(gates.kpi_parity_ok)}**\n` +
     `- cutover_readiness_ok: **${passFail(gates.cutover_readiness_ok)}**\n` +
     `- reconciliation_summary_ok: **${passFail(gates.reconciliation_summary_ok)}**\n\n` +

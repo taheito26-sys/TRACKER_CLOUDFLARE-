@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const readinessScript = path.join(__dirname, 'phase8-readiness-check.mjs');
 
 const base = process.env.PHASE8_BASE || 'https://p2p-tracker.taheito26.workers.dev';
 const userId = process.env.PHASE8_USER_ID || 'compat:phase8-autokick';
@@ -10,7 +16,7 @@ console.log(`[phase8-autokick] userId=${userId}`);
 console.log(`[phase8-autokick] out=${outFile}`);
 
 const res = spawnSync(process.execPath, [
-  'V2/scripts/phase8-readiness-check.mjs',
+  readinessScript,
   '--base', base,
   '--user-id', userId,
   '--out', outFile,
