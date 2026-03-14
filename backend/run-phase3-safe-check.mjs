@@ -36,6 +36,32 @@ function runStep(name, cmd, cmdArgs) {
   if (code !== 0) throw new Error(`[phase3-safe] ${name} failed with exit code ${code}`);
 }
 
+
+async function verifySystemEndpointsInline() {
+  console.log('[phase3-safe] Step B: Verify system endpoints (inline)');
+  const endpoints = ['/api/system/health', '/api/system/migrations', '/api/system/version'];
+  const results = {};
+  for (const ep of endpoints) {
+    const url = `${baseUrl}${ep}`;
+    const res = await fetch(url, { method: 'GET' });
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch {}
+    results[ep] = { status: res.status, ok: res.ok, data, text };
+    console.log(`[phase3-safe] ${ep} status=${res.status}`);
+  }
+
+  const healthOk = results['/api/system/health']?.ok && results['/api/system/health']?.data?.ok === true;
+  const mig = results['/api/system/migrations'];
+  const versionOk = results['/api/system/version']?.ok;
+  const has001 = !!(mig?.ok && Array.isArray(mig?.data?.migrations) && mig.data.migrations.some((m) => String(m?.version) === '001'));
+
+  if (!healthOk || !has001 || !versionOk) {
+    throw new Error(`[phase3-safe] Inline verify failed: health.ok=${healthOk} version001=${has001} versionEndpoint=${versionOk}`);
+  }
+  console.log('[phase3-safe] Step B PASS: system endpoints validated');
+}
+
 async function postImport() {
   const payload = {
     idempotency_key: idemKey,
@@ -77,7 +103,7 @@ async function getImport(importId) {
       runStep('Step A: Deploy worker', 'npx', ['wrangler', 'deploy', '--config', path.join(scriptDir, 'wrangler.toml')]);
     }
 
-    runStep('Step B: Verify system endpoints', 'node', [path.join(scriptDir, 'scripts', 'verify-system-endpoints.mjs'), '--base-url', baseUrl]);
+    await verifySystemEndpointsInline();
 
     console.log('[phase3-safe] Step C: POST /api/import/json');
     const importId = await postImport();
