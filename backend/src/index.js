@@ -1966,6 +1966,337 @@ async function pollAndStore(env) {
   await env.P2P_KV.put(`p2p:day:${today}`, JSON.stringify(day), { expirationTtl: 172800 });
   return { snapshot, history, day };
 }
+
+
+async function ensurePhase5FinancialTables(db) {
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS deals (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      deal_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      principal_amount REAL NOT NULL CHECK (principal_amount > 0),
+      currency TEXT NOT NULL,
+      status TEXT NOT NULL,
+      issued_at TEXT NOT NULL,
+      due_at TEXT,
+      settled_at TEXT,
+      metadata_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+  await d1Run(db, `CREATE INDEX IF NOT EXISTS idx_deals_user_status_time ON deals(user_id, status, issued_at, id)`);
+
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS settlements (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      deal_ids_json TEXT NOT NULL,
+      amount REAL NOT NULL CHECK (amount > 0),
+      currency TEXT NOT NULL,
+      status TEXT NOT NULL,
+      note TEXT,
+      settled_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+  await d1Run(db, `CREATE INDEX IF NOT EXISTS idx_settlements_user_time ON settlements(user_id, settled_at, id)`);
+
+  await d1Run(db, `
+    CREATE TABLE IF NOT EXISTS journal_entries (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      entry_type TEXT NOT NULL,
+      ref_type TEXT NOT NULL,
+      ref_id TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT NOT NULL,
+      debit_account TEXT,
+      credit_account TEXT,
+      note TEXT,
+      metadata_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+  await d1Run(db, `CREATE INDEX IF NOT EXISTS idx_journal_entries_user_time ON journal_entries(user_id, created_at, id)`);
+}
+
+function normalizeCurrency(value, fieldName = 'currency') {
+  const c = String(value || '').trim().toUpperCase();
+  if (!c) throw new HttpError(400, `${fieldName} is required`);
+  if (!/^[A-Z]{3,8}$/.test(c)) throw new HttpError(400, `${fieldName} format is invalid`);
+  return c;
+}
+
+function parseDealType(value) {
+  const v = String(value || '').trim().toLowerCase();
+  const allowed = ['advance', 'purchase', 'profit_share', 'pool', 'general'];
+  if (!allowed.includes(v)) throw new HttpError(400, `deal_type must be one of: ${allowed.join(', ')}`);
+  return v;
+}
+
+function parseDealStatus(value) {
+  const v = String(value || '').trim().toLowerCase();
+  const allowed = ['active', 'due', 'overdue', 'settled', 'cancelled'];
+  if (!allowed.includes(v)) throw new HttpError(400, `status must be one of: ${allowed.join(', ')}`);
+  return v;
+}
+
+async function writeJournalEntry(db, userId, entry) {
+  const row = {
+    id: randomId('jrn_'),
+    user_id: userId,
+    entry_type: String(entry.entry_type || 'event').trim().toLowerCase(),
+    ref_type: String(entry.ref_type || 'unknown').trim().toLowerCase(),
+    ref_id: String(entry.ref_id || '').trim(),
+    amount: Number(entry.amount || 0),
+    currency: normalizeCurrency(entry.currency || 'QAR'),
+    debit_account: optionalStringField(entry, 'debit_account', { max: 120, fallback: '' }),
+    credit_account: optionalStringField(entry, 'credit_account', { max: 120, fallback: '' }),
+    note: optionalStringField(entry, 'note', { max: 1000, fallback: '' }),
+    metadata_json: JSON.stringify(asPlainObject(entry.metadata)),
+    created_at: nowIso(),
+  };
+  if (!row.ref_id) throw new HttpError(400, 'Journal ref_id is required');
+  if (!Number.isFinite(row.amount)) throw new HttpError(400, 'Journal amount must be a valid number');
+
+  await d1Run(db, `
+    INSERT INTO journal_entries
+      (id, user_id, entry_type, ref_type, ref_id, amount, currency, debit_account, credit_account, note, metadata_json, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, row.id, row.user_id, row.entry_type, row.ref_type, row.ref_id, row.amount, row.currency, row.debit_account, row.credit_account, row.note, row.metadata_json, row.created_at);
+  return row;
+}
+
+async function handleFinancials(request, env) {
+  if (!env.DB) return bad(request, env, 'D1 binding DB is not configured', 500);
+  const db = env.DB;
+  const url = new URL(request.url);
+  const method = request.method.toUpperCase();
+
+  let user;
+  try {
+    user = await getUserContext(request, env);
+  } catch (err) {
+    return bad(request, env, err.message || 'Unauthorized', 401);
+  }
+
+  try {
+    await ensurePhase5FinancialTables(db);
+
+    const dealByIdMatch = url.pathname.match(/^\/api\/deals\/([^/]+)$/);
+    const dealSettleMatch = url.pathname.match(/^\/api\/deals\/([^/]+)\/settle$/);
+    const settlementByIdMatch = url.pathname.match(/^\/api\/settlements\/([^/]+)$/);
+
+    if (method === 'GET' && url.pathname === '/api/deals') {
+      const status = String(url.searchParams.get('status') || '').trim().toLowerCase();
+      const dealType = String(url.searchParams.get('deal_type') || '').trim().toLowerCase();
+      let rows;
+      if (status && dealType) {
+        rows = await d1All(db, `SELECT * FROM deals WHERE user_id = ? AND status = ? AND deal_type = ? ORDER BY issued_at DESC, id DESC`, user.userId, status, dealType);
+      } else if (status) {
+        rows = await d1All(db, `SELECT * FROM deals WHERE user_id = ? AND status = ? ORDER BY issued_at DESC, id DESC`, user.userId, status);
+      } else if (dealType) {
+        rows = await d1All(db, `SELECT * FROM deals WHERE user_id = ? AND deal_type = ? ORDER BY issued_at DESC, id DESC`, user.userId, dealType);
+      } else {
+        rows = await d1All(db, `SELECT * FROM deals WHERE user_id = ? ORDER BY issued_at DESC, id DESC`, user.userId);
+      }
+      return json(request, env, { deals: rows.map(r => ({ ...r, metadata: safeJsonParse(r.metadata_json, {}) })) });
+    }
+
+    if (method === 'POST' && url.pathname === '/api/deals') {
+      const body = asPlainObject(await readJson(request));
+      const row = {
+        id: randomId('deal_'),
+        user_id: user.userId,
+        deal_type: parseDealType(body.deal_type || 'general'),
+        title: requireStringField(body, 'title', { min: 3, max: 160 }),
+        principal_amount: requirePositiveNumberField(body, 'principal_amount'),
+        currency: normalizeCurrency(body.currency || 'QAR'),
+        status: parseDealStatus(String(body.status || 'active')),
+        issued_at: toIsoTimestamp(body.issued_at || nowIso(), 'issued_at'),
+        due_at: body.due_at ? toIsoTimestamp(body.due_at, 'due_at') : null,
+        settled_at: null,
+        metadata_json: JSON.stringify(asPlainObject(body.metadata)),
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      await d1Run(db, `
+        INSERT INTO deals
+          (id, user_id, deal_type, title, principal_amount, currency, status, issued_at, due_at, settled_at, metadata_json, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, row.id, row.user_id, row.deal_type, row.title, row.principal_amount, row.currency, row.status, row.issued_at, row.due_at, row.settled_at, row.metadata_json, row.created_at, row.updated_at);
+
+      const journal = await writeJournalEntry(db, user.userId, {
+        entry_type: 'deal_created',
+        ref_type: 'deal',
+        ref_id: row.id,
+        amount: row.principal_amount,
+        currency: row.currency,
+        debit_account: 'deal_receivable',
+        credit_account: 'cash_out',
+        note: `Deal created: ${row.title}`,
+        metadata: { deal_type: row.deal_type },
+      });
+
+      return json(request, env, { ok: true, deal: { ...row, metadata: safeJsonParse(row.metadata_json, {}) }, journal }, 201);
+    }
+
+    if (method === 'GET' && dealByIdMatch) {
+      const id = dealByIdMatch[1];
+      const row = await d1First(db, `SELECT * FROM deals WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!row) return bad(request, env, 'Deal not found', 404);
+      return json(request, env, { deal: { ...row, metadata: safeJsonParse(row.metadata_json, {}) } });
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && dealByIdMatch) {
+      const id = dealByIdMatch[1];
+      const existing = await d1First(db, `SELECT * FROM deals WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Deal not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const next = {
+        deal_type: body.deal_type != null ? parseDealType(body.deal_type) : existing.deal_type,
+        title: body.title != null ? requireStringField(body, 'title', { min: 3, max: 160 }) : existing.title,
+        principal_amount: body.principal_amount != null ? requirePositiveNumberField(body, 'principal_amount') : Number(existing.principal_amount),
+        currency: body.currency != null ? normalizeCurrency(body.currency) : existing.currency,
+        status: body.status != null ? parseDealStatus(body.status) : existing.status,
+        issued_at: body.issued_at != null ? toIsoTimestamp(body.issued_at, 'issued_at') : existing.issued_at,
+        due_at: body.due_at != null ? (body.due_at ? toIsoTimestamp(body.due_at, 'due_at') : null) : existing.due_at,
+        settled_at: body.settled_at != null ? (body.settled_at ? toIsoTimestamp(body.settled_at, 'settled_at') : null) : existing.settled_at,
+        metadata_json: body.metadata != null ? JSON.stringify(asPlainObject(body.metadata)) : existing.metadata_json,
+      };
+      await d1Run(db, `
+        UPDATE deals
+        SET deal_type = ?, title = ?, principal_amount = ?, currency = ?, status = ?, issued_at = ?, due_at = ?, settled_at = ?, metadata_json = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+      `, next.deal_type, next.title, next.principal_amount, next.currency, next.status, next.issued_at, next.due_at, next.settled_at, next.metadata_json, nowIso(), id, user.userId);
+      const row = await d1First(db, `SELECT * FROM deals WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      return json(request, env, { ok: true, deal: { ...row, metadata: safeJsonParse(row.metadata_json, {}) } });
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && dealSettleMatch) {
+      const id = dealSettleMatch[1];
+      const deal = await d1First(db, `SELECT * FROM deals WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!deal) return bad(request, env, 'Deal not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const amount = body.amount == null ? Number(deal.principal_amount) : requirePositiveNumberField(body, 'amount');
+      const currency = normalizeCurrency(body.currency || deal.currency);
+      const settledAt = body.settled_at ? toIsoTimestamp(body.settled_at, 'settled_at') : nowIso();
+      const settlement = {
+        id: randomId('set_'),
+        user_id: user.userId,
+        deal_ids_json: JSON.stringify([deal.id]),
+        amount,
+        currency,
+        status: 'completed',
+        note: optionalStringField(body, 'note', { max: 1000, fallback: '' }),
+        settled_at: settledAt,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      await d1Run(db, `
+        INSERT INTO settlements
+          (id, user_id, deal_ids_json, amount, currency, status, note, settled_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, settlement.id, settlement.user_id, settlement.deal_ids_json, settlement.amount, settlement.currency, settlement.status, settlement.note, settlement.settled_at, settlement.created_at, settlement.updated_at);
+      await d1Run(db, `UPDATE deals SET status = 'settled', settled_at = ?, updated_at = ? WHERE id = ? AND user_id = ?`, settledAt, nowIso(), deal.id, user.userId);
+      const journal = await writeJournalEntry(db, user.userId, {
+        entry_type: 'deal_settled',
+        ref_type: 'settlement',
+        ref_id: settlement.id,
+        amount: settlement.amount,
+        currency: settlement.currency,
+        debit_account: 'cash_in',
+        credit_account: 'deal_receivable',
+        note: settlement.note || `Deal settled: ${deal.title}`,
+        metadata: { deal_id: deal.id },
+      });
+      return json(request, env, { ok: true, settlement: { ...settlement, deal_ids: [deal.id] }, journal });
+    }
+
+    if (method === 'GET' && url.pathname === '/api/settlements') {
+      const rows = await d1All(db, `SELECT * FROM settlements WHERE user_id = ? ORDER BY settled_at DESC, id DESC`, user.userId);
+      return json(request, env, { settlements: rows.map(r => ({ ...r, deal_ids: safeJsonParse(r.deal_ids_json, []) })) });
+    }
+
+    if (method === 'POST' && url.pathname === '/api/settlements') {
+      const body = asPlainObject(await readJson(request));
+      const dealIds = Array.isArray(body.deal_ids) ? body.deal_ids.map(x => String(x || '').trim()).filter(Boolean) : [];
+      if (!dealIds.length) throw new HttpError(400, 'deal_ids must contain at least one deal id');
+      const amount = requirePositiveNumberField(body, 'amount');
+      const currency = normalizeCurrency(body.currency || 'QAR');
+      const settledAt = body.settled_at ? toIsoTimestamp(body.settled_at, 'settled_at') : nowIso();
+      const status = String(body.status || 'pending').trim().toLowerCase();
+      if (!['pending', 'completed', 'cancelled'].includes(status)) throw new HttpError(400, 'status must be pending, completed, or cancelled');
+
+      const existingDeals = await d1All(db, `SELECT id FROM deals WHERE user_id = ? AND id IN (${dealIds.map(() => '?').join(',')})`, user.userId, ...dealIds);
+      if (existingDeals.length !== dealIds.length) throw new HttpError(400, 'One or more deal_ids do not exist');
+
+      const row = {
+        id: randomId('set_'),
+        user_id: user.userId,
+        deal_ids_json: JSON.stringify(dealIds),
+        amount,
+        currency,
+        status,
+        note: optionalStringField(body, 'note', { max: 1000, fallback: '' }),
+        settled_at: settledAt,
+        created_at: nowIso(),
+        updated_at: nowIso(),
+      };
+      await d1Run(db, `
+        INSERT INTO settlements
+          (id, user_id, deal_ids_json, amount, currency, status, note, settled_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, row.id, row.user_id, row.deal_ids_json, row.amount, row.currency, row.status, row.note, row.settled_at, row.created_at, row.updated_at);
+
+      if (status === 'completed') {
+        await d1Run(db, `UPDATE deals SET status = 'settled', settled_at = ?, updated_at = ? WHERE user_id = ? AND id IN (${dealIds.map(() => '?').join(',')})`, settledAt, nowIso(), user.userId, ...dealIds);
+      }
+
+      const journal = await writeJournalEntry(db, user.userId, {
+        entry_type: 'settlement_recorded',
+        ref_type: 'settlement',
+        ref_id: row.id,
+        amount: row.amount,
+        currency: row.currency,
+        debit_account: 'cash_in',
+        credit_account: 'deal_receivable',
+        note: row.note || 'Settlement recorded',
+        metadata: { deal_ids: dealIds, status: row.status },
+      });
+
+      return json(request, env, { ok: true, settlement: { ...row, deal_ids: dealIds }, journal }, 201);
+    }
+
+    if ((method === 'PUT' || method === 'PATCH') && settlementByIdMatch) {
+      const id = settlementByIdMatch[1];
+      const existing = await d1First(db, `SELECT * FROM settlements WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      if (!existing) return bad(request, env, 'Settlement not found', 404);
+      const body = asPlainObject(await readJson(request));
+      const nextStatus = body.status != null ? String(body.status).trim().toLowerCase() : String(existing.status || '').trim().toLowerCase();
+      if (!['pending', 'completed', 'cancelled'].includes(nextStatus)) throw new HttpError(400, 'status must be pending, completed, or cancelled');
+      const nextNote = body.note != null ? optionalStringField(body, 'note', { max: 1000, fallback: '' }) : String(existing.note || '');
+      await d1Run(db, `UPDATE settlements SET status = ?, note = ?, updated_at = ? WHERE id = ? AND user_id = ?`, nextStatus, nextNote, nowIso(), id, user.userId);
+      const row = await d1First(db, `SELECT * FROM settlements WHERE id = ? AND user_id = ? LIMIT 1`, id, user.userId);
+      return json(request, env, { ok: true, settlement: { ...row, deal_ids: safeJsonParse(row.deal_ids_json, []) } });
+    }
+
+    if (method === 'GET' && url.pathname === '/api/journal') {
+      const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500);
+      const rows = await d1All(db, `SELECT * FROM journal_entries WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ?`, user.userId, limit);
+      return json(request, env, { journal: rows.map(r => ({ ...r, metadata: safeJsonParse(r.metadata_json, {}) })) });
+    }
+
+    return bad(request, env, 'Not found', 404);
+  } catch (err) {
+    const status = Number(err?.status) || 500;
+    return bad(request, env, err?.message || 'Financial API error', status);
+  }
+}
+
 async function handleP2P(request, env) {
   const url = new URL(request.url);
   if (url.pathname === "/api/p2p" || url.pathname === "/") {
@@ -2115,6 +2446,9 @@ export default {
       }
       if (!response && (url.pathname.startsWith('/api/batches') || url.pathname.startsWith('/api/trades'))) {
         response = await handleTrading(request, env);
+      }
+      if (!response && (url.pathname.startsWith('/api/deals') || url.pathname.startsWith('/api/settlements') || url.pathname.startsWith('/api/journal'))) {
+        response = await handleFinancials(request, env);
       }
       if (!response) {
         const p2p = await handleP2P(request, env);
