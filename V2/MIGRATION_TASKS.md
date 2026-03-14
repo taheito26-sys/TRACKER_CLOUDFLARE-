@@ -66,8 +66,9 @@ node V2/scripts/update-migration-progress.mjs
 
 ## Phase 8 — Cutover & Reconciliation
 - [x] Complete staging reconciliation sign-off
-- [ ] Execute production cutover
+- [x] Execute production cutover
 
 ## Phase 9 — LocalStorage Decommission
 - [ ] Remove remaining financial localStorage writes
 - [ ] Close 7-day post-cutover stability window
+
