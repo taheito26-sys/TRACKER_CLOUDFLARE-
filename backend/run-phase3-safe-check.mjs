@@ -18,8 +18,8 @@ const skipDeploy = flag('--skip-deploy');
 const userId = arg('--user-id', 'phase3-safe-user');
 const idemKey = arg('--idempotency-key', `phase3-${Date.now()}`);
 const requestTimeoutMs = Number(arg('--request-timeout-ms', '15000'));
-const cfAccessClientId = arg('--cf-access-client-id', '').trim();
-const cfAccessClientSecret = arg('--cf-access-client-secret', '').trim();
+const cfAccessClientId = arg('--cf-access-client-id', process.env.CF_ACCESS_CLIENT_ID || '').trim();
+const cfAccessClientSecret = arg('--cf-access-client-secret', process.env.CF_ACCESS_CLIENT_SECRET || '').trim();
 
 
 function assertValidBaseUrl(value) {

@@ -3,8 +3,8 @@ $SkipDeploy = $false
 $UserId = "phase3-safe-user"
 $IdempotencyKey = $null
 $RequestTimeoutMs = 15000
-$CfAccessClientId = $null
-$CfAccessClientSecret = $null
+$CfAccessClientId = $env:CF_ACCESS_CLIENT_ID
+$CfAccessClientSecret = $env:CF_ACCESS_CLIENT_SECRET
 
 for ($i = 0; $i -lt $args.Count; $i++) {
   $arg = [string]$args[$i]
