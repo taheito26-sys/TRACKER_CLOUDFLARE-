@@ -2,6 +2,9 @@
 const BINANCE = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search";
 const JWKS_CACHE = new Map();
 const JWKS_TTL_MS = 60 * 60 * 1000;
+const P2P_POLL_MINUTES = 5;
+const P2P_HISTORY_DAYS = 7;
+const P2P_HISTORY_POINTS = (60 / P2P_POLL_MINUTES) * 24 * P2P_HISTORY_DAYS; // 2016
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -1864,8 +1867,8 @@ async function pollAndStore(env) {
     if (!Array.isArray(history)) history = [];
   } catch {}
   history.push({ ts, sellAvg: sellSide.avg, buyAvg: buySide.avg, spread, spreadPct });
-  if (history.length > 720) history = history.slice(-720);
-  await env.P2P_KV.put("p2p:history", JSON.stringify(history), { expirationTtl: 90000 });
+  if (history.length > P2P_HISTORY_POINTS) history = history.slice(-P2P_HISTORY_POINTS);
+  await env.P2P_KV.put("p2p:history", JSON.stringify(history), { expirationTtl: 691200 });
   const today = new Date(ts).toISOString().slice(0, 10);
   let day = { date: today, highSell: 0, lowSell: null, highBuy: 0, lowBuy: null, polls: 0 };
   try {
