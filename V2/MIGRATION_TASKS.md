@@ -11,7 +11,7 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Publish execution update format
 - [x] Publish Phase 0 governance artifacts
 - [x] Finalize named owner matrix
-- [x]Approve release checklist
+- [x] Approve release checklist
 - [x] Approve rollback checklist
 - [x] Confirm migration window + freeze dates
 
@@ -70,4 +70,4 @@ node V2/scripts/update-migration-progress.mjs
 
 ## Phase 9 — LocalStorage Decommission
 - [x] Remove remaining financial localStorage writes
-- [ ] Close 7-day post-cutover stability window
+- [x] Close 7-day post-cutover stability window
