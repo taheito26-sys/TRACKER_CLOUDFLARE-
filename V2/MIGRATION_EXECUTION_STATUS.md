@@ -1,10 +1,10 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Overall Progress:** 41/46 tasks (89%)  `█████████████████████░░░`
+**Overall Progress:** 44/45 tasks (98%)  `████████████████████████`
 
 **Per-Phase Progress**
-- **Phase 0 — Program Setup:** 3/7 (43%)  `███████░░░░░░░░░`
+- **Phase 0 — Program Setup:** 6/6 (100%)  `████████████████`
 - **Phase 1 — Platform & Schema Foundation:** 18/18 (100%)  `████████████████`
 - **Phase 2 — Auth & Security Baseline:** 3/3 (100%)  `████████████████`
 - **Phase 3 — Import Bridge:** 3/3 (100%)  `████████████████`
