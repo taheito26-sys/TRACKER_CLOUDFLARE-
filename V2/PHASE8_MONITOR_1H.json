@@ -1,0 +1,14 @@
+﻿[
+    {
+        "ts":  "2026-03-15T03:02:39.7484457+03:00",
+        "health_ok":  true,
+        "readiness_ok":  true,
+        "recon_ok":  true
+    },
+    {
+        "ts":  "2026-03-15T03:07:43.7618954+03:00",
+        "health_ok":  true,
+        "readiness_ok":  true,
+        "recon_ok":  true
+    }
+]
