@@ -41,6 +41,15 @@ function line(items) {
   return items.map((it) => `- [ ] ${it.phase}: ${it.text}`).join('\n');
 }
 
+function topRequiredFromUser(preCutoverBlockers, maxItems = 5) {
+  const items = preCutoverBlockers.slice(0, maxItems);
+  const lines = items.length
+    ? items.map((it, idx) => `${idx + 1}. ${it.phase}: ${it.text}`).join('\n')
+    : '1. None.';
+  const remaining = Math.max(0, preCutoverBlockers.length - items.length);
+  return { lines, remaining, shown: items.length };
+}
+
 function run() {
   const md = fs.readFileSync(TASKS_FILE, 'utf8');
   const phases = parseChecklist(md);
@@ -49,11 +58,15 @@ function run() {
   const preCutoverBlockers = all.filter((i) => !i.done && i.number <= 8);
   const postCutoverFollowups = all.filter((i) => !i.done && i.number >= 9);
 
+  const required = topRequiredFromUser(preCutoverBlockers, 5);
+
   const report = `# Go-Live Readiness Gap Report\n\n` +
     `Generated: ${new Date().toISOString()}\n\n` +
     `## Summary\n` +
     `- Pre-cutover blockers (Phase 0-8): **${preCutoverBlockers.length}**\n` +
     `- Post-cutover follow-ups (Phase 9+): **${postCutoverFollowups.length}**\n\n` +
+    `## Required from you (User) (max 5)\n${required.lines}\n` +
+    `${required.remaining > 0 ? `\nAdditional unresolved pre-cutover items: ${required.remaining} (see full blocker list below).\n` : '\n'}\n` +
     `## Pre-cutover blockers (must be resolved before production go-live)\n${line(preCutoverBlockers)}\n\n` +
     `## Post-cutover follow-ups\n${line(postCutoverFollowups)}\n\n` +
     `## Execution commands\n` +
