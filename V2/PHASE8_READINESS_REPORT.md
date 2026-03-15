@@ -2,18 +2,21 @@
 
 - Base URL: `https://p2p-tracker.taheito26.workers.dev`
 - User ID header: `compat:you@example.com`
-- Generated: 2026-03-14T10:30:05.118Z
+- Request timeout (ms): `15000`
+- Overall migration progress: `37/46 tasks (80%)  `███████████████████░░░░░``
+- Generated: 2026-03-14T19:51:31.821Z
 
 ## Gate Results
 - health_ok: **PASS**
 - migration_001: **PASS**
 - migration_002: **PASS**
+- endpoint_reconciliation_advertised: **PASS**
 - kpi_parity_ok: **PASS**
-- cutover_readiness_ok: **FAIL**
-- reconciliation_summary_ok: **FAIL**
+- cutover_readiness_ok: **PASS**
+- reconciliation_summary_ok: **PASS**
 
 ## Overall
-**FAIL**
+**PASS**
 
 ## Endpoint Evidence
 ### /api/system/version (HTTP 200)
@@ -23,7 +26,7 @@
   "ok": true,
   "service": "p2p-tracker",
   "version": "unknown",
-  "timestamp": "2026-03-14T10:30:00.923Z",
+  "timestamp": "2026-03-14T19:51:26.365Z",
   "endpoints": [
     "/api/system/health",
     "/api/system/migrations",
@@ -40,7 +43,7 @@
 {
   "ok": true,
   "service": "p2p-tracker",
-  "timestamp": "2026-03-14T10:30:00.961Z",
+  "timestamp": "2026-03-14T19:51:26.393Z",
   "bindings": {
     "db": true,
     "kv": true,
@@ -89,28 +92,28 @@
       "cogs": 0,
       "gross_profit": 0,
       "net_profit": 0,
-      "total_deals": 0,
-      "deals_open_principal": 0,
+      "total_deals": 1,
+      "deals_open_principal": 1000,
       "deals_settled_principal": 0,
       "settlement_count": 0,
       "settlement_amount": 0
     }
   },
-  "timestamp": "2026-03-14T10:30:03.298Z"
+  "timestamp": "2026-03-14T19:51:28.845Z"
 }
 ```
-### /api/system/cutover-readiness (HTTP 409)
+### /api/system/cutover-readiness (HTTP 200)
 
 ```json
 {
-  "ok": false,
+  "ok": true,
   "readiness": {
-    "ok": false,
+    "ok": true,
     "checks": {
       "migration_001_applied": true,
       "migration_002_applied": true,
-      "trading_seeded": false,
-      "financial_seeded": false,
+      "trading_seeded": true,
+      "financial_seeded": true,
       "kpi_parity_ok": true
     },
     "migrations": [
@@ -118,10 +121,10 @@
       "002"
     ],
     "counts": {
-      "batches": 0,
+      "batches": 1,
       "trades": 0,
       "trade_allocations": 0,
-      "deals": 0,
+      "deals": 1,
       "settlements": 0,
       "journal_entries": 0
     },
@@ -140,21 +143,47 @@
         "cogs": 0,
         "gross_profit": 0,
         "net_profit": 0,
-        "total_deals": 0,
-        "deals_open_principal": 0,
+        "total_deals": 1,
+        "deals_open_principal": 1000,
         "deals_settled_principal": 0,
         "settlement_count": 0,
         "settlement_amount": 0
       }
     }
   },
-  "timestamp": "2026-03-14T10:30:05.648Z"
+  "timestamp": "2026-03-14T19:51:31.251Z"
 }
 ```
-### /api/system/reconciliation-summary (HTTP 404)
+### /api/system/reconciliation-summary (HTTP 200)
 
 ```json
 {
-  "error": "Not found"
+  "ok": true,
+  "summary": {
+    "counts": {
+      "batches": 1,
+      "trades": 0,
+      "trade_allocations": 0,
+      "deals": 1,
+      "settlements": 0,
+      "journal_entries": 0
+    },
+    "trading": {
+      "total_batch_qty": 100,
+      "total_batch_cost": 364,
+      "sell_qty": 0,
+      "sell_revenue": 0,
+      "allocated_qty": 0,
+      "allocated_cost": 0,
+      "sell_fees": 0,
+      "net_profit": 0
+    },
+    "deals": {
+      "open_principal": 1000,
+      "settled_principal": 0,
+      "settlement_amount": 0
+    }
+  },
+  "timestamp": "2026-03-14T19:51:32.646Z"
 }
 ```

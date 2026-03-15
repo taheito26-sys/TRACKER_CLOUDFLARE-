@@ -77,116 +77,6 @@ Optional flags:
 .\run-phase1-oneshot.ps1 -D1Target "DB" -DbName "crypto-tracker" -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
 ```
 
-
-### Send one production write request (unauth probe) — exact commands
-
-From PowerShell in `backend/`:
-
-```powershell
-cd C:\TRACKER_CLOUDFLARE-\backend
-curl.exe -i -X POST "https://p2p-tracker.taheito26.workers.dev/api/merchant/messages" -H "Content-Type: application/json" -d "{}"
-```
-
-Alternative (native PowerShell):
-
-```powershell
-cd C:\TRACKER_CLOUDFLARE-\backend
-try {
-  Invoke-WebRequest -Method POST -Uri "https://p2p-tracker.taheito26.workers.dev/api/merchant/messages" -ContentType "application/json" -Body "{}"
-} catch {
-  $_.Exception.Response.StatusCode.value__
-  $_.ErrorDetails.Message
-}
-```
-
-What to paste back in chat:
-- HTTP status line (or status code) from this request.
-- Response body JSON (especially `Unauthorized: missing Cloudflare Access identity headers` if 401).
-
-### What "representative payload sample" means
-
-A representative payload sample is one real JSON body your client sends to a write endpoint.
-
-Examples:
-
-```json
-{"body":"hello"}
-```
-for `POST /api/merchant/messages/<relationshipId>/messages`
-
-```json
-{"relationship_id":"rel_123","title":"Deal A","amount":1200,"currency":"USDT"}
-```
-for `POST /api/merchant/deals`
-
-If you do not share samples, default validation is used for core required fields.
-
-### How to confirm Cloudflare Access headers on production write requests
-
-Use this flow to capture proof that the write guard sees Cloudflare Access identity headers and to produce one write-route sample outcome.
-
-1) Start log tail in one terminal (from `backend/`):
-
-```powershell
-npx wrangler tail --format pretty --config .\wrangler.toml
-```
-
-2) In another terminal, send a write request to any mutation route (replace with a real write route in your app):
-
-```powershell
-# Example unauthenticated probe (should return 401 when guard is active)
-curl.exe -i -X POST "https://p2p-tracker.taheito26.workers.dev/api/merchant/messages" -H "Content-Type: application/json" -d "{}"
-```
-
-3) Capture these two artifacts and paste in chat:
-- The HTTP response snippet (status line + body) from step 2.
-- One `mutation_audit` log line from `wrangler tail` showing fields like `auth_mode`, `auth_source`, `actor`, `status`, `outcome`.
-
-Interpretation:
-- `401` + `mutation_audit` with `outcome:"denied"` confirms fail-closed behavior.
-- `2xx/4xx` with `auth_mode:"cloudflare-access"` and non-anonymous actor confirms Access headers were present and parsed.
-
-### How to confirm staging migration `001_schema_migrations.sql` is complete
-
-Use the staging account/environment context and run:
-
-```powershell
-cd C:\TRACKER_CLOUDFLARE-\backend
-npx wrangler d1 execute DB --remote --command "SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC;" --config .\wrangler.toml
-```
-
-`001_schema_migrations.sql` is confirmed in staging when the output contains a row with:
-- `version = 001`
-- description similar to `bootstrap schema migration registry`
-
-Then paste the command output in chat and explicitly state it was executed against **staging**.
-
-## Phase 2 consolidated safe runner (recommended)
-
-To reduce migration risk from manual multi-step execution, run one consolidated command:
-
-```powershell
-cd C:\TRACKER_CLOUDFLARE-\backend
-.\run-phase2-safe-check.ps1
-```
-
-What it does in one flow:
-1. Deploy worker (`wrangler deploy`)
-2. Verify `/api/system/*` endpoints
-3. Probe unauth write guard (`POST /api/merchant/messages`) and expect `401`
-
-If deploy already ran, skip it:
-
-```powershell
-.\run-phase2-safe-check.ps1 -SkipDeploy
-```
-
-Node direct usage:
-
-```powershell
-node .\run-phase2-safe-check.mjs --base-url "https://p2p-tracker.taheito26.workers.dev" --expect-status 401
-```
-
 ## Verify migration registry table
 
 ```bash
@@ -230,59 +120,6 @@ curl.exe -v "https://<worker-domain>/api/system/health"
 
 ```powershell
 Test-NetConnection p2p-tracker.taheito26.workers.dev -Port 443
-```
-
-### If Wrangler reports DNS/hostname resolution failure
-
-If you see `Unable to resolve Cloudflare's API hostname`, this is a local network/DNS issue (not a migration script issue).
-
-Run from PowerShell and paste output:
-
-```powershell
-Test-NetConnection api.cloudflare.com -Port 443
-Test-NetConnection p2p-tracker.taheito26.workers.dev -Port 443
-```
-
-Then run (without `. $args[0]` prefix):
-
-```powershell
-cd C:\TRACKER_CLOUDFLARE-\backend
-npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config .\wrangler.toml
-node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.taheito26.workers.dev"
-```
-
-### If verifier shows HTML/website content instead of JSON
-
-If output contains large HTML (e.g., dashboard page markup), you are likely hitting frontend/site content instead of backend API worker.
-
-Required from you (User):
-
-```powershell
-cd C:\TRACKER_CLOUDFLARE-\backend
-npx wrangler deploy --config .\wrangler.toml
-node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.taheito26.workers.dev"
-```
-
-If it still fails, paste output of:
-
-```powershell
-npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config .\wrangler.toml
-```
-
-### If verifier reports `health.ok=false version001=false`
-
-Run these two commands and paste outputs:
-
-```powershell
-cd C:\TRACKER_CLOUDFLARE-\backend
-npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config .\wrangler.toml
-node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.taheito26.workers.dev"
-```
-
-If `001` is missing, re-apply migration:
-
-```powershell
-npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql --config .\wrangler.toml
 ```
 
 ### One-command PowerShell validation script
@@ -355,7 +192,7 @@ From `backend/` run this wrapper to avoid shell syntax issues:
 
 Before running, ensure you have latest scripts from git (`git pull`) and confirm files exist with `Get-ChildItem .\scripts`.
 
-If Node shows `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` on Windows, use the latest verifier (`v7`) from this repo; it now exits via `process.exitCode` and avoids abrupt process termination.
+If Node shows `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` on Windows, use the latest verifier (`v4`) from this repo; it now exits via `process.exitCode` and avoids abrupt process termination.
 
 ### Known-good PowerShell sequence (copy/paste)
 
@@ -378,7 +215,7 @@ If verifier output shows HTML bodies, you are likely hitting the wrong target (f
 
 ## Expected results
 
-- Verifier banner should show `verify-system-endpoints.mjs 2026-03-14-v5` or newer.
+- Verifier banner should show: `verify-system-endpoints.mjs 2026-03-13-v4`.
 
 - `/api/system/health` returns `ok: true` and `bindings.db: true`.
 - `/api/system/migrations` includes version `001`.

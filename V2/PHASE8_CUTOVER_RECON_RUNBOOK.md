@@ -33,7 +33,7 @@ Expected:
 
 ## 2.1) One-command readiness report
 
-You can generate a markdown evidence bundle:
+You can generate a markdown evidence bundle (including the current overall migration progress line from `V2/MIGRATION_PROGRESS.md`):
 
 ```bash
 node V2/scripts/phase8-readiness-check.mjs \
