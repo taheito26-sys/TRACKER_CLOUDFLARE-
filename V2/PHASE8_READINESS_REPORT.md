@@ -4,7 +4,7 @@
 - User ID header: `compat:phase8-autokick`
 - Request timeout (ms): `15000`
 - Overall migration progress: `40/46 tasks (87%)  `█████████████████████░░░``
-- Generated: 2026-03-15T02:56:15.508Z
+- Generated: 2026-03-15T03:01:56.413Z
 
 ## Gate Results
 - health_ok: **PASS**
@@ -26,7 +26,7 @@
   "ok": true,
   "service": "p2p-tracker",
   "version": "unknown",
-  "timestamp": "2026-03-15T02:56:10.407Z",
+  "timestamp": "2026-03-15T03:01:51.394Z",
   "endpoints": [
     "/api/system/health",
     "/api/system/migrations",
@@ -43,7 +43,7 @@
 {
   "ok": true,
   "service": "p2p-tracker",
-  "timestamp": "2026-03-15T02:56:10.438Z",
+  "timestamp": "2026-03-15T03:01:51.425Z",
   "bindings": {
     "db": true,
     "kv": true,
@@ -99,7 +99,7 @@
       "settlement_amount": 0
     }
   },
-  "timestamp": "2026-03-15T02:56:12.725Z"
+  "timestamp": "2026-03-15T03:01:53.752Z"
 }
 ```
 ### /api/system/cutover-readiness (HTTP 200)
@@ -151,7 +151,7 @@
       }
     }
   },
-  "timestamp": "2026-03-15T02:56:15.223Z"
+  "timestamp": "2026-03-15T03:01:56.111Z"
 }
 ```
 ### /api/system/reconciliation-summary (HTTP 200)
@@ -184,6 +184,6 @@
       "settlement_amount": 0
     }
   },
-  "timestamp": "2026-03-15T02:56:16.558Z"
+  "timestamp": "2026-03-15T03:01:57.463Z"
 }
 ```
