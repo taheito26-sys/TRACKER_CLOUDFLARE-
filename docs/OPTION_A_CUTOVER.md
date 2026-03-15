@@ -1,7 +1,9 @@
-﻿# Option A cutover, single production API
+# Option A cutover, single production API
 
 ## Canonical production shape
-- Frontend deploy target: Cloudflare Pages
+- Frontend worker identity: `p2p-tracker` (workers.dev ownership)
+- Backend worker identity: `p2p-tracker-api` (API only)
+- Frontend deploy target: Cloudflare Worker (`p2p-tracker` on workers.dev)
 - Frontend assets config: root `wrangler.jsonc`
 - Canonical API runtime: `backend/`
 - Canonical database: D1 `crypto-tracker`
