@@ -1,4 +1,4 @@
-﻿# V2 Migration Task Checklist (Source of Truth)
+# V2 Migration Task Checklist (Source of Truth)
 
 Mark tasks complete (`[x]`) as work finishes. Then run:
 
@@ -6,7 +6,7 @@ Mark tasks complete (`[x]`) as work finishes. Then run:
 node V2/scripts/update-migration-progress.mjs
 ```
 
-## Phase 0 â€” Program Setup
+## Phase 0 — Program Setup
 - [x] Publish full migration execution plan
 - [x] Publish execution update format
 - [x] Publish Phase 0 governance artifacts
@@ -15,7 +15,7 @@ node V2/scripts/update-migration-progress.mjs
 - [ ] Approve rollback checklist
 - [ ] Confirm migration window + freeze dates
 
-## Phase 1 â€” Platform & Schema Foundation
+## Phase 1 — Platform & Schema Foundation
 - [x] Add `001_schema_migrations.sql` migration file
 - [x] Implement `/api/system/health` route
 - [x] Implement `/api/system/migrations` route
@@ -31,45 +31,43 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Make one-shot executor fail-fast on sub-step errors
 - [x] Detect HTML responses in verifier to flag wrong deployment target
 - [ ] Apply `001_schema_migrations.sql` in staging
-- [x] Apply `001_schema_migrations.sql` in production
-- [x] Validate `/api/system/health`
-- [x] Validate `/api/system/migrations` includes `001`
+- [ ] Apply `001_schema_migrations.sql` in production
+- [ ] Validate `/api/system/health`
+- [ ] Validate `/api/system/migrations` includes `001`
 
-## Phase 2 â€” Auth & Security Baseline
-- [x] Enforce auth/session middleware on all write routes
-- [x] Add payload validation layer for migration-sensitive endpoints
-- [x] Add audit logging on mutation endpoints
+## Phase 2 — Auth & Security Baseline
+- [ ] Enforce auth/session middleware on all write routes
+- [ ] Add payload validation layer for migration-sensitive endpoints
+- [ ] Add audit logging on mutation endpoints
 
-## Phase 3 â€” Import Bridge
+## Phase 3 — Import Bridge
 - [x] Implement `/api/import/json`
 - [x] Add idempotency protection for repeated imports
 - [x] Generate reconciliation report (pre/post totals)
 
-## Phase 4 â€” Trading + FIFO
+## Phase 4 — Trading + FIFO
 - [x] Implement server-side batches CRUD
 - [x] Implement server-side trades CRUD with FIFO recompute
 - [x] Persist allocations to `trade_allocations`
 
-## Phase 5 â€” Deals + Settlement + Journal
+## Phase 5 — Deals + Settlement + Journal
 - [x] Implement deals lifecycle endpoints
 - [x] Implement settlement write/read endpoints
 - [x] Implement journal write-through for financial events
 
-## Phase 6 â€” KPI Read Models
+## Phase 6 — KPI Read Models
 - [x] Implement `/api/dashboard/kpis`
 - [x] Implement `/api/deals/kpis`
 - [x] Validate KPI parity against baseline
 
-## Phase 7 â€” Frontend Rewire
+## Phase 7 — Frontend Rewire
 - [x] Replace critical localStorage mutation paths with API calls
 - [x] Enable API-only mode behind feature flag
 
-## Phase 8 â€” Cutover & Reconciliation
-- [x] Complete staging reconciliation sign-off
+## Phase 8 — Cutover & Reconciliation
+- [ ] Complete staging reconciliation sign-off
 - [ ] Execute production cutover
-## Phase 9 â€” LocalStorage Decommission
+
+## Phase 9 — LocalStorage Decommission
 - [ ] Remove remaining financial localStorage writes
 - [ ] Close 7-day post-cutover stability window
-
-
-
