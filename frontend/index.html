@@ -2602,7 +2602,7 @@ const I18N_AR = [
   ["FIFO cost basis · margin bar","تكلفة FIFO · شريط الهامش"],
   ["FIFO layers · progress = remaining","طبقات FIFO · التقدم = المتبقي"],
   ["Visual daily trading activity view","عرض مرئي للنشاط اليومي"],
-  ["Trade Pipeline · Customer Intel · Supplier Network","مسار الصفقات · بيانات العملاء · شبكة الموردين"],
+  ["Customer Directory · Customer Intel · Supplier Network","دليل العملاء · بيانات العملاء · شبكة الموردين"],
   ["Directory · Customers + Suppliers · History","الدليل · العملاء + الموردون · السجل"],
   // Topbar / filters
   ["Search...","بحث..."],["Search","بحث"],["Date range filter","مرشح المدة"],["Display currency","عملة العرض"],
@@ -4576,12 +4576,12 @@ function renderCalendar(){
 window.selectCalDay=d=>{state.cal.selectedDay=state.cal.selectedDay===d?null:d;save();renderCalendar();};
 
 // ── CRM ──────────────────────────────────────────────────────────
-// ── CRM v2 — Pipeline Board ──────────────────────────────────────
-// Completely redesigned: Kanban pipeline + supplier analytics
-var _crmView = "pipeline"; // pipeline | list | suppliers
+// ── CRM v2 — Directory Board ─────────────────────────────────────
+// Completely redesigned: customer directory + supplier analytics
+var _crmView = "list"; // list | suppliers
 
 function renderCRM() {
-  setHeader("CRM", "Trade Pipeline · Customer Intel · Supplier Network");
+  setHeader("CRM", "Customer Directory · Customer Intel · Supplier Network");
   var q = (state.q || "").trim().toLowerCase();
 
   // ── Tier config
@@ -4801,12 +4801,13 @@ function renderCRM() {
   "</div>";
 
   // ─── VIEW TOGGLE ───────────────────────────────────────────────
-  var v = _crmView;
+  var v = (_crmView === "suppliers") ? "suppliers" : "list";
+  _crmView = v;
   function vBtn(id, label, active) {
     return "<button class='rowBtn crm-view-btn' data-view='"+id+"' style='"+(active?"background:var(--brand);color:#fff;border-color:var(--brand);font-weight:800;":"")+"'>"+label+"</button>";
   }
   var viewBar = "<div style='display:flex;gap:5px;margin-bottom:10px;align-items:center;flex-wrap:wrap;'>" +
-    vBtn("pipeline","⠿ Pipeline",v==="pipeline") + vBtn("list","☰ List",v==="list") + vBtn("suppliers","🏭 Suppliers",v==="suppliers") +
+    vBtn("list","☰ List",v==="list") + vBtn("suppliers","🏭 Suppliers",v==="suppliers") +
     "<span style='flex:1'></span>" +
     "<span style='font-size:9px;color:var(--muted);'>"+( state.customers.length)+" clients · "+suppList.length+" suppliers</span>" +
   "</div>";
@@ -4837,10 +4838,7 @@ function buildSupplierPanel(full){
   "</div>";
 }
 
-var customerContent;
-if (v === "pipeline") customerContent = buildPipeline();
-else if (v === "list") customerContent = buildList();
-else customerContent = buildList(); // keep customers visible even on Suppliers view
+var customerContent = buildList(); // keep customers visible on all CRM views
 
 var supplierPanelHtml = buildSupplierPanel(v === "suppliers");
 var showForm = true; // keep Log Contact panel visible
@@ -4907,7 +4905,7 @@ document.getElementById("pageBody").innerHTML =
       var name = ((document.getElementById("cn_name")||{}).value||"").trim();
       if (!name) { var msg=document.getElementById("cn_msg"); if(msg){msg.textContent="Name is required";msg.className="msg err";} return; }
       state.customers.push({id:uid(),name:name,phone:((document.getElementById("cn_phone")||{}).value||"").trim(),tier:((document.getElementById("cn_tier")||{}).value)||"C",createdAt:Date.now()});
-      _crmView = "pipeline"; saveRecompute("Customer added","good");
+      _crmView = "list"; saveRecompute("Customer added","good");
     });
     // Add supplier
     var snAdd = document.getElementById("sn_add");
@@ -4928,7 +4926,7 @@ document.getElementById("pageBody").innerHTML =
     var name = ((document.getElementById("cn_name")||{}).value||"").trim();
     if (!name) { var msg=document.getElementById("cn_msg"); if(msg){msg.textContent="Name is required";msg.className="msg err";} return; }
     state.customers.push({id:uid(),name:name,phone:((document.getElementById("cn_phone")||{}).value||"").trim(),tier:((document.getElementById("cn_tier")||{}).value)||"C",createdAt:Date.now()});
-    _crmView = "pipeline";
+    _crmView = "list";
     saveRecompute("Customer added","good");
   });
   // Supplier add button
@@ -14393,8 +14391,6 @@ window.renderMerchants = function(){
 
 </body>
 </html>
-
-
 
 
 
