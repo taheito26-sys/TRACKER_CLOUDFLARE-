@@ -2862,12 +2862,14 @@ function load(){
   }
 }
 function save(){
-  if(isApiOnlyMode()){storageOk=true;return;}
-  try{localStorage.setItem(SK,JSON.stringify(state));storageOk=true;}catch{storageOk=false;}
+  // Phase 9: decommission localStorage writes for main financial state
+  storageOk = true;
+  return;
 }
 function writeMainStateToStorage(nextState){
-  if(isApiOnlyMode()) return false;
-  try{localStorage.setItem(SK,JSON.stringify(nextState||{}));storageOk=true;return true;}catch{storageOk=false;return false;}
+  // Phase 9: block direct main-state persistence to localStorage in all modes
+  storageOk = true;
+  return false;
 }
 function saveRecompute(msg,type=""){save();recompute();render();if(msg)toast(msg,type);}
 
@@ -14315,7 +14317,6 @@ window.renderMerchants = function(){
 
 </body>
 </html>
-
 
 
 
