@@ -1,19 +1,19 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Overall Progress:** 44/45 tasks (98%)  `████████████████████████`
+**Overall Progress:** 37/46 tasks (80%)  `███████████████████░░░░░`
 
 **Per-Phase Progress**
-- **Phase 0 — Program Setup:** 6/6 (100%)  `████████████████`
-- **Phase 1 — Platform & Schema Foundation:** 18/18 (100%)  `████████████████`
+- **Phase 0 — Program Setup:** 3/7 (43%)  `███████░░░░░░░░░`
+- **Phase 1 — Platform & Schema Foundation:** 17/18 (94%)  `███████████████░`
 - **Phase 2 — Auth & Security Baseline:** 3/3 (100%)  `████████████████`
 - **Phase 3 — Import Bridge:** 3/3 (100%)  `████████████████`
 - **Phase 4 — Trading + FIFO:** 3/3 (100%)  `████████████████`
 - **Phase 5 — Deals + Settlement + Journal:** 3/3 (100%)  `████████████████`
 - **Phase 6 — KPI Read Models:** 3/3 (100%)  `████████████████`
 - **Phase 7 — Frontend Rewire:** 2/2 (100%)  `████████████████`
-- **Phase 8 — Cutover & Reconciliation:** 2/2 (100%)  `████████████████`
-- **Phase 9 — LocalStorage Decommission:** 1/2 (50%)  `████████░░░░░░░░`
+- **Phase 8 — Cutover & Reconciliation:** 0/2 (0%)  `░░░░░░░░░░░░░░░░`
+- **Phase 9 — LocalStorage Decommission:** 0/2 (0%)  `░░░░░░░░░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -21,22 +21,36 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 ## Required from you now (Operator checklist)
 
-Please provide/execute the following so Phase 1 can be closed:
+Go-live recheck complete. Remaining pre-cutover blockers are listed in `V2/GO_LIVE_READINESS.md`.
 
-1. Confirm target environment: `local`, `staging`, or `production`.
-2. Confirm Worker base URL to validate: e.g. `https://p2p-tracker.taheito26.workers.dev`.
-3. From your machine (Cloudflare-authenticated), run:
-   - `cd C:\TRACKER_CLOUDFLARE-\backend`
-   - `.\run-phase1-oneshot.ps1 -D1Target "DB"`
-4. Paste the full output, especially Step B (migration) and Step C (verify) results.
-5. If Step B fails, rerun with explicit remote migration command and paste output:
-   - `npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql --config ./wrangler.toml`
+Please provide/execute the following to proceed to production go-live:
+
+1. Finalize named owner matrix in `V2/PHASE0_PROGRAM_SETUP.md`.
+2. Approve release checklist.
+3. Approve rollback checklist.
+4. Confirm migration window + freeze dates.
+5. Apply `001_schema_migrations.sql` in staging and capture evidence.
+6. Complete staging reconciliation sign-off.
+7. Execute production cutover.
+
+## Update contract for all future status replies
+
+For every step/phase update posted in chat, include:
+1. Step completed
+2. Evidence
+3. Next step (Agent)
+4. Next phase
+5. Required from you (User)
+
+The **Required from you (User)** line must be present after every step, even if the value is `None`.
 
 ## Current rollout status
 
-- **Phase 0 (Program Setup):** In Progress
-- **Phase 1 (Platform & Schema Foundation):** In Progress
-- **Phase 2+:** Not Started
+- **Phase 0 (Program Setup):** In Progress (approval gates pending)
+- **Phase 1 (Platform & Schema Foundation):** In Progress (staging migration evidence pending)
+- **Phase 2-7:** Completed
+- **Phase 8 (Cutover & Reconciliation):** Not Started (staging sign-off + production cutover pending)
+- **Phase 9 (Post-cutover):** Not Started
 
 ---
 
