@@ -6,7 +6,10 @@ import { fileURLToPath } from 'node:url';
 const REQUEST_TIMEOUT_MS = Number(process.env.PHASE8_TIMEOUT_MS || 15000);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const migrationProgressPath = path.resolve(__dirname, '..', 'MIGRATION_PROGRESS.md');
+const migrationProgressPaths = [
+  path.resolve(__dirname, '..', 'MIGRATION_PROGRESS.md'),
+  path.resolve(__dirname, '..', 'MIGRATION_EXECUTION_STATUS.md'),
+];
 
 function usage() {
   console.log(`Usage:
@@ -74,14 +77,16 @@ function passFail(v) {
 }
 
 function readOverallProgress() {
-  try {
-    const content = fs.readFileSync(migrationProgressPath, 'utf8');
-    const match = content.match(/\*\*Overall Progress:\*\*\s*([^\n]+)/);
-    if (!match) return null;
-    return String(match[1]).trim();
-  } catch {
-    return null;
+  for (const sourcePath of migrationProgressPaths) {
+    try {
+      const content = fs.readFileSync(sourcePath, 'utf8');
+      const match = content.match(/\*\*Overall Progress:\*\*\s*([^\n]+)/);
+      if (match) return String(match[1]).trim();
+    } catch {
+      // try next path
+    }
   }
+  return null;
 }
 
 function toBlock(value) {

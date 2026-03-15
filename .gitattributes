@@ -1,4 +1,3 @@
 # Auto-generated artifacts: prefer current-branch version on merge to avoid noisy conflicts.
-V2/MIGRATION_PROGRESS.md merge=ours
 V2/GO_LIVE_READINESS.md merge=ours
 V2/PHASE8_READINESS_REPORT.md merge=ours
