@@ -10,10 +10,10 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Publish full migration execution plan
 - [x] Publish execution update format
 - [x] Publish Phase 0 governance artifacts
-- [ ] Finalize named owner matrix
-- [ ] Approve release checklist
-- [ ] Approve rollback checklist
-- [ ] Confirm migration window + freeze dates
+- [x] Finalize named owner matrix
+- [x]Approve release checklist
+- [x] Approve rollback checklist
+- [x] Confirm migration window + freeze dates
 
 ## Phase 1 — Platform & Schema Foundation
 - [x] Add `001_schema_migrations.sql` migration file
@@ -30,7 +30,7 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Add one-shot Phase 1 executor (deploy + migrate + verify)
 - [x] Make one-shot executor fail-fast on sub-step errors
 - [x] Detect HTML responses in verifier to flag wrong deployment target
-- [ ] Apply `001_schema_migrations.sql` in staging
+- [x] Apply `001_schema_migrations.sql` in staging
 - [x] Apply `001_schema_migrations.sql` in production
 - [x] Validate `/api/system/health`
 - [x] Validate `/api/system/migrations` includes `001`
@@ -65,9 +65,9 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Enable API-only mode behind feature flag
 
 ## Phase 8 — Cutover & Reconciliation
-- [ ] Complete staging reconciliation sign-off
-- [ ] Execute production cutover
+- [x] Complete staging reconciliation sign-off
+- [x] Execute production cutover
 
 ## Phase 9 — LocalStorage Decommission
-- [ ] Remove remaining financial localStorage writes
+- [x] Remove remaining financial localStorage writes
 - [ ] Close 7-day post-cutover stability window

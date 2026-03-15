@@ -223,20 +223,6 @@ The **Required from you (User)** line must be present after every step, even if 
 4. **Next phase:** Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Run one-shot again and paste output; verify banner shows `2026-03-14-v5`.
 
-### Step 1.19 — Remote verification passed (health + migrations)
-1. **Step completed:** Parsed your pasted operator output showing successful deploy and successful verifier results against `https://p2p-tracker.taheito26.workers.dev`.
-2. **Evidence:** `/api/system/health` returned `ok: true`; `/api/system/migrations` returned version `001`; verifier summary printed `health.ok=true version001=true` and `[verify] PASS`.
-3. **Next step (Agent):** Keep Phase 1 execution status in sync and close remaining environment-specific migration checklist items after your environment confirmation.
-4. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
-5. **Required from you (User):** Confirm whether this PASS output is staging or production evidence, then confirm if I should check off the corresponding migration-application tasks.
-
-### Step 1.20 — Environment scope confirmed as production
-1. **Step completed:** Recorded your confirmation that the successful deployment/verification evidence is for `production`.
-2. **Evidence:** User message: `production`; prior verifier evidence already shows `health.ok=true` and migration version `001` on target URL.
-3. **Next step (Agent):** Keep checklist and progress synchronized and close remaining Phase 1 items after staging confirmation.
-4. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
-5. **Required from you (User):** Confirm staging completion status for `001_schema_migrations.sql` and whether to proceed to Phase 2.
-
 ### Phase 1 summary
 1. **Phase status:** In Progress.
 2. **Completed in this phase:**
@@ -244,82 +230,10 @@ The **Required from you (User)** line must be present after every step, even if 
    - System health/migrations endpoints added.
    - Migration runbook added.
 3. **Exit criteria status:**
-   - [ ] D1 migration registry applied in staging/prod. *(production confirmed; staging confirmation pending)*
-   - [x] `/api/system/health` validated against deployed Worker.
-   - [x] `/api/system/migrations` returns applied version `001`.
-4. **Next step (Agent):** Close remaining Phase 1 migration-application checklist entries once environment scope is confirmed.
+   - [ ] D1 migration registry applied in staging/prod.
+   - [ ] `/api/system/health` validated against deployed Worker. *(blocked in agent environment: CONNECT tunnel 403; user-side now reports 404 indicating likely outdated deployment)*
+   - [ ] `/api/system/migrations` returns applied version `001`. *(blocked in agent environment: CONNECT tunnel 403; user-side now reports 404 indicating likely outdated deployment)*
+4. **Next step (Agent):** Parse verifier output and check off Phase 1 endpoint gates if both checks pass.
 5. **Next phase:** Phase 1 closeout, then Phase 2 (Auth & Security Baseline).
-6. **Required from you (User):** Confirm environment scope (staging vs production) for the PASS output and whether `Apply 001` tasks can be checked off.
+6. **Required from you (User):** Run Node verifier from `backend/` and paste full output so Phase 1 gates can be checked off.
 
-
----
-
-## Phase 2 — Auth & Security Baseline
-
-### Step 2.1 — Phase 2 kickoff and execution baseline
-1. **Step completed:** Began Phase 2 by publishing an implementation baseline and execution sequence.
-2. **Evidence:** `V2/PHASE2_AUTH_SECURITY_BASELINE.md` created with scope, sequence, required user decisions, and exit criteria.
-3. **Next step (Agent):** Implement write-route inventory and auth guard skeleton in backend after you confirm auth model.
-4. **Next phase:** Phase 2 (Auth & Security Baseline).
-5. **Required from you (User):** None.
-
-### Step 2.2 — Phase 2 security decisions recorded
-1. **Step completed:** Recorded your Phase 2 selections for auth and audit strategy.
-2. **Evidence:** User inputs: `Cloudflare Access` for auth source and `logs only` for audit sink.
-3. **Next step (Agent):** Implement write-route auth guard skeleton (Cloudflare Access header checks) and logs-only mutation audit hook.
-4. **Next phase:** Phase 2 (Auth & Security Baseline).
-5. **Required from you (User):** Provide staging migration-query output so Phase 1 staging application can be confirmed.
-
-### Step 2.3 — Write-route Cloudflare Access guard + logs-only audit skeleton
-1. **Step completed:** Implemented write-route auth guard skeleton and logs-only mutation audit hook in backend Worker runtime.
-2. **Evidence:** `backend/src/index.js` now enforces write-route checks when `AUTH_SOURCE=cloudflare-access` and emits `mutation_audit` logs with actor/method/path/status.
-3. **Next step (Agent):** Verify payload validation behavior in production request traces and then implement audit logging persistence enhancements.
-4. **Next phase:** Phase 2 (Auth & Security Baseline).
-5. **Required from you (User):** Deploy updated backend and confirm write-route behavior under Cloudflare Access in production.
-
-### Step 2.4 — Published operator guide for Access-header proof and write sample
-1. **Step completed:** Added explicit production instructions to collect Cloudflare Access header proof and one write-route outcome sample.
-2. **Evidence:** `backend/migrations/README.md` and `V2/PHASE2_AUTH_SECURITY_BASELINE.md` now include `wrangler tail` + write-request evidence workflow.
-3. **Next step (Agent):** After you paste sample artifacts, proceed to payload validation layer implementation.
-4. **Next phase:** Phase 2 (Auth & Security Baseline).
-5. **Required from you (User):** Run the evidence collection steps and paste one HTTP result plus one `mutation_audit` log line.
-
-### Step 2.5 — Production write-guard validation evidence recorded
-1. **Step completed:** Recorded your production write-route probe and mutation audit evidence confirming Cloudflare Access fail-closed behavior.
-2. **Evidence:** Posted log shows `POST /api/merchant/messages` with `status:401`, `auth_mode:"cloudflare-access"`, `actor:"anonymous"`, `outcome:"denied"`, error `missing_or_invalid_access_identity`.
-3. **Next step (Agent):** Begin payload validation layer implementation for migration-sensitive write routes.
-4. **Next phase:** Phase 2 (Auth & Security Baseline).
-5. **Required from you (User):** Confirm go-ahead for payload validation implementation scope/order.
-
-### Step 2.6 — Payload validation layer implemented for critical write routes
-1. **Step completed:** Implemented payload validation helpers and applied them to migration-sensitive merchant write endpoints.
-2. **Evidence:** `backend/src/index.js` now validates required strings, positive numeric fields, metadata object shape, and bounded note/body fields for deals/messages/settlement/profit/close flows.
-3. **Next step (Agent):** Implement audit logging persistence enhancements (beyond logs-only) planning and hooks.
-4. **Next phase:** Phase 2 (Auth & Security Baseline).
-5. **Required from you (User):** Optional: share representative payloads to refine strictness; otherwise I proceed with defaults.
-
-### Step 2.7 — Consolidated Phase 2 safe runner added
-1. **Step completed:** Added a single command runner to reduce breakage risk from manual multi-step deploy/verify/probe sequences.
-2. **Evidence:** `backend/run-phase2-safe-check.mjs` + `.ps1` + `.cmd` now execute deploy + system verify + unauth write-guard probe in one flow.
-3. **Next step (Agent):** Parse consolidated runner output and then implement audit logging persistence enhancements.
-4. **Next phase:** Phase 2 (Auth & Security Baseline).
-5. **Required from you (User):** Run `.\run-phase2-safe-check.ps1` and paste full output.
-
-### Step 2.8 — Consolidated runner validated in production and warning hardening
-1. **Step completed:** Recorded successful production execution of the consolidated Phase 2 runner and removed shell-args spawn mode that raised Node DEP0190 warnings.
-2. **Evidence:** User output shows `run-phase2-safe-check.ps1` PASS with deploy + verifier PASS + write-guard `401`; `backend/run-phase2-safe-check.mjs` now uses non-shell spawn execution for child steps.
-3. **Next step (Agent):** Start Phase 3 Import Bridge implementation plan and endpoint scaffold.
-4. **Next phase:** Phase 3 (Import Bridge).
-5. **Required from you (User):** Confirm Phase 3 go-ahead and optional first import payload sample.
-
-### Phase 2 summary
-1. **Phase status:** In Progress.
-2. **Completed in this phase:**
-   - Kickoff baseline document created.
-3. **Exit criteria status:**
-   - [x] Auth/session middleware enforced on all write routes.
-   - [x] Payload validation layer added for migration-sensitive endpoints.
-   - [x] Audit logging added on mutation endpoints.
-4. **Next step (Agent):** Begin Phase 3 import bridge endpoint scaffolding and validation rules.
-5. **Next phase:** Phase 3 (Import Bridge).
-6. **Required from you (User):** Deploy production update and share one write-route auth outcome sample.

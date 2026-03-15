@@ -112,35 +112,6 @@ async function readJson(request) {
     throw new HttpError(400, "Invalid JSON body");
   }
 }
-
-function asPlainObject(value) {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-}
-function requireStringField(body, field, { min = 1, max = 500 } = {}) {
-  const v = String(body?.[field] ?? '').trim();
-  if (v.length < min) throw new HttpError(400, `${field} is required`);
-  if (v.length > max) throw new HttpError(400, `${field} is too long (max ${max})`);
-  return v;
-}
-function optionalStringField(body, field, { max = 2000, fallback = '' } = {}) {
-  const raw = body?.[field];
-  if (raw == null) return fallback;
-  const v = String(raw).trim();
-  if (v.length > max) throw new HttpError(400, `${field} is too long (max ${max})`);
-  return v;
-}
-function requirePositiveNumberField(body, field) {
-  const n = Number(body?.[field]);
-  if (!Number.isFinite(n) || n <= 0) throw new HttpError(400, `${field} must be greater than zero`);
-  return n;
-}
-function optionalNumberField(body, field, fallback = null) {
-  if (body?.[field] == null) return fallback;
-  const n = Number(body[field]);
-  if (!Number.isFinite(n)) throw new HttpError(400, `${field} must be a valid number`);
-  return n;
-}
-
 async function getUserContext(request, env) {
   const auth = request.headers.get("Authorization") || "";
   if (auth.startsWith("Bearer ")) {
@@ -188,63 +159,6 @@ async function listSchemaMigrations(db) {
     db,
     `SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC`
   );
-}
-
-function isWriteMethod(method) {
-  const m = String(method || '').toUpperCase();
-  return m === 'POST' || m === 'PUT' || m === 'PATCH' || m === 'DELETE';
-}
-function getCloudflareAccessActor(request) {
-  const email = normalizeEmail(request.headers.get('cf-access-authenticated-user-email'));
-  if (email) return { actor: email, source: 'cf-access-authenticated-user-email' };
-
-  const userId = String(request.headers.get('cf-access-authenticated-user-id') || '').trim();
-  if (userId) return { actor: userId, source: 'cf-access-authenticated-user-id' };
-
-  const serviceTokenId = String(request.headers.get('cf-access-service-token-id') || '').trim();
-  if (serviceTokenId) return { actor: `service-token:${serviceTokenId}`, source: 'cf-access-service-token-id' };
-
-  const serviceTokenName = String(request.headers.get('cf-access-service-token-name') || '').trim();
-  if (serviceTokenName) return { actor: `service-token:${serviceTokenName}`, source: 'cf-access-service-token-name' };
-
-  const clientId = String(request.headers.get('cf-access-client-id') || '').trim();
-  if (clientId) return { actor: `service-token-client:${clientId}`, source: 'cf-access-client-id' };
-
-  const jwtAssertion = String(request.headers.get('cf-access-jwt-assertion') || '').trim();
-  if (jwtAssertion) return { actor: 'cf-access-jwt', source: 'cf-access-jwt-assertion' };
-
-  return null;
-}
-function resolveWriteAuth(request, env) {
-  const enabled = String(env.AUTH_SOURCE || '').trim().toLowerCase() === 'cloudflare-access';
-  if (!enabled) {
-    return { ok: true, actor: 'auth-disabled', mode: 'off' };
-  }
-  const actor = getCloudflareAccessActor(request);
-  if (!actor) {
-    return {
-      ok: false,
-      mode: 'cloudflare-access',
-      actor: 'anonymous',
-      response: bad(request, env, 'Unauthorized: missing Cloudflare Access identity headers (expected one of cf-access-authenticated-user-*, cf-access-service-token-*, cf-access-client-id, cf-access-jwt-assertion)', 401),
-    };
-  }
-  return { ok: true, actor: actor.actor, mode: 'cloudflare-access', source: actor.source };
-}
-function auditWrite(request, meta = {}) {
-  const payload = {
-    type: 'mutation_audit',
-    method: request.method,
-    path: new URL(request.url).pathname,
-    actor: meta.actor || 'unknown',
-    auth_mode: meta.mode || 'unknown',
-    auth_source: meta.source || null,
-    status: meta.status ?? null,
-    outcome: meta.outcome || 'unknown',
-    at: nowIso(),
-  };
-  if (meta.error) payload.error = String(meta.error);
-  console.log(JSON.stringify(payload));
 }
 function merchantId() {
   const bytes = new Uint8Array(4);
@@ -392,7 +306,7 @@ async function handleMerchant(request, env) {
     if (method === "POST" && path === "/profile") {
       const existing = await getMyProfile(db, user.userId);
       if (existing) return bad(request, env, "Merchant profile already exists", 409);
-      const body = asPlainObject(await readJson(request));
+      const body = await readJson(request);
       const nickname = String(body.nickname || "").trim().toLowerCase();
       if (!validateNickname(nickname)) return bad(request, env, "Nickname must be 3 to 30 chars using a-z, 0-9, _");
       const nicknameRow = await d1First(db, `SELECT id FROM merchant_profiles WHERE nickname = ? LIMIT 1`, nickname);
@@ -435,7 +349,7 @@ async function handleMerchant(request, env) {
     if (method === "PATCH" && path === "/profile/me") {
       const profile = await getMyProfile(db, user.userId);
       if (!profile) return bad(request, env, "Merchant profile not found", 404);
-      const body = asPlainObject(await readJson(request));
+      const body = await readJson(request);
       const next = {
         display_name: String(body.display_name ?? profile.display_name).trim(),
         bio: String(body.bio ?? profile.bio ?? "").trim(),
@@ -892,19 +806,19 @@ if (method === "GET" && path === "/deals") {
   return json(request, env, { deals: await enrichDealRows(rows) });
 }
 if (method === "POST" && path === "/deals") {
-  const body = asPlainObject(await readJson(request));
-  const relId = requireStringField(body, "relationship_id", { min: 3, max: 120 });
+  const body = await readJson(request);
+  const relId = String(body.relationship_id || "").trim();
   const rel = await assertRelationshipAccess(db, relId, user.userId);
   const myProfile = await getMyProfile(db, user.userId);
   const payload = {
     id: randomId("deal_"),
     relationship_id: relId,
     deal_type: String(body.deal_type || "general"),
-    title: requireStringField(body, "title", { min: 3, max: 160 }),
-    amount: requirePositiveNumberField(body, "amount"),
+    title: String(body.title || "").trim(),
+    amount: Number(body.amount || 0),
     currency: String(body.currency || "USDT"),
     status: String(body.status || "draft"),
-    metadata: JSON.stringify(asPlainObject(body.metadata)),
+    metadata: JSON.stringify(body.metadata || {}),
     issue_date: body.issue_date || nowIso().slice(0, 10),
     due_date: body.due_date || null,
     close_date: null,
@@ -914,6 +828,7 @@ if (method === "POST" && path === "/deals") {
     created_at: nowIso(),
     updated_at: nowIso(),
   };
+  if (!payload.title) return bad(request, env, "Deal title is required");
   await d1Run(db, `
     INSERT INTO merchant_deals
       (id, relationship_id, deal_type, title, amount, currency, status, metadata, issue_date, due_date, close_date, expected_return, realized_pnl, created_by, created_at, updated_at)
@@ -946,16 +861,16 @@ if (method === "PATCH" && path.match(/^\/deals\/[^/]+$/)) {
   await assertRelationshipAccess(db, deal.relationship_id, user.userId);
   const body = await readJson(request);
   const next = {
-    title: body.title == null ? String(deal.title || "").trim() : requireStringField(body, "title", { min: 3, max: 160 }),
-    amount: body.amount == null ? Number(deal.amount || 0) : requirePositiveNumberField(body, "amount"),
+    title: String(body.title ?? deal.title).trim(),
+    amount: body.amount == null ? Number(deal.amount || 0) : Number(body.amount),
     currency: String(body.currency ?? deal.currency),
     status: String(body.status ?? deal.status),
-    metadata: JSON.stringify(body.metadata == null ? safeJsonParse(deal.metadata, {}) : asPlainObject(body.metadata)),
+    metadata: JSON.stringify(body.metadata ?? safeJsonParse(deal.metadata, {})),
     issue_date: body.issue_date ?? deal.issue_date,
     due_date: body.due_date ?? deal.due_date,
     close_date: body.close_date ?? deal.close_date,
-    expected_return: optionalNumberField(body, "expected_return", deal.expected_return),
-    realized_pnl: optionalNumberField(body, "realized_pnl", deal.realized_pnl),
+    expected_return: body.expected_return == null ? deal.expected_return : Number(body.expected_return),
+    realized_pnl: body.realized_pnl == null ? deal.realized_pnl : Number(body.realized_pnl),
     updated_at: nowIso(),
   };
   await d1Run(db, `
@@ -973,16 +888,17 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/submit-settlement$/)) {
   const rel = await assertRelationshipAccess(db, deal.relationship_id, user.userId);
   const myProfile = await getMyProfile(db, user.userId);
   const counterparty = await counterpartyProfile(db, rel, user.userId);
-  const body = asPlainObject(await readJson(request));
-  const amount = requirePositiveNumberField(body, "amount");
+  const body = await readJson(request);
+  const amount = Number(body.amount || 0);
+  if (!(amount > 0)) return bad(request, env, "Settlement amount must be greater than zero");
   const settlementId = randomId("set_");
   await d1Run(db, `
     INSERT INTO merchant_settlements
       (id, relationship_id, deal_id, submitted_by_user_id, amount, currency, note, status, submitted_at, approved_at, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
-    settlementId, deal.relationship_id, deal.id, user.userId, amount, optionalStringField(body, "currency", { max: 12, fallback: String(deal.currency || "USDT") }),
-    optionalStringField(body, "note", { max: 1000, fallback: "" }), "pending", nowIso(), null, nowIso(), nowIso()
+    settlementId, deal.relationship_id, deal.id, user.userId, amount, String(body.currency || deal.currency || "USDT"),
+    String(body.note || "").trim(), "pending", nowIso(), null, nowIso(), nowIso()
   );
   const approvalId = randomId("apr_");
   await d1Run(db, `
@@ -991,7 +907,7 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/submit-settlement$/)) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     approvalId, deal.relationship_id, "settlement_submit", "settlement", settlementId,
-    JSON.stringify({ deal_id: deal.id, amount, currency: optionalStringField(body, "currency", { max: 12, fallback: String(deal.currency || "USDT") }), note: optionalStringField(body, "note", { max: 1000, fallback: "" }) }),
+    JSON.stringify({ deal_id: deal.id, amount, currency: String(body.currency || deal.currency || "USDT"), note: String(body.note || "").trim() }),
     "pending", user.userId, myProfile.id, counterparty.owner_user_id, null, nowIso(), null, nowIso(), nowIso()
   );
   await createNotification(db, {
@@ -1016,16 +932,17 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/record-profit$/)) {
   const rel = await assertRelationshipAccess(db, deal.relationship_id, user.userId);
   const myProfile = await getMyProfile(db, user.userId);
   const counterparty = await counterpartyProfile(db, rel, user.userId);
-  const body = asPlainObject(await readJson(request));
-  const amount = requirePositiveNumberField(body, "amount");
+  const body = await readJson(request);
+  const amount = Number(body.amount || 0);
+  if (!(amount > 0)) return bad(request, env, "Profit amount must be greater than zero");
   const profitId = randomId("prf_");
   await d1Run(db, `
     INSERT INTO merchant_profit_records
       (id, relationship_id, deal_id, period_key, amount, currency, note, status, submitted_by_user_id, approved_at, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
-    profitId, deal.relationship_id, deal.id, optionalStringField(body, "period_key", { max: 20, fallback: nowIso().slice(0, 7) }),
-    amount, optionalStringField(body, "currency", { max: 12, fallback: String(deal.currency || "USDT") }), optionalStringField(body, "note", { max: 1000, fallback: "" }),
+    profitId, deal.relationship_id, deal.id, String(body.period_key || nowIso().slice(0, 7)),
+    amount, String(body.currency || deal.currency || "USDT"), String(body.note || "").trim(),
     "pending", user.userId, null, nowIso(), nowIso()
   );
   const approvalId = randomId("apr_");
@@ -1035,7 +952,7 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/record-profit$/)) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     approvalId, deal.relationship_id, "profit_record_submit", "profit_record", profitId,
-    JSON.stringify({ deal_id: deal.id, amount, period_key: optionalStringField(body, "period_key", { max: 20, fallback: nowIso().slice(0, 7) }), note: optionalStringField(body, "note", { max: 1000, fallback: "" }) }),
+    JSON.stringify({ deal_id: deal.id, amount, period_key: String(body.period_key || nowIso().slice(0, 7)), note: String(body.note || "").trim() }),
     "pending", user.userId, myProfile.id, counterparty.owner_user_id, null, nowIso(), null, nowIso(), nowIso()
   );
   await createNotification(db, {
@@ -1063,7 +980,7 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/close$/)) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     approvalId, deal.relationship_id, "deal_close", "deal", deal.id,
-    JSON.stringify({ close_date: optionalStringField(body, "close_date", { max: 20, fallback: nowIso().slice(0, 10) }), note: optionalStringField(body, "note", { max: 1000, fallback: "" }) }),
+    JSON.stringify({ close_date: String(body.close_date || nowIso().slice(0, 10)), note: String(body.note || "").trim() }),
     "pending", user.userId, myProfile.id, counterparty.owner_user_id, null, nowIso(), null, nowIso(), nowIso()
   );
   await createNotification(db, {
@@ -1102,8 +1019,9 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/close$/)) {
       const rel = await assertRelationshipAccess(db, relId, user.userId);
       const myProfile = await getMyProfile(db, user.userId);
       const counterparty = await counterpartyProfile(db, rel, user.userId);
-      const body = asPlainObject(await readJson(request));
-      const text = requireStringField(body, "body", { min: 1, max: 2000 });
+      const body = await readJson(request);
+      const text = String(body.body || "").trim();
+      if (!text) return bad(request, env, "Message body is required");
       const row = {
         id: randomId("msg_"),
         relationship_id: relId,
@@ -1111,7 +1029,7 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/close$/)) {
         sender_merchant_id: myProfile.id,
         body: text,
         message_type: String(body.message_type || "text"),
-        metadata: JSON.stringify(asPlainObject(body.metadata)),
+        metadata: JSON.stringify(body.metadata || {}),
         created_at: nowIso(),
       };
       await d1Run(db, `
@@ -2760,25 +2678,10 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
-
     const url = new URL(request.url);
-    const isApiPath = url.pathname.startsWith('/api/');
-    const isWrite = isApiPath && isWriteMethod(request.method);
-    let authMeta = { ok: true, actor: 'system', mode: 'off' };
-
-    if (isWrite) {
-      authMeta = resolveWriteAuth(request, env);
-      if (!authMeta.ok) {
-        auditWrite(request, {
-          actor: authMeta.actor,
-          mode: authMeta.mode,
-          source: authMeta.source,
-          status: authMeta.response?.status || 401,
-          outcome: 'denied',
-          error: 'missing_or_invalid_access_identity',
-        });
-        return authMeta.response;
-      }
+    if (url.pathname.startsWith("/api/system")) {
+      const system = await handleSystem(request, env);
+      if (system) return system;
     }
 
     let response;
@@ -2808,17 +2711,8 @@ export default {
       console.error('[worker] unhandled fetch error:', err?.stack || err?.message || String(err));
       response = bad(request, env, err?.message || 'Internal error', err?.status || 500);
     }
-
-    if (isWrite) {
-      auditWrite(request, {
-        actor: authMeta.actor,
-        mode: authMeta.mode,
-        source: authMeta.source,
-        status: response.status,
-        outcome: response.ok ? 'success' : 'error',
-      });
-    }
-
-    return response;
+    const p2p = await handleP2P(request, env);
+    if (p2p) return p2p;
+    return bad(request, env, "Not found", 404);
   },
 };
