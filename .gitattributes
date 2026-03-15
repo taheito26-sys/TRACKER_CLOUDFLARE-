@@ -1,0 +1,9 @@
+# Auto-generated artifacts + migration operational docs/scripts
+# Prefer current branch when resolving PR conflict UI churn.
+V2/EXECUTION_UPDATE_FORMAT.md merge=ours
+V2/GO_LIVE_READINESS.md merge=ours
+V2/MIGRATION_PROGRESS.md merge=ours
+V2/PHASE8_READINESS_REPORT.md merge=ours
+V2/scripts/go-live-gap-check.mjs merge=ours
+V2/scripts/phase8-readiness-check.mjs merge=ours
+V2/scripts/update-migration-progress.mjs merge=ours
