@@ -4212,6 +4212,44 @@ function renderP2P(){
       `<span style="font-size:9px;color:var(--${color});margin-left:4px;align-self:center;">${fmtP(vals[vals.length-1])}</span></div>`;
   }
 
+
+  function mkHistoryReview(){
+    const h=(p2p.history||[]).filter(x=>x&&x.ts&&x.sellAvg>0&&x.buyAvg>0);
+    if(!h.length) return `<div class="muted" style="font-size:10px;padding:8px;">Need backend history to build a 7-day review.</div>`;
+    const byDay=new Map();
+    for(const row of h){
+      const k=new Date(row.ts).toISOString().slice(0,10);
+      if(!byDay.has(k)) byDay.set(k,[]);
+      byDay.get(k).push(row);
+    }
+    const days=[...byDay.keys()].sort().slice(-7).reverse();
+    if(!days.length) return `<div class="muted" style="font-size:10px;padding:8px;">No review rows yet.</div>`;
+    const rows=days.map(dayKey=>{
+      const arr=byDay.get(dayKey)||[];
+      const sell=arr.map(x=>num(x.sellAvg)).filter(v=>v>0);
+      const buy=arr.map(x=>num(x.buyAvg)).filter(v=>v>0);
+      const open=arr[0]||null, close=arr[arr.length-1]||null;
+      const avgSell=sell.length?sell.reduce((a,b)=>a+b,0)/sell.length:null;
+      const avgBuy=buy.length?buy.reduce((a,b)=>a+b,0)/buy.length:null;
+      const hiSell=sell.length?Math.max(...sell):null;
+      const loBuy=buy.length?Math.min(...buy):null;
+      const dSell=(open&&close&&open.sellAvg&&close.sellAvg)?close.sellAvg-open.sellAvg:null;
+      return {dayKey, polls:arr.length, avgSell, avgBuy, hiSell, loBuy, dSell};
+    });
+    return `<div class="tableWrap" style="max-height:190px;overflow:auto;"><table>
+      <thead><tr><th>Day</th><th class="r">Polls</th><th class="r">Avg Sell</th><th class="r">Avg Buy</th><th class="r">High Sell</th><th class="r">Low Buy</th><th class="r">Δ Sell</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td class="mono" style="font-size:10px;">${esc(r.dayKey)}</td>
+        <td class="mono r">${r.polls}</td>
+        <td class="mono r">${r.avgSell?fmtP(r.avgSell):'—'}</td>
+        <td class="mono r">${r.avgBuy?fmtP(r.avgBuy):'—'}</td>
+        <td class="mono r" style="color:var(--good);">${r.hiSell?fmtP(r.hiSell):'—'}</td>
+        <td class="mono r" style="color:var(--bad);">${r.loBuy?fmtP(r.loBuy):'—'}</td>
+        <td class="mono r" style="color:${r.dSell===null?'var(--muted)':(r.dSell>=0?'var(--good)':'var(--bad)')};">${r.dSell===null?'—':((r.dSell>=0?'+':'')+r.dSell.toFixed(3))}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
   // offer table with relative price bars + fit check
   function mkOfferTable(offers,side){
     const sorted=(offers||[]).slice().sort((a,b)=>side==="sell"?b.price-a.price:a.price-b.price).slice(0,8);
@@ -4350,6 +4388,17 @@ function renderP2P(){
           ${p2p.buyAvg?`<button class="btn secondary" id="p_apply_buy" style="flex:1;">Apply Buy Rate</button>`:""}
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:10px;">
+    <div class="panel-head">
+      <h2>🗓️ 7-Day P2P Review</h2>
+      <span class="pill">Daily summary from ${p2p.history.length} pts</span>
+    </div>
+    <div class="panel-body">
+      <div class="muted" style="font-size:10px;margin-bottom:8px;">Review each day’s average/high/low and sell trend across the retained 7-day history.</div>
+      ${mkHistoryReview()}
     </div>
   </div>
 
