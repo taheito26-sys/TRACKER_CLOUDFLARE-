@@ -3569,18 +3569,23 @@ function clearAll(){
 //   Primary  → YOUR Cloudflare Worker (set P2P_API_URL after deploying)
 //   Fallback → direct Binance fetch via CORS proxy (original behaviour)
 //
-// After you deploy the Worker, set P2P_API_URL to:
-//   "https://p2p-tracker-api.YOUR-SUBDOMAIN.workers.dev"
-// Leave it as "" to keep using the direct Binance fallback.
+// After you deploy the Worker, set P2P_API_URL to your active market-data worker.
+// Legacy deployment used p2p-monitor; newer deployments may use p2p-tracker-api.
+// Keep both in the failover list so P2P tab survives worker-name transitions.
+// Leave P2P_API_URL as "" only if you intentionally want direct Binance fallback.
 //
-const P2P_API_URL = "https://p2p-tracker-api.taheito26.workers.dev/";   // ← FILL THIS IN after Step 4 of the guide
+const P2P_API_URL = "https://p2p-monitor.taheito26.workers.dev/";
+const P2P_API_FALLBACK_URLS = [
+  "https://p2p-monitor.taheito26.workers.dev/",
+  "https://p2p-tracker-api.taheito26.workers.dev/"
+];
 
 const BINANCE="https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search";
 
 // ── Direct Binance fetch (fallback) ──────────────────────────────
 async function p2pFetchDirect(tt){
   const body=JSON.stringify({page:1,rows:10,payTypes:[],publisherType:null,asset:"USDT",tradeType:tt,fiat:"QAR",merchantCheck:false});
-  const urls=[BINANCE,`https://corsproxy.io/?url=${encodeURIComponent(BINANCE)}`,`https://proxy.cors.sh/${BINANCE}`];
+  const urls=[BINANCE,`https://corsproxy.io/?url=${encodeURIComponent(BINANCE)}`,`https://proxy.cors.sh/${BINANCE}`,`https://cors.isomorphic-git.org/${BINANCE}`];
   for(const u of urls){try{const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json",...(u!==BINANCE?{"x-requested-with":"XMLHttpRequest"}:{})},body,signal:AbortSignal.timeout(8000)});if(r.ok){const j=await r.json();if(Array.isArray(j?.data))return j.data;}}catch{}}
   throw new Error("P2P unreachable — no CORS proxy responded");
 }
@@ -3631,12 +3636,34 @@ function _applyP2PResponse(data){
 
 // ── Primary: fetch from your Cloudflare Worker API ───────────────
 async function p2pFetchFromAPI(){
-  const url=P2P_API_URL.replace(/\/+$/,"")+"/api/p2p";
-  const r=await fetch((/^\/api\//.test(url) ? MERCHANT_API_BASE + url : url),{signal:AbortSignal.timeout(10000)});
-  if(!r.ok) throw new Error(`Worker API ${r.status}`);
-  const data=await r.json();
-  if(data.error) throw new Error(data.error);
-  return data;
+  const candidates=[];
+  const seen=new Set();
+  function pushBase(v){
+    const b=String(v||"").trim().replace(/\/+$/,"");
+    if(!b||seen.has(b))return;
+    seen.add(b);
+    candidates.push(b);
+  }
+  pushBase(P2P_API_URL);
+  for(const u of (P2P_API_FALLBACK_URLS||[])) pushBase(u);
+  if(candidates.length===0) throw new Error("no-api-url");
+
+  let lastErr=null;
+  for(const base of candidates){
+    try{
+      const url = base+"/api/p2p";
+      const r=await fetch((/^\/api\//.test(url) ? MERCHANT_API_BASE + url : url),{signal:AbortSignal.timeout(10000)});
+      if(!r.ok) throw new Error(`Worker API ${r.status} @ ${base}`);
+      const data=await r.json();
+      if(data.error) throw new Error(data.error+` @ ${base}`);
+      data._sourceBase=base;
+      return data;
+    }catch(err){
+      lastErr=err;
+      console.warn('[p2p] API endpoint failed:', base, err?.message||err);
+    }
+  }
+  throw (lastErr||new Error('No API endpoint responded'));
 }
 
 // ── Main refresh: API-first, falls back to direct Binance ─────────
@@ -3655,7 +3682,7 @@ async function refreshP2P(){
         // If backend data is stale (>4min), note it but don't error
         const staleWarn=p2p.ageMs&&p2p.ageMs>240000;
         toast(
-          `Sell ${fmtP(p2p.sellAvg)} · Buy ${fmtP(p2p.buyAvg)}`+(staleWarn?" · ⚠ cached "+Math.round(p2p.ageMs/60000)+"m ago":""),
+          `Sell ${fmtP(p2p.sellAvg)} · Buy ${fmtP(p2p.buyAvg)}`+((data._sourceBase?` · ${data._sourceBase.replace(/^https?:\/\//,"")}`:"") )+(staleWarn?" · ⚠ cached "+Math.round(p2p.ageMs/60000)+"m ago":""),
           staleWarn?"warn":"good"
         );
         p2p.usingAPI=true;
