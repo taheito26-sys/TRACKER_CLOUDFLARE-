@@ -1,7 +1,7 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Overall Progress:** 39/46 tasks (85%)  `████████████████████░░░░`
+**Overall Progress:** 40/46 tasks (87%)  `█████████████████████░░░`
 
 **Per-Phase Progress**
 - **Phase 0 — Program Setup:** 3/7 (43%)  `███████░░░░░░░░░`
@@ -13,7 +13,7 @@
 - **Phase 6 — KPI Read Models:** 3/3 (100%)  `████████████████`
 - **Phase 7 — Frontend Rewire:** 2/2 (100%)  `████████████████`
 - **Phase 8 — Cutover & Reconciliation:** 2/2 (100%)  `████████████████`
-- **Phase 9 — LocalStorage Decommission:** 0/2 (0%)  `░░░░░░░░░░░░░░░░`
+- **Phase 9 — LocalStorage Decommission:** 1/2 (50%)  `████████░░░░░░░░`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.

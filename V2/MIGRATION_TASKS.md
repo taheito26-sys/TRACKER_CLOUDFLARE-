@@ -69,5 +69,5 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Execute production cutover
 
 ## Phase 9 — LocalStorage Decommission
-- [ ] Remove remaining financial localStorage writes
+- [x] Remove remaining financial localStorage writes
 - [ ] Close 7-day post-cutover stability window
