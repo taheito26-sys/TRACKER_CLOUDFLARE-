@@ -3570,10 +3570,10 @@ function clearAll(){
 //   Fallback → direct Binance fetch via CORS proxy (original behaviour)
 //
 // After you deploy the Worker, set P2P_API_URL to:
-//   "https://p2p-monitor.YOUR-SUBDOMAIN.workers.dev"
+//   "https://p2p-tracker-api.YOUR-SUBDOMAIN.workers.dev"
 // Leave it as "" to keep using the direct Binance fallback.
 //
-const P2P_API_URL = "https://p2p-monitor.taheito26.workers.dev/";   // ← FILL THIS IN after Step 4 of the guide
+const P2P_API_URL = "https://p2p-tracker-api.taheito26.workers.dev/";   // ← FILL THIS IN after Step 4 of the guide
 
 const BINANCE="https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search";
 
@@ -11142,7 +11142,7 @@ window.renderMerchants = function(){
      Cloudflare Worker + D1. Local MS state is kept in sync as a cache.
      Polling runs every 45s when the Merchants tab is open.
      ─────────────────────────────────────────────────────────────────── */
-  var API_BASE = 'https://p2p-merchant-api.taheito26.workers.dev';
+  var API_BASE = 'https://p2p-tracker-api.taheito26.workers.dev';
   var _pollTimer = null;
   var _lastPollTs = 0;
   var _syncStatus = 'idle';
@@ -11165,7 +11165,7 @@ window.renderMerchants = function(){
     return bases.filter(function(b, i){ return b && bases.indexOf(b)===i; });
   }
   var _apiBases = _mkApiBases();
-  const MERCHANT_API_BASE = "https://p2p-merchant-api.taheito26.workers.dev";
+  const MERCHANT_API_BASE = "https://p2p-tracker-api.taheito26.workers.dev";
 
 
   async function _api(method, path, body) {
