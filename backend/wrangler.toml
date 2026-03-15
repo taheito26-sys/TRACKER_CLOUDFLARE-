@@ -1,4 +1,4 @@
-﻿name = "p2p-tracker"
+name = "p2p-tracker-api"
 main = "src/index.js"
 compatibility_date = "2026-03-10"
 

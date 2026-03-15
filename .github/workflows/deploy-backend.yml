@@ -1,4 +1,4 @@
-﻿name: Deploy Backend Worker
+name: Deploy Backend Worker
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
       - name: Print expected API base
         run: |
           echo "Backend deployed from backend/wrangler.toml"
-          echo "Expected worker name: p2p-tracker"
+          echo "Expected worker name: p2p-tracker-api"
           echo "Verify these endpoints against your real workers.dev URL:"
           echo "  /api/system/health"
           echo "  /api/system/version"
