@@ -6895,6 +6895,14 @@ function _kpiDefs(){
   const totalPurch=allBatches.reduce((s,b)=>s+b.initialUSDT,0);
   const totalRem=totalStock();
   const utilPct=totalPurch>0?Math.round((totalPurch-totalRem)/totalPurch*100):0;
+  const supplierPurch=allBatches.reduce((m,b)=>{const k=(b.source||"Unknown").trim()||"Unknown";m[k]=(m[k]||0)+(Number(b.initialUSDT)||0);return m;},{});
+  const supplierEntries=Object.entries(supplierPurch).sort((a,b)=>b[1]-a[1]);
+  const topSupplier=supplierEntries.length?supplierEntries[0]:null;
+  const topSupplierPct=totalPurch>0&&topSupplier?Math.round((topSupplier[1]/totalPurch)*100):0;
+  const topSupplierName=topSupplier?topSupplier[0]:"—";
+  const batchCyclesMs=allBatches.map(b=>batchCycleTime(b.id)).filter(v=>typeof v==='number'&&v>0);
+  const avgCycleH=batchCyclesMs.length?(batchCyclesMs.reduce((s,v)=>s+v,0)/batchCyclesMs.length/36e5):null;
+  const avgCycleHLabel=avgCycleH!==null?Math.round(avgCycleH)+"h":"—";
   const custRepeats=(state.customers||[]).filter(c=>{const ct=allTrades.filter(t=>t.customerId===c.id).length;return ct>1;}).length;
   const roiD=stCost>0?((d1.net/stCost)*100).toFixed(3):"—";
   const roi7=stCost>0?((d7.net/stCost)*100).toFixed(2):"—";
@@ -6994,6 +7002,16 @@ function _kpiDefs(){
      col:"var(--t5)",badge:"FIFO",bc:BC.t5,
      desc:"% of purchased USDT that has been sold via FIFO.",
      why:"Low=capital idle. High=watch for stock-out.",formula:"sold ÷ purchased × 100"},
+    {id:"avg_cycle_time",e:false,tab:"stock",icon:"⏱️",lbl:"Avg Cycle Time",cat:"Stock",
+     val:avgCycleHLabel,sub:batchCyclesMs.length?`${batchCyclesMs.length} closed batches`:"No closed cycles yet",
+     col:"var(--warn)",badge:"FIFO",bc:BC.warn,
+     desc:"Average time between batch buy timestamp and its latest linked FIFO sell.",
+     why:"Shorter cycles rotate capital faster and reduce price exposure.",formula:"avg(max(sellTs)-buyTs)"},
+    {id:"top_supplier_share",e:false,tab:"stock",icon:"🏗️",lbl:"Top Supplier Share",cat:"Stock",
+     val:`${topSupplierPct}%`,sub:topSupplier?`${topSupplierName} · ${fmtU(topSupplier[1],0)} USDT`:"No supplier data",
+     col:"var(--t2,var(--brand2,#8b5cf6))",badge:"Concentration",bc:BC.brand,
+     desc:"Share of purchased USDT volume sourced from your #1 supplier.",
+     why:"High concentration increases sourcing risk if that supplier pauses.",formula:"topSupplierUSDT ÷ totalPurchasedUSDT × 100"},
   ];
   return {defs,TM,BC};
 }
