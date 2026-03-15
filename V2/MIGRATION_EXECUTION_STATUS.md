@@ -18,6 +18,14 @@
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
 
+## Implementation notes — 2026-03-15 worker ownership + P2P recovery
+
+1. **Issue observed:** Frontend worker/API worker ownership drift caused production hostname mismatches and P2P tab regressions.
+2. **Implemented:** Worker ownership guardrails, explicit frontend/backend worker naming, and P2P endpoint failover (`p2p-monitor` primary, `p2p-tracker-api` secondary) with direct-Binance proxy fallback retained.
+3. **Evidence:** `wrangler.jsonc`, `backend/wrangler.toml`, `.github/workflows/deploy-frontend.yml`, `.github/workflows/deploy-backend.yml`, `docs/DEPLOYMENT_MODEL.md`, and `frontend/index.html`.
+4. **Runtime validation snapshot:** `https://p2p-monitor.taheito26.workers.dev/api/p2p` returned 200 JSON, while `p2p-tracker-api` and `p2p-tracker` `/api/p2p` returned 404 at verification time.
+5. **Operator follow-up:** keep backend deployment pointed at `p2p-tracker-api` and promote `/api/p2p` there before removing `p2p-monitor` from frontend fallback list.
+
 
 ## Required from you now (Operator checklist)
 
