@@ -1,12 +1,12 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Overall Progress:** 37/46 tasks (80%)  `███████████████████░░░░░`
+**Overall Progress:** 31/46 tasks (67%)  `████████████████░░░░░░░░`
 
 **Per-Phase Progress**
 - **Phase 0 — Program Setup:** 3/7 (43%)  `███████░░░░░░░░░`
-- **Phase 1 — Platform & Schema Foundation:** 17/18 (94%)  `███████████████░`
-- **Phase 2 — Auth & Security Baseline:** 3/3 (100%)  `████████████████`
+- **Phase 1 — Platform & Schema Foundation:** 14/18 (78%)  `████████████░░░░`
+- **Phase 2 — Auth & Security Baseline:** 0/3 (0%)  `░░░░░░░░░░░░░░░░`
 - **Phase 3 — Import Bridge:** 3/3 (100%)  `████████████████`
 - **Phase 4 — Trading + FIFO:** 3/3 (100%)  `████████████████`
 - **Phase 5 — Deals + Settlement + Journal:** 3/3 (100%)  `████████████████`
