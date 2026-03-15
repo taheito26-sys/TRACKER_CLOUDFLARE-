@@ -36,10 +36,7 @@ function runStep(name, cmd, cmdArgs) {
   const out = spawnSync(cmd, cmdArgs, { stdio: 'inherit', shell: process.platform === 'win32' });
   const code = Number(out.status ?? out.signal ?? 1);
   if (code !== 0) {
-    const err = new Error(`[phase1] ${name} failed with exit code ${code}`);
-    err.stepName = name;
-    err.code = code;
-    throw err;
+    throw new Error(`[phase1] ${name} failed with exit code ${code}`);
   }
 }
 
@@ -88,25 +85,7 @@ try {
 
   console.log('[phase1] DONE');
 } catch (err) {
-  const msg = String(err?.message || err);
-  const stepName = err?.stepName || '';
-  console.error(msg);
-
-  if (stepName.includes('Step B')) {
-    console.error('[phase1] Required from you (User): re-run with explicit D1 target:');
-    console.error(`[phase1]   node .\\run-phase1-oneshot.mjs --d1-target ${dbBinding || 'DB'}`);
-    console.error('[phase1]   OR npx wrangler d1 execute DB --remote --file=./migrations/001_schema_migrations.sql --config ./wrangler.toml');
-  }
-
-  if (stepName.includes('Step C')) {
-    console.error('[phase1] Required from you (User): paste verifier output and confirm these checks from your machine:');
-    console.error(`[phase1]   node .\\scripts\\verify-system-endpoints.mjs --base-url "${baseUrl}"`);
-    console.error('[phase1]   npx wrangler d1 execute DB --remote --command "SELECT version FROM schema_migrations ORDER BY id;" --config ./wrangler.toml');
-  }
-
-  if (!stepName) {
-    console.error('[phase1] Hint: run with --d1-target <binding-or-db-name> (for this repo: --d1-target DB).');
-  }
-
+  console.error(String(err?.message || err));
+  console.error('[phase1] Hint: run with --d1-target <binding-or-db-name> (for this repo: --d1-target DB).');
   process.exit(1);
 }
