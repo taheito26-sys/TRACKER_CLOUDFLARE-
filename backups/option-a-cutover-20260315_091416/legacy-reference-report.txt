@@ -1,0 +1,27 @@
+﻿frontend\index.html:11145: var API_BASE = 'https://p2p-merchant-api.taheito26.workers.dev';
+frontend\index.html:11162: try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
+frontend\index.html:11168: const MERCHANT_API_BASE = "https://p2p-merchant-api.taheito26.workers.dev";
+frontend\index.html.bootsyncfix.bak.20260313_112338:11043: var API_BASE = 'https://p2p-merchant-api.taheito26.workers.dev';
+frontend\index.html.bootsyncfix.bak.20260313_112338:11060: try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
+frontend\index.html.bootsyncfix.bak.20260313_112338:11066: const MERCHANT_API_BASE = "https://p2p-merchant-api.taheito26.workers.dev";
+frontend\index.html.directoryfix.bak.20260313_110716:11043: var API_BASE = 'https://p2p-merchant-api.taheito26.workers.dev';
+frontend\index.html.directoryfix.bak.20260313_110716:11060: try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
+frontend\index.html.directoryfix.bak.20260313_110716:11066: const MERCHANT_API_BASE = "https://p2p-merchant-api.taheito26.workers.dev";
+frontend\index.html.fullsyncfix.bak.20260313_111543:11043: var API_BASE = 'https://p2p-merchant-api.taheito26.workers.dev';
+frontend\index.html.fullsyncfix.bak.20260313_111543:11060: try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
+frontend\index.html.fullsyncfix.bak.20260313_111543:11066: const MERCHANT_API_BASE = "https://p2p-merchant-api.taheito26.workers.dev";
+frontend\index.html.msgsendfix.bak.20260313_113002:11043: var API_BASE = 'https://p2p-merchant-api.taheito26.workers.dev';
+frontend\index.html.msgsendfix.bak.20260313_113002:11060: try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
+frontend\index.html.msgsendfix.bak.20260313_113002:11066: const MERCHANT_API_BASE = "https://p2p-merchant-api.taheito26.workers.dev";
+frontend\index.html.pendingonly.bak.20260313_105546:11043: var API_BASE = 'https://p2p-merchant-api.taheito26.workers.dev';
+frontend\index.html.pendingonly.bak.20260313_105546:11060: try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
+frontend\index.html.pendingonly.bak.20260313_105546:11066: const MERCHANT_API_BASE = "https://p2p-merchant-api.taheito26.workers.dev";
+.github\workflows\guard-option-a.yml:16: - name: Block merchant-api deployment surface and references
+.github\workflows\guard-option-a.yml:23: if [ -f merchant-api/wrangler.toml ]; then
+.github\workflows\guard-option-a.yml:24: echo "merchant-api/wrangler.toml still exists as a deployable config"
+.github\workflows\guard-option-a.yml:28: if grep -RInE 'merchant-api|p2p-merchant-api|p2p-merchant-db' \
+.github\workflows\guard-option-a.yml:30: echo "Legacy merchant-api references found"
+docs\OPTION_A_CUTOVER.md:8: - Legacy surface: `merchant-api/`, reference only, not deployable
+docs\OPTION_A_CUTOVER.md:11: 1. Frontend must not reference `merchant-api`, `p2p-merchant-api`, or `p2p-merchant-db`.
+docs\OPTION_A_CUTOVER.md:15: 5. Legacy merchant-api must not be deployable.
+docs\OPTION_A_CUTOVER.md:27: Delete `merchant-api/` only after data reconciliation and production verification are complete.

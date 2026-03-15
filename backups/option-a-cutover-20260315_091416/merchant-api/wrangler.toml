@@ -1,0 +1,8 @@
+name            = "p2p-merchant-api"
+main            = "worker.js"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding     = "DB"
+database_name = "p2p-merchant-db"
+database_id   = "151ab93b-271b-4b3a-a121-a4513ab6b67d"

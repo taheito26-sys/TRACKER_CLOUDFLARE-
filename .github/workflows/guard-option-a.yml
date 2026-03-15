@@ -1,0 +1,38 @@
+﻿name: Guard Option A
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  enforce-single-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Block merchant-api deployment surface and references
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bad=0
+
+          if [ -f merchant-api/wrangler.toml ]; then
+            echo "merchant-api/wrangler.toml still exists as a deployable config"
+            bad=1
+          fi
+
+          if grep -RInE 'merchant-api|p2p-merchant-api|p2p-merchant-db' \
+              frontend backend .github README.md docs wrangler.jsonc 2>/dev/null; then
+            echo "Legacy merchant-api references found"
+            bad=1
+          fi
+
+          if [ "$bad" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "Option A guard passed"
