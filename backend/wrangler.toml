@@ -3,7 +3,7 @@ main = "src/index.js"
 compatibility_date = "2026-03-10"
 
 [triggers]
-crons = ["*/2 * * * *"]
+crons = ["*/5 * * * *"]
 
 [[kv_namespaces]]
 binding = "P2P_KV"

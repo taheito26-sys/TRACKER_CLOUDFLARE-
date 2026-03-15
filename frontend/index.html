@@ -3625,12 +3625,12 @@ function _applyP2PResponse(data){
   p2p.dayStats   = data.dayStats   || null;
   p2p.ageMs      = data.ageMs      || null;
   p2p.source     = data.source     || "api";
-  // Merge backend history — backend has 24h+, session history overlaps
+  // Merge backend history — backend has 7d+, session history overlaps
   if(Array.isArray(data.history)&&data.history.length>0){
     // Combine backend history with any local session points newer than the last backend point
     const lastBackendTs=data.history[data.history.length-1]?.ts||0;
     const localNew=p2p.history.filter(h=>h.ts>lastBackendTs);
-    p2p.history=[...data.history,...localNew].slice(-720);
+    p2p.history=[...data.history,...localNew].slice(-2016);
   }
 }
 
@@ -4186,7 +4186,7 @@ function renderBatchTable(batches){
 
 // ── P2P ──────────────────────────────────────────────────────────
 function renderP2P(){
-  setHeader("P2P Market","Live Binance QAR · 24h backend monitoring");
+  setHeader("P2P Market","Live Binance QAR · 7d backend monitoring (5m polls)");
   const wacop=getWACOP(), stock=totalStock(), cash=num(state.cashQAR,0);
   const ts=p2p.ts?new Date(p2p.ts).toLocaleTimeString():"—";
   const spread=p2p.sellAvg&&p2p.buyAvg?p2p.sellAvg-p2p.buyAvg:null;
@@ -4248,7 +4248,7 @@ function renderP2P(){
     </button>
     <span class="pill" style="font-size:10px;">Updated ${esc(ts)}</span>
     ${usingBackend
-      ?`<span class="pill good" style="font-size:9px;font-weight:800;">☁ Backend · 24h monitoring active</span>`
+      ?`<span class="pill good" style="font-size:9px;font-weight:800;">☁ Backend · 7d monitoring active (5m polls)</span>`
       :`<span class="pill warn" style="font-size:9px;">⚡ Direct · <a href="#" id="p_setup_link" style="color:inherit;">Connect backend →</a></span>`}
     ${spread!==null?`<span class="pill warn" style="font-weight:700;">Spread ${fmtP(spread)} (${spreadPct?.toFixed(2)}%)</span>`:""}
     ${p2p.sellAvg&&wacop?`<span class="pill ${sellIsGood?"good":"warn"}">${sellIsGood?"✓ Sell zone":"⏳ Below target"}</span>`:""}
@@ -4294,7 +4294,7 @@ function renderP2P(){
     <div class="panel">
       <div class="panel-head">
         <h2>📈 Price History</h2>
-        <span class="pill">${p2p.history.length} pts${usingBackend?" · 24h":"· session"}</span>
+        <span class="pill">${p2p.history.length} pts${usingBackend?" · 7d":"· session"}</span>
       </div>
       <div class="panel-body">
         <div style="margin-bottom:10px;">
@@ -4315,7 +4315,7 @@ function renderP2P(){
           </div>`;
         })():""}
         ${!usingBackend?`<div style="margin-top:10px;padding:8px;border-radius:8px;background:color-mix(in srgb,var(--brand) 8%,transparent);border:1px solid color-mix(in srgb,var(--brand) 20%,transparent);font-size:10px;color:var(--muted);">
-          Deploy the backend Worker to get persistent 24h history that survives page reloads.
+          Deploy the backend Worker to get persistent 7-day history (5-minute polls) that survives page reloads.
         </div>`:""}
       </div>
     </div>
