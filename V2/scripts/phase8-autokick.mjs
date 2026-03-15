@@ -11,6 +11,17 @@ const base = process.env.PHASE8_BASE || 'https://p2p-tracker.taheito26.workers.d
 const userId = process.env.PHASE8_USER_ID || 'compat:phase8-autokick';
 const outFile = process.env.PHASE8_OUT || 'V2/PHASE8_READINESS_REPORT.md';
 
+function looksLikePlaceholder(v) {
+  const s = String(v || '');
+  return s.includes('<') || s.includes('>');
+}
+
+if (looksLikePlaceholder(base)) {
+  console.error(`[phase8-autokick] invalid PHASE8_BASE: ${base}`);
+  console.error('[phase8-autokick] Replace placeholder text. Example: PHASE8_BASE="https://p2p-tracker.taheito26.workers.dev"');
+  process.exit(1);
+}
+
 console.log(`[phase8-autokick] base=${base}`);
 console.log(`[phase8-autokick] userId=${userId}`);
 console.log(`[phase8-autokick] out=${outFile}`);

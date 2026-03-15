@@ -33,6 +33,22 @@ function parseArgs(argv) {
   return out;
 }
 
+function validateBaseUrl(raw) {
+  const base = String(raw || '').trim().replace(/\/+$/, '');
+  if (!base) throw new Error('Missing --base value. Example: --base https://p2p-tracker.taheito26.workers.dev');
+  if (base.includes('<') || base.includes('>')) {
+    throw new Error(`Invalid --base URL: ${base}. Replace placeholder text (for example, use https://p2p-tracker.taheito26.workers.dev).`);
+  }
+  let parsed;
+  try { parsed = new URL(base); } catch {
+    throw new Error(`Invalid --base URL: ${base}. Expected an absolute URL like https://example.workers.dev`);
+  }
+  if (!/^https?:$/.test(parsed.protocol)) {
+    throw new Error(`Invalid --base URL protocol: ${parsed.protocol}. Expected http or https.`);
+  }
+  return parsed.origin;
+}
+
 async function fetchJson(url, headers = {}) {
   const res = await fetch(url, {
     headers,
@@ -75,7 +91,7 @@ async function run() {
     throw new Error('Missing required flags: --base and --user-id');
   }
 
-  const base = String(args.base).replace(/\/+$/, '');
+  const base = validateBaseUrl(args.base);
   const headers = { 'X-User-Id': String(args.userId) };
   const overallProgress = readOverallProgress();
 
