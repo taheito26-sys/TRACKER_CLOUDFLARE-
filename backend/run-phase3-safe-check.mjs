@@ -13,7 +13,7 @@ function arg(name, fallback = undefined) {
 }
 function flag(name) { return args.includes(name); }
 
-const baseUrl = arg('--base-url', 'https://p2p-tracker.taheito26.workers.dev').replace(/\/$/, '');
+const baseUrl = arg('--base-url', 'https://p2p-tracker-api.taheito26.workers.dev').replace(/\/$/, '');
 const skipDeploy = flag('--skip-deploy');
 const userId = arg('--user-id', 'phase3-safe-user');
 const idemKey = arg('--idempotency-key', `phase3-${Date.now()}`);
