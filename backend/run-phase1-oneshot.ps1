@@ -9,7 +9,7 @@ param(
   [string]$D1Target = "",
 
   [Parameter(Mandatory=$false)]
-  [string]$BaseUrl = "https://p2p-tracker.taheito26.workers.dev",
+  [string]$BaseUrl = "https://p2p-tracker-api.taheito26.workers.dev",
 
   [switch]$SkipDeploy,
   [switch]$SkipMigration,
