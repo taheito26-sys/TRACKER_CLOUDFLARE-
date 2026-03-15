@@ -27,6 +27,10 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler@latest
 
+      - name: Validate backend worker ownership
+        run: |
+          grep -q '^name = "p2p-tracker-api"$' wrangler.toml
+
       - name: Deploy Worker
         run: wrangler deploy
         env:

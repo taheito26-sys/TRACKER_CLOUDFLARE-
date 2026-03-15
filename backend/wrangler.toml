@@ -15,5 +15,5 @@ database_name = "crypto-tracker"
 database_id = "e51dd932-5912-4a1b-b354-ff03bc25d23e"
 
 [vars]
-ALLOWED_ORIGINS = "https://p2p-tracker.pages.dev,https://tracker.pages.dev,https://lovable.dev"
+ALLOWED_ORIGINS = "https://p2p-tracker.taheito26.workers.dev,https://p2p-tracker.pages.dev,https://tracker.pages.dev,https://lovable.dev"
 AUTH_SOURCE = "cloudflare-access"
