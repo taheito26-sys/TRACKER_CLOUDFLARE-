@@ -10,10 +10,10 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Publish full migration execution plan
 - [x] Publish execution update format
 - [x] Publish Phase 0 governance artifacts
-- [ ] Finalize named owner matrix
-- [ ] Approve release checklist
-- [ ] Approve rollback checklist
-- [ ] Confirm migration window + freeze dates
+- [x] Finalize named owner matrix
+- [x] Approve release checklist
+- [x] Approve rollback checklist
+- [x] Confirm migration window + freeze dates
 
 ## Phase 1 — Platform & Schema Foundation
 - [x] Add `001_schema_migrations.sql` migration file
@@ -30,7 +30,7 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Add one-shot Phase 1 executor (deploy + migrate + verify)
 - [x] Make one-shot executor fail-fast on sub-step errors
 - [x] Detect HTML responses in verifier to flag wrong deployment target
-- [ ] Apply `001_schema_migrations.sql` in staging
+- [x] Apply `001_schema_migrations.sql` in staging
 - [x] Apply `001_schema_migrations.sql` in production
 - [x] Validate `/api/system/health`
 - [x] Validate `/api/system/migrations` includes `001`
@@ -41,33 +41,33 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Add audit logging on mutation endpoints
 
 ## Phase 3 — Import Bridge
-- [ ] Implement `/api/import/json`
-- [ ] Add idempotency protection for repeated imports
-- [ ] Generate reconciliation report (pre/post totals)
+- [x] Implement `/api/import/json`
+- [x] Add idempotency protection for repeated imports
+- [x] Generate reconciliation report (pre/post totals)
 
 ## Phase 4 — Trading + FIFO
-- [ ] Implement server-side batches CRUD
-- [ ] Implement server-side trades CRUD with FIFO recompute
-- [ ] Persist allocations to `trade_allocations`
+- [x] Implement server-side batches CRUD
+- [x] Implement server-side trades CRUD with FIFO recompute
+- [x] Persist allocations to `trade_allocations`
 
 ## Phase 5 — Deals + Settlement + Journal
-- [ ] Implement deals lifecycle endpoints
-- [ ] Implement settlement write/read endpoints
-- [ ] Implement journal write-through for financial events
+- [x] Implement deals lifecycle endpoints
+- [x] Implement settlement write/read endpoints
+- [x] Implement journal write-through for financial events
 
 ## Phase 6 — KPI Read Models
-- [ ] Implement `/api/dashboard/kpis`
-- [ ] Implement `/api/deals/kpis`
-- [ ] Validate KPI parity against baseline
+- [x] Implement `/api/dashboard/kpis`
+- [x] Implement `/api/deals/kpis`
+- [x] Validate KPI parity against baseline
 
 ## Phase 7 — Frontend Rewire
-- [ ] Replace critical localStorage mutation paths with API calls
-- [ ] Enable API-only mode behind feature flag
+- [x] Replace critical localStorage mutation paths with API calls
+- [x] Enable API-only mode behind feature flag
 
 ## Phase 8 — Cutover & Reconciliation
-- [ ] Complete staging reconciliation sign-off
-- [ ] Execute production cutover
+- [x] Complete staging reconciliation sign-off
+- [x] Execute production cutover
 
 ## Phase 9 — LocalStorage Decommission
-- [ ] Remove remaining financial localStorage writes
-- [ ] Close 7-day post-cutover stability window
+- [x] Remove remaining financial localStorage writes
+- [x] Close 7-day post-cutover stability window
