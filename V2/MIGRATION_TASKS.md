@@ -31,14 +31,14 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Make one-shot executor fail-fast on sub-step errors
 - [x] Detect HTML responses in verifier to flag wrong deployment target
 - [ ] Apply `001_schema_migrations.sql` in staging
-- [ ] Apply `001_schema_migrations.sql` in production
-- [ ] Validate `/api/system/health`
-- [ ] Validate `/api/system/migrations` includes `001`
+- [x] Apply `001_schema_migrations.sql` in production
+- [x] Validate `/api/system/health`
+- [x] Validate `/api/system/migrations` includes `001`
 
 ## Phase 2 — Auth & Security Baseline
-- [ ] Enforce auth/session middleware on all write routes
-- [ ] Add payload validation layer for migration-sensitive endpoints
-- [ ] Add audit logging on mutation endpoints
+- [x] Enforce auth/session middleware on all write routes
+- [x] Add payload validation layer for migration-sensitive endpoints
+- [x] Add audit logging on mutation endpoints
 
 ## Phase 3 — Import Bridge
 - [x] Implement `/api/import/json`
