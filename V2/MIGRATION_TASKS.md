@@ -30,7 +30,7 @@ node V2/scripts/update-migration-progress.mjs
 - [x] Add one-shot Phase 1 executor (deploy + migrate + verify)
 - [x] Make one-shot executor fail-fast on sub-step errors
 - [x] Detect HTML responses in verifier to flag wrong deployment target
-- [ ] Apply `001_schema_migrations.sql` in staging
+- [x] Apply `001_schema_migrations.sql` in staging
 - [x] Apply `001_schema_migrations.sql` in production
 - [x] Validate `/api/system/health`
 - [x] Validate `/api/system/migrations` includes `001`
