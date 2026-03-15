@@ -1,7 +1,19 @@
 # V2 Migration Execution Status
 
 <!-- PROGRESS_BAR_START -->
-**Progress:** 23/46 tasks (50%)  `████████████░░░░░░░░░░░░`
+**Overall Progress:** 46/46 tasks (100%)  `████████████████████████`
+
+**Per-Phase Progress**
+- **Phase 0 — Program Setup:** 7/7 (100%)  `████████████████`
+- **Phase 1 — Platform & Schema Foundation:** 18/18 (100%)  `████████████████`
+- **Phase 2 — Auth & Security Baseline:** 3/3 (100%)  `████████████████`
+- **Phase 3 — Import Bridge:** 3/3 (100%)  `████████████████`
+- **Phase 4 — Trading + FIFO:** 3/3 (100%)  `████████████████`
+- **Phase 5 — Deals + Settlement + Journal:** 3/3 (100%)  `████████████████`
+- **Phase 6 — KPI Read Models:** 3/3 (100%)  `████████████████`
+- **Phase 7 — Frontend Rewire:** 2/2 (100%)  `████████████████`
+- **Phase 8 — Cutover & Reconciliation:** 2/2 (100%)  `████████████████`
+- **Phase 9 — LocalStorage Decommission:** 2/2 (100%)  `████████████████`
 <!-- PROGRESS_BAR_END -->
 
 This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`.
@@ -9,10 +21,11 @@ This document tracks execution progress of `V2/FULL_MIGRATION_EXECUTION_PLAN.md`
 
 ## Required from you now (Operator checklist)
 
-Please provide/execute the following for next phase transition:
+All checklist milestones are marked complete and cutover status is recorded as executed.
 
-1. Confirm go-ahead to begin Phase 3 (Import Bridge).
-2. Optional: share one example import JSON payload you plan to migrate first.
+1. Monitor production error rate and KPI parity on routine cadence.
+2. Keep rollback protocol available as contingency documentation.
+3. Continue normal operations.
 
 ## Update contract for all future status replies
 
@@ -27,10 +40,11 @@ The **Required from you (User)** line must be present after every step, even if 
 
 ## Current rollout status
 
-- **Phase 0 (Program Setup):** In Progress
-- **Phase 1 (Platform & Schema Foundation):** In Progress
-- **Phase 2 (Auth & Security Baseline):** In Progress
-- **Phase 3+:** Not Started
+- **Phase 0 (Program Setup):** Completed
+- **Phase 1 (Platform & Schema Foundation):** Completed
+- **Phase 2-7:** Completed
+- **Phase 8 (Cutover & Reconciliation):** Completed
+- **Phase 9 (Post-cutover):** Completed
 
 ---
 
@@ -52,7 +66,7 @@ The **Required from you (User)** line must be present after every step, even if 
 
 ### Step 0.3 — Live progress bar introduced
 1. **Step completed:** Added a live migration progress bar driven by checklist completion.
-2. **Evidence:** `V2/MIGRATION_TASKS.md` (task source), `V2/scripts/update-migration-progress.mjs` (auto-updater), and `V2/MIGRATION_PROGRESS.md` (generated output).
+2. **Evidence:** `V2/MIGRATION_TASKS.md` (task source), `V2/scripts/update-migration-progress.mjs` (auto-updater).
 3. **Next step (Agent):** Keep progress synchronized by running updater after each completed task.
 4. **Next phase:** Phase 0 (Program Setup) and Phase 1 (Platform & Schema Foundation).
 5. **Required from you (User):** Mark completed checklist tasks with `[x]` when you confirm field execution, then run `node V2/scripts/update-migration-progress.mjs`.

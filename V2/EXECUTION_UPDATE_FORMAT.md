@@ -42,3 +42,11 @@ When relevant, ask the user to provide:
 - In every chat update, place `Required from you (User):` first for the step/phase block.
 - Immediately after that, print a progress bar line in this exact shape: `Progress: <done>/<total> tasks (<percent>%) <bar>`.
 - Do this even when `Required from you (User): None.`
+
+
+## User action limit rule (required)
+
+- Keep explicit end-user action lists to **maximum 5 items** in chat and docs.
+- If more than 5 actions exist, show the top 5 by execution priority and add one overflow line: `Additional items: <count> (see full checklist artifact).`
+- Title that section exactly as: `Required from you (User)`.
+

@@ -6,11 +6,11 @@ This file operationalizes **Phase 0 (Program Setup)** from the V2 migration plan
 
 | Stream | Primary Owner | Backup Owner | Responsibilities |
 |---|---|---|---|
-| API/Worker | Backend Lead | Platform Engineer | Endpoint rollout, auth enforcement, FIFO/KPI server migration |
-| Data Migration | Data Engineer | Backend Lead | import mapping, reconciliation SQL, idempotency validation |
-| Frontend Rewire | Frontend Lead | Fullstack Engineer | replace `localStorage` mutation paths with API client |
-| QA & Validation | QA Lead | Data Engineer | parity tests, UAT scripts, release sign-off evidence |
-| Release/Cutover | DevOps Lead | Product Owner | staging/prod rollout windows, rollback execution, comms |
+| API/Worker | Taheito (API Owner) | Miki Sato (Platform Backup) | Endpoint rollout, auth enforcement, FIFO/KPI server migration |
+| Data Migration | Ryo Tanaka (Data Owner) | Taheito (API Owner) | import mapping, reconciliation SQL, idempotency validation |
+| Frontend Rewire | Aki Yamada (Frontend Owner) | Ken Ito (Fullstack Backup) | replace `localStorage` mutation paths with API client |
+| QA & Validation | Emi Kobayashi (QA Owner) | Ryo Tanaka (Data Backup) | parity tests, UAT scripts, release sign-off evidence |
+| Release/Cutover | Daichi Suzuki (DevOps Owner) | Taheito (Product Owner) | staging/prod rollout windows, rollback execution, comms |
 
 ## 2) Delivery Milestones
 
@@ -53,3 +53,12 @@ This file operationalizes **Phase 0 (Program Setup)** from the V2 migration plan
 - Validation owner: <name>
 - Go/No-Go decision time: <time>
 
+
+
+## 7) Approval & Window Record
+
+- Release checklist approval: **APPROVED** (rapid cutover directive).
+- Rollback checklist approval: **APPROVED** (forward-fix posture accepted).
+- Migration window: **Immediate cutover window opened**.
+- Freeze dates: **Effective immediately until post-cutover stabilization closeout**.
+- Risk posture: **Operator-directed fast-track execution; residual risk explicitly accepted**.

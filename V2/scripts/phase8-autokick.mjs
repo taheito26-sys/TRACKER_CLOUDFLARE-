@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const readinessScript = path.join(__dirname, 'phase8-readiness-check.mjs');
+
+const base = process.env.PHASE8_BASE || 'https://p2p-tracker.taheito26.workers.dev';
+const userId = process.env.PHASE8_USER_ID || 'compat:phase8-autokick';
+const outFile = process.env.PHASE8_OUT || 'V2/PHASE8_READINESS_REPORT.md';
+
+function looksLikePlaceholder(v) {
+  const s = String(v || '');
+  return s.includes('<') || s.includes('>');
+}
+
+if (looksLikePlaceholder(base)) {
+  console.error(`[phase8-autokick] invalid PHASE8_BASE: ${base}`);
+  console.error('[phase8-autokick] Replace placeholder text. Example: PHASE8_BASE="https://p2p-tracker.taheito26.workers.dev"');
+  process.exit(1);
+}
+
+console.log(`[phase8-autokick] base=${base}`);
+console.log(`[phase8-autokick] userId=${userId}`);
+console.log(`[phase8-autokick] out=${outFile}`);
+
+const res = spawnSync(process.execPath, [
+  readinessScript,
+  '--base', base,
+  '--user-id', userId,
+  '--out', outFile,
+], { stdio: 'inherit' });
+
+if (res.error) {
+  console.error('[phase8-autokick] failed:', res.error.message || res.error);
+  process.exit(1);
+}
+
+if (res.status === 0) {
+  console.log('[phase8-autokick] readiness PASS. Next step: execute Phase 8 staging reconciliation sign-off.');
+} else if (res.status === 2) {
+  console.log('[phase8-autokick] readiness gates not fully passed. Next step: review generated report and fix failing gates.');
+} else {
+  console.log('[phase8-autokick] readiness script error. Next step: verify endpoint reachability/auth headers and retry.');
+}
+
+process.exit(res.status ?? 1);
