@@ -19,7 +19,7 @@ const userId = arg('--user-id', 'phase3-safe-user');
 const idemKey = arg('--idempotency-key', `phase3-${Date.now()}`);
 
 function bin(name) {
-  if (process.platform === 'win32') return `${name}.cmd`;
+  if (process.platform === 'win32' && name !== 'node') return `${name}.cmd`;
   return name;
 }
 
@@ -33,8 +33,8 @@ function runStep(name, cmd, cmdArgs) {
 async function postImport() {
   const payload = {
     idempotency_key: idemKey,
-    deals: [{ id: 'deal_1', title: 'Sample Deal', amount: 1000, currency: 'USDT' }],
-    trades: [{ id: 'tr_1', symbol: 'BTCUSDT', qty: 0.01 }],
+    deals: [{ id: 'deal_1', title: 'Sample Deal', amount: 1000, currency: 'USDT', started_at: new Date().toISOString() }],
+    trades: [{ id: 'tr_1', symbol: 'BTCUSDT', quantity: 0.01, side: 'buy', traded_at: new Date().toISOString() }],
   };
   const res = await fetch(`${baseUrl}/api/import/json`, {
     method: 'POST',

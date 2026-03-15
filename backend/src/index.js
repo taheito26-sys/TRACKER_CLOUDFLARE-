@@ -174,6 +174,31 @@ function validateNickname(nick) {
 function safeJsonParse(value, fallback) {
   try { return JSON.parse(value); } catch { return fallback; }
 }
+function asPlainObject(v) {
+  return v && typeof v === "object" && !Array.isArray(v) ? v : {};
+}
+function requireStringField(obj, key, opts = {}) {
+  const v = String(obj[key] || "").trim();
+  if (!v) throw new HttpError(400, `Missing required string field: ${key}`);
+  if (opts.min && v.length < opts.min) throw new HttpError(400, `Field ${key} must be at least ${opts.min} chars`);
+  if (opts.max && v.length > opts.max) throw new HttpError(400, `Field ${key} must be at most ${opts.max} chars`);
+  return v;
+}
+function requirePositiveNumberField(obj, key) {
+  const v = Number(obj[key]);
+  if (isNaN(v) || v <= 0) throw new HttpError(400, `Field ${key} must be a positive number`);
+  return v;
+}
+function optionalStringField(obj, key, opts = {}) {
+  const v = obj[key] == null ? (opts.fallback ?? "") : String(obj[key]).trim();
+  if (opts.max && v.length > opts.max) throw new HttpError(400, `Field ${key} must be at most ${opts.max} chars`);
+  return v;
+}
+function optionalNumberField(obj, key, fallback = 0) {
+  const v = obj[key] == null ? fallback : Number(obj[key]);
+  if (isNaN(v)) throw new HttpError(400, `Field ${key} must be a number`);
+  return v;
+}
 async function getMyProfile(db, userId) {
   return await d1First(db, `SELECT * FROM merchant_profiles WHERE owner_user_id = ? LIMIT 1`, userId);
 }
@@ -2714,8 +2739,6 @@ export default {
       console.error('[worker] unhandled fetch error:', err?.stack || err?.message || String(err));
       response = bad(request, env, err?.message || 'Internal error', err?.status || 500);
     }
-    const p2p = await handleP2P(request, env);
-    if (p2p) return p2p;
-    return bad(request, env, "Not found", 404);
+    return response;
   },
 };
