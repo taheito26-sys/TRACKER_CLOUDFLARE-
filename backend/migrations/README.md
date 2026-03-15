@@ -14,7 +14,7 @@ This runbook executes and validates Phase 1 schema foundation tasks.
 To complete Phase 1 validation, I need the following from you:
 
 1. **Environment target**: tell me whether to validate against `local`, `staging`, or `production`.
-2. **Worker URL**: confirm the base URL to validate (for example `https://p2p-tracker.taheito26.workers.dev`).
+2. **Worker URL**: confirm the base URL to validate (for example `https://p2p-tracker-api.taheito26.workers.dev`).
 3. **Cloudflare session readiness**: ensure `wrangler whoami` works in your shell.
 4. **Run and paste output** (Windows PowerShell):
 
@@ -74,7 +74,7 @@ Optional flags:
 .\run-phase1-oneshot.ps1 -D1Target "DB" -SkipDeploy
 .\run-phase1-oneshot.ps1 -D1Target "DB" -SkipMigration
 .\run-phase1-oneshot.ps1 -D1Target "DB" -SkipVerify
-.\run-phase1-oneshot.ps1 -D1Target "DB" -DbName "crypto-tracker" -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
+.\run-phase1-oneshot.ps1 -D1Target "DB" -DbName "crypto-tracker" -BaseUrl "https://p2p-tracker-api.taheito26.workers.dev"
 ```
 
 ## Verify migration registry table
@@ -119,7 +119,7 @@ curl.exe -v "https://<worker-domain>/api/system/health"
 - For TLS/proxy issues, test with:
 
 ```powershell
-Test-NetConnection p2p-tracker.taheito26.workers.dev -Port 443
+Test-NetConnection p2p-tracker-api.taheito26.workers.dev -Port 443
 ```
 
 ### One-command PowerShell validation script
@@ -129,7 +129,7 @@ From `backend/` run:
 ```powershell
 .\scripts\verify-system-endpoints.ps1
 # or with custom URL
-.\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
+.\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker-api.taheito26.workers.dev"
 ```
 
 This script prints system JSON payloads and fails if:
@@ -146,7 +146,7 @@ If PowerShell wrappers/policies are interfering, run the Node verifier:
 
 ```powershell
 cd C:\TRACKER_CLOUDFLARE-\backend
-node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker.taheito26.workers.dev"
+node .\scripts\verify-system-endpoints.mjs --base-url "https://p2p-tracker-api.taheito26.workers.dev"
 ```
 
 This avoids PowerShell aliasing/dot-sourcing issues entirely and returns a non-zero exit code on failure.
@@ -187,7 +187,7 @@ From `backend/` run this wrapper to avoid shell syntax issues:
 ```powershell
 .\scripts\verify-system-endpoints.cmd
 # custom URL
-.\scripts\verify-system-endpoints.cmd https://p2p-tracker.taheito26.workers.dev
+.\scripts\verify-system-endpoints.cmd https://p2p-tracker-api.taheito26.workers.dev
 ```
 
 Before running, ensure you have latest scripts from git (`git pull`) and confirm files exist with `Get-ChildItem .\scripts`.
@@ -201,14 +201,14 @@ If Node shows `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` on Window
 ```powershell
 cd C:\TRACKER_CLOUDFLARE-\backend
 npx wrangler deploy
-.\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
+.\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker-api.taheito26.workers.dev"
 ```
 
 If you are currently inside `backend/scripts`, first move to backend root:
 
 ```powershell
 cd ..
-.\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker.taheito26.workers.dev"
+.\scripts\verify-system-endpoints.ps1 -BaseUrl "https://p2p-tracker-api.taheito26.workers.dev"
 ```
 
 If verifier output shows HTML bodies, you are likely hitting the wrong target (frontend/site route) instead of backend Worker API.
