@@ -1,4 +1,4 @@
-﻿name: Deploy Frontend
+name: Deploy Frontend
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy frontend assets
+    name: Deploy Frontend Worker
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -26,10 +26,10 @@ jobs:
         run: npm install -g wrangler@latest
 
       - name: Deploy to Cloudflare Pages
-        run: wrangler pages deploy frontend --project-name=p2p-tracker --branch=main
+        run: wrangler deploy --config wrangler.jsonc
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deployment summary
-        run: echo "Frontend deployed to Cloudflare Pages"
+        run: echo "Frontend Worker deployed to https://p2p-tracker.<subdomain>.workers.dev"
