@@ -4,7 +4,7 @@
 - User ID header: `compat:phase8-autokick`
 - Request timeout (ms): `15000`
 - Overall migration progress: `37/46 tasks (80%)  `███████████████████░░░░░``
-- Generated: 2026-03-15T01:37:58.142Z
+- Generated: 2026-03-15T01:49:25.467Z
 
 ## Gate Results
 - health_ok: **FAIL**
