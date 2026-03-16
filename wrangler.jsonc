@@ -1,12 +1,30 @@
-﻿{
+{
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "p2p-tracker",
-  "compatibility_date": "2025-09-27",
+  "main": "backend/src/index.js",
+  "compatibility_date": "2026-03-10",
   "observability": {
     "enabled": true
   },
   "assets": {
     "directory": "frontend"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "P2P_KV",
+      "id": "00e9cb0899964d34a89b8b41376682ed"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "crypto-tracker",
+      "database_id": "e51dd932-5912-4a1b-b354-ff03bc25d23e"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://p2p-tracker.taheito26.workers.dev,https://p2p-tracker.pages.dev,https://tracker.pages.dev,https://lovable.dev",
+    "AUTH_SOURCE": "cloudflare-access"
   },
   "compatibility_flags": [
     "nodejs_compat"

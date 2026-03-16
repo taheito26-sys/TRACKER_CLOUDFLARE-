@@ -64,6 +64,7 @@
     var saved = localStorage.getItem("merchant_worker_url") || "";
     if(saved) return saved.replace(/\/+$/,"");
     try { if(typeof P2P_API_URL !== "undefined" && P2P_API_URL) return String(P2P_API_URL).replace(/\/+$/,""); } catch(_) {}
+    try { if(typeof window !== "undefined" && window.location && window.location.origin) return window.location.origin; } catch(_) {}
     return "";
   }
   async function getHeaders(){
