@@ -2962,7 +2962,11 @@ export default {
 
     let response;
     try {
-      if (url.pathname.startsWith("/api/system")) {
+      if (url.pathname.startsWith("/api/user")) {
+        const userResp = await handleUser(request, env);
+        if (userResp) response = userResp;
+      }
+      if (!response && url.pathname.startsWith("/api/system")) {
         const system = await handleSystem(request, env);
         if (system) response = system;
       }

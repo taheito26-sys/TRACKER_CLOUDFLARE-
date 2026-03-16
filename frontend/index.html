@@ -8000,14 +8000,15 @@ function renderTopbarUser() {
   var el = document.getElementById("topbarUser");
   if (!el) return;
   if (!_authUser) { el.innerHTML = ""; return; }
-  var initials = (_authUser.name || _authUser.email).slice(0,2).toUpperCase();
+  var ident = _authUser.email || _authUser.name || _authUser.id || "";
+  var initials = ident.slice(0,2).toUpperCase();
   el.innerHTML =
     "<button id='userProfileBtn' type='button' style='display:flex;align-items:center;gap:6px;background:transparent;border:0;padding:0;cursor:pointer;color:inherit;'>" +
       "<div style='width:24px;height:24px;border-radius:50%;background:var(--brand);color:#fff;" +
         "display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;'>" +
         initials + "</div>" +
       "<span style='font-size:10px;font-weight:700;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>" +
-        esc(_authUser.name || _authUser.email) + "</span>" +
+        esc(ident) + "</span>" +
     "</button>" +
     "<button id='signOutBtn' class='rowBtn' style='font-size:9px;padding:2px 7px;margin-left:8px;'>Sign out</button>";
   var pb = document.getElementById("userProfileBtn");
@@ -8018,13 +8019,39 @@ function renderTopbarUser() {
   });
 }
 
-// ── Bootstrap ─────────────────────────────────────────────────────
-function authBootstrap() {
+let _prefDebounce;
+async function debouncedSyncPrefs(prefs) {
+  if (!window._authUser || (!window._authUser.email && !window._authUser.id)) return;
+  clearTimeout(_prefDebounce);
+  _prefDebounce = setTimeout(async () => {
+    try { await api("/api/user/preferences", { method: "PATCH", body: JSON.stringify(prefs) }); }
+    catch(e) { console.warn("Pref sync fail", e); }
+  }, 1000);
+}
+
+async function bootPreferences() {
+  if (!window._authUser || (!window._authUser.email && !window._authUser.id)) return false;
+  try {
+    const res = await api("/api/user/bootstrap");
+    if (res && res.preferences) {
+      state.theme = res.preferences.theme || state.theme;
+      state.layout = res.preferences.layout || state.layout;
+      state.page = res.preferences.last_page || state.page;
+      return true;
+    } else {
+      debouncedSyncPrefs({ theme: state.theme, layout: state.layout, last_page: state.page });
+      return false;
+    }
+  } catch(e) { return false; }
+}
+
+async function authBootstrap() {
   gasLoadConfig();
   if (authLoad()) {
     try{ profileTouchLogin(); }catch(e){}
     hideLoginScreen();
     init();
+    await bootPreferences();
     renderTopbarUser();
     gasRestoreSilent().then(function(){
       withCloudSyncMuted_(function(){ load(); recompute(); render(); });
