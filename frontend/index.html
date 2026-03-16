@@ -7554,28 +7554,11 @@ function authGoogleLogin(idToken){
   if (rbtn) { rbtn.disabled = true; rbtn.textContent = "Working…"; }
 
   authApi("googleLogin", { idToken: idToken })
-    .then(function(res){
-      if (!res || res.ok === false) throw new Error((res && res.error) || "Google login failed");
-      _authUser = res.user || _authUser || { email: "", name: "" };
-      _authToken = res.token || "";
-      if (!_authToken) throw new Error("Missing token from backend");
-      authSave();
-
-      if (res.state) {
-        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
-      }
-
-      hideLoginScreen();
-      init();
-      renderTopbarUser();
-      withCloudSyncMuted_(function(){ load(); recompute(); render(); });
-      markCloudBaselineFromCurrentState_();
-      updateSyncBadge(_gasUrl ? "saved" : "");
-    })
+    .then(function(res){ authCompleteAndEnter(res, _authUser || { email: "", name: "" }); })
     .catch(function(e){ showLoginError(e.message || String(e)); updateSyncBadge("error"); })
     .finally(function(){
-      if (btn) { btn.disabled = false; btn.textContent = "Login"; }
-      if (rbtn) { rbtn.disabled = false; rbtn.textContent = "Create account"; }
+      if (btn) { btn.disabled = false; btn.textContent = "Sign In →"; }
+      if (rbtn) { rbtn.disabled = false; rbtn.textContent = "Create Account →"; }
     });
 }
 
@@ -7710,6 +7693,26 @@ function authApi(action, payload) {
   return gasPost(body);
 }
 
+function authCompleteAndEnter(res, fallbackUser, okToastMsg) {
+  if (!res || res.ok === false) throw new Error((res && res.error) || "Authentication failed");
+  _authUser = res.user || fallbackUser || _authUser || { email: "", name: "" };
+  _authToken = String(res.token || _authToken || "").trim();
+  if (!_authToken) _authToken = "local-" + uid();
+  authSave();
+
+  if (res.state) {
+    try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
+  }
+
+  hideLoginScreen();
+  init();
+  renderTopbarUser();
+  withCloudSyncMuted_(function(){ load(); recompute(); render(); });
+  markCloudBaselineFromCurrentState_();
+  updateSyncBadge(_gasUrl ? "saved" : "");
+  if (okToastMsg && typeof toast === "function") toast(okToastMsg, "good");
+}
+
 function authLogin(){
   clearLoginError();
   var email = (document.getElementById("loginEmail")?.value || "").trim().toLowerCase();
@@ -7724,27 +7727,9 @@ function authLogin(){
   if (btn) { btn.disabled = true; btn.textContent = "Logging in…"; }
 
   authApi("login", { email: email, password: pass })
-    .then(function(res){
-      if (!res || res.ok === false) throw new Error((res && res.error) || "Login failed");
-      _authUser = res.user || { email: email, name: email.split("@")[0] };
-      _authToken = res.token || "";
-      if (!_authToken) throw new Error("Missing token from backend");
-      authSave();
-
-      if (res.state) {
-        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
-      }
-
-      hideLoginScreen();
-      init();
-      renderTopbarUser();
-      // ensure state loaded from localStorage after restore without triggering backup
-      withCloudSyncMuted_(function(){ load(); recompute(); render(); });
-      markCloudBaselineFromCurrentState_();
-      updateSyncBadge(_gasUrl ? "saved" : "");
-    })
+    .then(function(res){ authCompleteAndEnter(res, { email: email, name: email.split("@")[0] }); })
     .catch(function(e){ showLoginError(e.message || String(e)); updateSyncBadge("error"); })
-    .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = "Login"; } });
+    .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = "Sign In →"; } });
 }
 
 function authRegister(){
@@ -7765,27 +7750,9 @@ function authRegister(){
   if (btn) { btn.disabled = true; btn.textContent = "Creating…"; }
 
   authApi("register", { name: name, email: email, password: p1 })
-    .then(function(res){
-      if (!res || res.ok === false) throw new Error((res && res.error) || "Registration failed");
-      _authUser = res.user || { email: email, name: name };
-      _authToken = res.token || "";
-      if (!_authToken) throw new Error("Missing token from backend");
-      authSave();
-
-      if (res.state) {
-        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
-      }
-
-      hideLoginScreen();
-      init();
-      renderTopbarUser();
-      withCloudSyncMuted_(function(){ load(); recompute(); render(); });
-      markCloudBaselineFromCurrentState_();
-      updateSyncBadge(_gasUrl ? "saved" : "");
-      toast("Account created ✓", "good");
-    })
+    .then(function(res){ authCompleteAndEnter(res, { email: email, name: name }, "Account created ✓"); })
     .catch(function(e){ showLoginError(e.message || String(e)); updateSyncBadge("error"); })
-    .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = "Create account"; } });
+    .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = "Create Account →"; } });
 }
 
 function authSignOut() {
@@ -11234,8 +11201,19 @@ window.renderMerchants = function(){
       (data.messages || []).forEach(function(msg) {
         var exists = MS.messages.some(function(m){ return m.id===msg.id; });
         if (!exists) {
+          var isIncoming = String(msg.sender_merchant_id||'') !== String(mid||'');
           MS.messages.push({ id:msg.id, relationship_id:msg.relationship_id, sender_merchant_id:msg.sender_merchant_id,
-            sender_name:msg.sender_name||msg.sender_merchant_id, body:msg.body, created_at:msg.created_at, read_at:null });
+            sender_name:msg.sender_name||msg.sender_merchant_id, body:msg.body, ts:Number(msg.created_at)||now(), created_at:msg.created_at, read_at:isIncoming?null:now() });
+          if (isIncoming) {
+            notify('message', 'New message from ' + (msg.sender_name||msg.sender_merchant_id), String(msg.body||'').slice(0, 80), msg.relationship_id);
+            if (typeof toast === 'function') toast('New message from ' + (msg.sender_name||msg.sender_merchant_id), 'good');
+            try {
+              if (typeof Notification !== 'undefined') {
+                if (Notification.permission === 'granted') new Notification('New message from ' + (msg.sender_name||msg.sender_merchant_id), { body: String(msg.body||'').slice(0, 120) });
+                else if (Notification.permission !== 'denied') Notification.requestPermission();
+              }
+            } catch(_e) {}
+          }
           changed = true;
         }
       });
@@ -12207,11 +12185,24 @@ window.renderMerchants = function(){
   /* ─── Workspace: Messages ──────────────────────────────────────────── */
   function _wsMessages(rel, relMsgs, cp){
     relMsgs.forEach(function(m){ if(m.sender_merchant_id!==MS.profile.merchant_id) m.read_at=now(); }); save();
+    var meName = (MS.profile && MS.profile.display_name) ? MS.profile.display_name : 'You';
     return '<div class="panel"><div class="panel-head"><h2>Messages with '+esc(cp)+'</h2></div><div class="panel-body">' +
-      '<div id="ws_msg_list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">' +
+      '<div id="ws_msg_list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px;padding:2px 2px 4px;">' +
       (relMsgs.length ? relMsgs.map(function(m){
-        var isMe = m.sender_merchant_id===MS.profile.merchant_id;
-        return '<div style="display:flex;'+(isMe?'justify-content:flex-end;':'')+'"><div style="max-width:80%;padding:7px 10px;border-radius:12px;'+(isMe?'background:var(--brand);color:#fff;border-bottom-right-radius:3px;':'background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:3px;')+'"><div style="font-size:10px;">'+esc(m.body)+'</div><div style="font-size:8px;margin-top:2px;opacity:0.7;">'+fmtAgo(m.ts)+'</div></div></div>';
+        var isMe = String(m.sender_merchant_id||'')===String(MS.profile.merchant_id||'');
+        var senderName = isMe ? meName : (m.sender_name || cp);
+        var msgTs = Number(m.ts||m.created_at||now());
+        var wrapStyle = 'display:flex;align-items:flex-end;' + (isMe?'justify-content:flex-end;':'justify-content:flex-start;');
+        var bubbleStyle = isMe
+          ? 'max-width:78%;padding:8px 11px;border-radius:14px 14px 4px 14px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;box-shadow:0 4px 14px rgba(34,197,94,.22);'
+          : 'max-width:78%;padding:8px 11px;border-radius:14px 14px 14px 4px;background:linear-gradient(135deg,#334155,#1e293b);color:#e5e7eb;border:1px solid rgba(148,163,184,.25);';
+        return '<div style="'+wrapStyle+'">' +
+          '<div style="'+bubbleStyle+'">' +
+            '<div style="font-size:8px;font-weight:800;letter-spacing:.03em;opacity:.85;margin-bottom:3px;">'+esc(senderName)+'</div>' +
+            '<div style="font-size:10px;line-height:1.35;white-space:pre-wrap;word-break:break-word;">'+esc(m.body)+'</div>' +
+            '<div style="font-size:8px;margin-top:4px;opacity:.72;text-align:'+(isMe?'right':'left')+';">'+fmtAgo(msgTs)+'</div>' +
+          '</div>' +
+        '</div>';
       }).join('') : '<div class="muted" style="text-align:center;padding:20px;">No messages yet.</div>') +
       '</div><div style="display:flex;gap:6px;"><input id="ws_msg_input" class="inp-field" style="flex:1;" placeholder="Type a message…"/><button class="btn" id="ws_msg_send" style="font-size:10px;">Send</button></div></div></div>';
   }
@@ -12648,7 +12639,7 @@ window.renderMerchants = function(){
     var sendMsg = async function(){
       var inp=$('#ws_msg_input'); if(!inp) return;
       var body=(inp.value||'').trim(); if(!body) return;
-      MS.messages.push({ id:uid(), relationship_id:rel.id, sender_merchant_id:MS.profile.merchant_id, body:body, ts:now(), read_at:now() });
+      MS.messages.push({ id:uid(), relationship_id:rel.id, sender_merchant_id:MS.profile.merchant_id, sender_name:(MS.profile.display_name||MS.profile.merchant_id), body:body, ts:now(), created_at:now(), read_at:now() });
       audit('message_sent','message',rel.id,'Sent to '+cp);
       save(); renderMerchants();
     };
@@ -13884,7 +13875,7 @@ window.renderMerchants = function(){
   function crm6Store(){
     if (!window._crm6Store) {
       window._crm6Store = {
-        tab: 'customers',
+        tab: 'suppliers',
         selected: { customers:'', suppliers:'' },
         filters: { q:'', entity:'all', status:'all', tier:'all', location:'all', minVol:'', maxVol:'' },
         sort: { customers:{ key:'volume', dir:'desc' }, suppliers:{ key:'volume', dir:'desc' } }
@@ -13982,7 +13973,7 @@ window.renderMerchants = function(){
     openModal(isCustomer ? 'Edit Customer' : 'Edit Supplier',
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
         '<div class="form-field"><label class="form-label">' + (isCustomer ? 'Contact Person Name' : 'Supplier Name') + '</label><input id="crm6_name" class="inp-field" value="' + escHtml(rec.name || '') + '"/></div>' +
-        '<div class="form-field"><label class="form-label">Phone</label><input id="crm6_phone" class="inp-field" value="' + escHtml(rec.phone || '') + '"/></div>' +
+        '<div class="form-field"><label class="form-label">Phone' + (isCustomer ? '' : ' *') + '</label><input id="crm6_phone" class="inp-field" value="' + escHtml(rec.phone || '') + '"/><div class="msg err" id="crm6_phone_err" style="display:none;margin-top:6px;"></div></div>' +
         '<div class="form-field"><label class="form-label">Location</label><input id="crm6_location" class="inp-field" value="' + escHtml(rec.location || '') + '"/></div>' +
         '<div class="form-field"><label class="form-label">Status</label><select id="crm6_status" class="inp-field"><option value="active"' + (rec.status === 'active' ? ' selected' : '') + '>Active</option><option value="inactive"' + (rec.status === 'inactive' ? ' selected' : '') + '>Inactive</option><option value="blocked"' + (rec.status === 'blocked' ? ' selected' : '') + '>Blocked</option></select></div>' +
         (isCustomer ? '<div class="form-field" style="grid-column:span 2;"><label class="form-label">Tier</label><select id="crm6_tier" class="inp-field">' + ['A','B','C','D'].map(function(k){ return '<option value="' + k + '"' + (String(rec.tier || 'C') === k ? ' selected' : '') + '>' + crm6TierMeta(k).label + '</option>'; }).join('') + '</select><label style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:11px;color:var(--muted);"><input type="checkbox" id="crm6_tier_manual" ' + (rec.tierManual ? 'checked' : '') + '/>Manual override, suggested tier is ' + escHtml(crm6TierMeta(suggested).label) + '</label></div>' : '<div class="form-field" style="grid-column:span 2;"><label class="form-label">Typical Price (optional)</label><input id="crm6_typical" class="inp-field" inputmode="decimal" value="' + escHtml(rec.typicalPrice != null ? String(rec.typicalPrice) : '') + '"/></div>') +
@@ -13994,16 +13985,36 @@ window.renderMerchants = function(){
       qs('#m_c') && qs('#m_c').addEventListener('click', closeModal);
       qs('#m_s') && qs('#m_s').addEventListener('click', function(){
         var oldName = safe(rec.name).trim();
-        rec.name = safe(qs('#crm6_name') && qs('#crm6_name').value).trim() || rec.name;
-        rec.phone = safe(qs('#crm6_phone') && qs('#crm6_phone').value).trim();
-        rec.location = safe(qs('#crm6_location') && qs('#crm6_location').value).trim();
-        rec.status = safe(qs('#crm6_status') && qs('#crm6_status').value).trim() || 'active';
-        rec.notes = safe(qs('#crm6_notes') && qs('#crm6_notes').value);
+        var nextName = safe(qs('#crm6_name') && qs('#crm6_name').value).trim() || rec.name;
+        var nextPhone = safe(qs('#crm6_phone') && qs('#crm6_phone').value).trim();
+        var nextLocation = safe(qs('#crm6_location') && qs('#crm6_location').value).trim();
+        var nextStatus = safe(qs('#crm6_status') && qs('#crm6_status').value).trim() || 'active';
+        var nextNotes = safe(qs('#crm6_notes') && qs('#crm6_notes').value);
+        var phoneErr = qs('#crm6_phone_err');
+        if (phoneErr) { phoneErr.style.display = 'none'; phoneErr.textContent = ''; }
         if (isCustomer) {
+          rec.name = nextName;
+          rec.phone = nextPhone;
+          rec.location = nextLocation;
+          rec.status = nextStatus;
+          rec.notes = nextNotes;
           rec.tier = safe(qs('#crm6_tier') && qs('#crm6_tier').value).trim() || rec.tier || 'C';
           rec.tierManual = !!(qs('#crm6_tier_manual') && qs('#crm6_tier_manual').checked);
           if (!rec.tierManual) rec.tier = crm6SuggestedTier(crm6CustomerMetrics(rec).volume, rec.status);
         } else {
+          var check = validateSupplierProfileInput({ id: rec.id, oldName: oldName, name: nextName, phone: nextPhone });
+          if (!check.ok) {
+            if (phoneErr) {
+              phoneErr.textContent = check.message;
+              phoneErr.style.display = 'block';
+            } else if (typeof toast === 'function') toast(check.message, 'warn');
+            return;
+          }
+          rec.name = check.name;
+          rec.phone = check.phone;
+          rec.location = nextLocation;
+          rec.status = nextStatus;
+          rec.notes = nextNotes;
           rec.typicalPrice = num0(qs('#crm6_typical') && qs('#crm6_typical').value) || null;
           if (oldName && norm(oldName) !== norm(rec.name)) {
             (state.batches || []).forEach(function(b){ if (norm(b && b.source) === norm(oldName)) b.source = rec.name; });
@@ -14020,7 +14031,7 @@ window.renderMerchants = function(){
     openModal(isCustomer ? 'New Customer' : 'New Supplier',
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
         '<div class="form-field"><label class="form-label">' + (isCustomer ? 'Contact Person Name' : 'Supplier Name') + '</label><input id="crm6_new_name" class="inp-field"/></div>' +
-        '<div class="form-field"><label class="form-label">Phone</label><input id="crm6_new_phone" class="inp-field"/></div>' +
+        '<div class="form-field"><label class="form-label">Phone' + (isCustomer ? '' : ' *') + '</label><input id="crm6_new_phone" class="inp-field"/><div class="msg err" id="crm6_new_phone_err" style="display:none;margin-top:6px;"></div></div>' +
         '<div class="form-field"><label class="form-label">Location</label><input id="crm6_new_location" class="inp-field"/></div>' +
         (isCustomer ? '<div class="form-field"><label class="form-label">Tier</label><select id="crm6_new_tier" class="inp-field">' + ['A','B','C','D'].map(function(k){ return '<option value="' + k + '">' + crm6TierMeta(k).label + '</option>'; }).join('') + '</select></div>' : '<div class="form-field"><label class="form-label">Typical Price</label><input id="crm6_new_typical" class="inp-field" inputmode="decimal"/></div>') +
       '</div>',
@@ -14031,14 +14042,42 @@ window.renderMerchants = function(){
       qs('#m_s') && qs('#m_s').addEventListener('click', function(){
         var name = safe(qs('#crm6_new_name') && qs('#crm6_new_name').value).trim();
         if (!name) { if (typeof toast === 'function') toast((isCustomer ? 'Customer' : 'Supplier') + ' name is required', 'warn'); return; }
+        var phone = safe(qs('#crm6_new_phone') && qs('#crm6_new_phone').value).trim();
+        var location = safe(qs('#crm6_new_location') && qs('#crm6_new_location').value).trim();
+        var phoneErr = qs('#crm6_new_phone_err');
+        if (phoneErr) { phoneErr.style.display = 'none'; phoneErr.textContent = ''; }
+        if (!isCustomer) {
+          var addCheck = validateSupplierProfileInput({ name:name, phone:phone });
+          if (!addCheck.ok) {
+            if (phoneErr) {
+              phoneErr.textContent = addCheck.message;
+              phoneErr.style.display = 'block';
+            } else if (typeof toast === 'function') toast(addCheck.message, 'warn');
+            return;
+          }
+          var upsert = upsertSupplierProfile({ name:addCheck.name, phone:addCheck.phone, typicalPrice:num0(qs('#crm6_new_typical') && qs('#crm6_new_typical').value) || null, notes:'' });
+          if (!upsert.ok) {
+            if (phoneErr) {
+              phoneErr.textContent = upsert.message || 'Unable to save supplier.';
+              phoneErr.style.display = 'block';
+            }
+            return;
+          }
+          var supplier = upsert.supplier || {};
+          supplier.location = location;
+          supplier.updatedAt = Date.now();
+          saveRecompute('Supplier added', 'good');
+          closeModal();
+          return;
+        }
         var list = isCustomer ? state.customers : state.suppliers;
         var ex = list.find(function(r){ return norm(r.name) === norm(name); });
         var rec = ex || { id: uid(), name:name, createdAt:Date.now() };
         if (!ex) list.push(rec);
         crm6EnsureMeta(rec, isCustomer ? 'customer' : 'supplier');
         rec.name = name;
-        rec.phone = safe(qs('#crm6_new_phone') && qs('#crm6_new_phone').value).trim();
-        rec.location = safe(qs('#crm6_new_location') && qs('#crm6_new_location').value).trim();
+        rec.phone = phone;
+        rec.location = location;
         if (isCustomer) { rec.tier = safe(qs('#crm6_new_tier') && qs('#crm6_new_tier').value).trim() || 'C'; rec.tierManual = true; }
         else rec.typicalPrice = num0(qs('#crm6_new_typical') && qs('#crm6_new_typical').value) || null;
         rec.updatedAt = Date.now();
@@ -14099,10 +14138,16 @@ window.renderMerchants = function(){
     saveRecompute('Status updated', 'good');
   }
   function crm6Delete(kind, id){
-    openModal('Delete ' + (kind === 'customers' ? 'Customer' : 'Supplier'), '<div class="msg err">This removes the CRM profile only. Linked trades and batches stay in the ledger.</div>', '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" style="background:var(--bad);border-color:var(--bad);" id="m_s">Delete</button>');
+    var rec = ((kind === 'customers' ? state.customers : state.suppliers) || []).find(function(x){ return String(x.id) === String(id); });
+    var linkedBatches = (kind === 'suppliers' && rec) ? (state.batches || []).filter(function(b){ return norm(b && b.source) === norm(rec.name); }).length : 0;
+    var msg = linkedBatches > 0
+      ? '<div class="msg err">This supplier is linked to ' + escHtml(String(linkedBatches)) + ' batch record(s). Delete is blocked to protect stock/trade history.</div>'
+      : '<div class="msg err">This removes the CRM profile only. Linked trades and batches stay in the ledger.</div>';
+    openModal('Delete ' + (kind === 'customers' ? 'Customer' : 'Supplier'), msg, '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" style="background:var(--bad);border-color:var(--bad);" id="m_s"' + (linkedBatches > 0 ? ' disabled' : '') + '>Delete</button>');
     setTimeout(function(){
       qs('#m_c') && qs('#m_c').addEventListener('click', closeModal);
       qs('#m_s') && qs('#m_s').addEventListener('click', function(){
+        if (linkedBatches > 0) return;
         if (kind === 'customers') state.customers = (state.customers || []).filter(function(x){ return String(x.id) !== String(id); });
         else state.suppliers = (state.suppliers || []).filter(function(x){ return String(x.id) !== String(id); });
         saveRecompute('CRM profile deleted', 'warn');
@@ -14305,7 +14350,6 @@ window.renderMerchants = function(){
 
 </body>
 </html>
-
 
 
 
