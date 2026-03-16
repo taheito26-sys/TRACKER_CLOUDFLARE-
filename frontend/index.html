@@ -11256,7 +11256,7 @@ window.renderMerchants = function(){
       if(!ov && typeof localStorage !== 'undefined') ov = localStorage.getItem('merchant_api_base') || '';
       if(ov) bases.push(_normBase(ov));
     } catch(e){}
-    try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
+    try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin)); } catch(e){}
     bases.push(_normBase(API_BASE));
     // De-duplicate while preserving order.
     return bases.filter(function(b, i){ return b && bases.indexOf(b)===i; });
@@ -11300,7 +11300,7 @@ window.renderMerchants = function(){
   async function _publishProfile() {
     if (!MS.profile) return;
     try {
-      await _api('POST', '/api/profiles', {
+      await _api('POST', '/api/merchant/profile', {
         merchant_id:    MS.profile.merchant_id,
         display_name:   MS.profile.display_name,
         nickname:       MS.profile.nickname,
@@ -11313,7 +11313,7 @@ window.renderMerchants = function(){
   }
 
   async function _apiSearch(q) {
-    return _api('GET', '/api/profiles/search?q=' + encodeURIComponent(q) + '&limit=20');
+    return _api('GET', '/api/merchant/search?q=' + encodeURIComponent(q) + '&limit=20').then(function(r){ return r.results || []; });
   }
 
   function _localDirectorySearch(q){
@@ -11329,23 +11329,23 @@ window.renderMerchants = function(){
   }
 
   async function _apiSendInvite(inv) {
-    return _api('POST', '/api/invites', inv);
+    return _api('POST', '/api/merchant/invites', inv);
   }
 
   async function _apiAcceptInvite(inviteId, myMid) {
-    return _api('POST', '/api/invites/' + inviteId + '/accept', { accepting_merchant_id: myMid });
+    return _api('POST', '/api/merchant/invites/' + inviteId + '/accept', { accepting_merchant_id: myMid });
   }
 
   async function _apiRejectInvite(inviteId, myMid) {
-    return _api('POST', '/api/invites/' + inviteId + '/reject', { rejecting_merchant_id: myMid });
+    return _api('POST', '/api/merchant/invites/' + inviteId + '/reject', { rejecting_merchant_id: myMid });
   }
 
   async function _apiWithdrawInvite(inviteId, myMid) {
-    return _api('POST', '/api/invites/' + inviteId + '/withdraw', { withdrawing_merchant_id: myMid });
+    return _api('POST', '/api/merchant/invites/' + inviteId + '/withdraw', { withdrawing_merchant_id: myMid });
   }
 
   async function _apiSendMessage(msg) {
-    return _api('POST', '/api/messages', msg);
+    return _api('POST', '/api/merchant/messages/' + msg.relationship_id + '/messages', msg);
   }
 
   async function _pollD1() {
@@ -11354,7 +11354,7 @@ window.renderMerchants = function(){
     var since = _lastPollTs;
     _lastPollTs = Date.now();
     try {
-      var data = await _api('GET', '/api/poll/' + mid + '?since=' + since);
+      var data = await _api('GET', '/api/merchant/poll?mid=' + mid + '&since=' + since);
       var changed = false;
       (data.invites || []).forEach(function(ri) {
         var exists = MS.invites.some(function(i) { return i.id === ri.id; });
@@ -11818,9 +11818,9 @@ window.renderMerchants = function(){
       var inbox = [];
       var sent = [];
 
-      try { rels = await _api('GET','/api/relationships/' + mid); } catch(_e) {}
-      try { inbox = await _api('GET','/api/invites/inbox/' + mid); } catch(_e) {}
-      try { sent = await _api('GET','/api/invites/sent/' + mid); } catch(_e) {}
+      try { rels = await _api('GET','/api/merchant/relationships'); } catch(_e) {}
+      try { inbox = await _api('GET','/api/merchant/invites/inbox'); } catch(_e) {}
+      try { sent = await _api('GET','/api/merchant/invites/sent'); } catch(_e) {}
 
       MS.relationships = Array.isArray(rels) ? rels : [];
 
@@ -11872,9 +11872,9 @@ window.renderMerchants = function(){
       var inbox = [];
       var sent = [];
 
-      try { rels = await _api('GET','/api/relationships/' + mid); } catch(_e) {}
-      try { inbox = await _api('GET','/api/invites/inbox/' + mid); } catch(_e) {}
-      try { sent = await _api('GET','/api/invites/sent/' + mid); } catch(_e) {}
+      try { rels = await _api('GET','/api/merchant/relationships'); } catch(_e) {}
+      try { inbox = await _api('GET','/api/merchant/invites/inbox'); } catch(_e) {}
+      try { sent = await _api('GET','/api/merchant/invites/sent'); } catch(_e) {}
 
       MS.relationships = Array.isArray(rels) ? rels : [];
 

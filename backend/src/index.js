@@ -445,6 +445,27 @@ async function handleMerchant(request, env) {
       const row = await d1First(db, `SELECT id FROM merchant_profiles WHERE nickname = ? LIMIT 1`, nickname);
       return json(request, env, { available: !row, valid: true });
     }
+    if (method === "GET" && path.startsWith("/poll")) {
+      const since = url.searchParams.get("since") || "0";
+      const sinceIso = !isNaN(Number(since)) ? new Date(Number(since)).toISOString() : since;
+      const myProfile = await getMyProfile(db, user.userId);
+      if (!myProfile) return json(request, env, { invites: [], messages: [] });
+      const invites = await d1All(db, `
+        SELECT i.*, fp.display_name AS from_display_name, fp.nickname AS from_nickname, fp.merchant_id AS from_public_id
+        FROM merchant_invites i
+        JOIN merchant_profiles fp ON fp.id = i.from_merchant_id
+        WHERE i.to_merchant_id = ? AND i.updated_at > ?
+      `, myProfile.id, sinceIso);
+      const messages = await d1All(db, `
+        SELECT m.*, p.display_name AS sender_name
+        FROM merchant_messages m
+        JOIN merchant_profiles p ON p.id = m.sender_merchant_id
+        JOIN merchant_relationships r ON r.id = m.relationship_id
+        WHERE (r.merchant_a_id = ? OR r.merchant_b_id = ?)
+          AND m.created_at > ?
+      `, myProfile.id, myProfile.id, sinceIso);
+      return json(request, env, { invites, messages });
+    }
 
     // Invites
     if (method === "POST" && path === "/invites") {
