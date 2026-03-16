@@ -169,7 +169,35 @@ function merchantId() {
   return "MRC-" + [...bytes].map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 function validateNickname(nick) {
-  return /^[a-z0-9_]{3,30}$/.test(String(nick || ""));
+  return /^[a-z0-9_.-]{3,32}$/.test(String(nick || ""));
+}
+let merchantProfileShapeCache = null;
+async function merchantProfileShape(db) {
+  if (merchantProfileShapeCache) return merchantProfileShapeCache;
+  const cols = await d1All(db, `PRAGMA table_info(merchant_profiles)`);
+  const names = new Set(cols.map(c => String(c.name || "")));
+  merchantProfileShapeCache = {
+    userCol: names.has("user_id") ? "user_id" : "owner_user_id",
+    hasEmail: names.has("email"),
+  };
+  return merchantProfileShapeCache;
+}
+function mapProfileRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    merchant_id: row.merchant_id,
+    nickname: row.nickname,
+    display_name: row.display_name,
+    merchant_type: row.merchant_type,
+    region: row.region,
+    discoverability: row.discoverability,
+    default_currency: row.default_currency,
+    bio: row.bio,
+    status: row.status,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
 }
 function safeJsonParse(value, fallback) {
   try { return JSON.parse(value); } catch { return fallback; }
@@ -199,8 +227,13 @@ function optionalNumberField(obj, key, fallback = 0) {
   if (isNaN(v)) throw new HttpError(400, `Field ${key} must be a number`);
   return v;
 }
-async function getMyProfile(db, userId) {
-  return await d1First(db, `SELECT * FROM merchant_profiles WHERE owner_user_id = ? LIMIT 1`, userId);
+async function getMyProfile(db, userId, email = "") {
+  const shape = await merchantProfileShape(db);
+  let row = await d1First(db, `SELECT * FROM merchant_profiles WHERE ${shape.userCol} = ? LIMIT 1`, userId);
+  if (!row && shape.hasEmail && email) {
+    row = await d1First(db, `SELECT * FROM merchant_profiles WHERE lower(email) = lower(?) LIMIT 1`, email);
+  }
+  return row;
 }
 async function expireInvites(db) {
   await d1Run(
@@ -328,42 +361,56 @@ async function handleMerchant(request, env) {
   try {
     // Profiles
     if (method === "GET" && path === "/profile/me") {
-      const profile = await getMyProfile(db, user.userId);
-      return json(request, env, { profile: profile || null, authMode: user.mode });
+      const profile = await getMyProfile(db, user.userId, user.email || "");
+      return json(request, env, { profile: mapProfileRow(profile) }, 200);
     }
     if (method === "POST" && path === "/profile") {
-      const existing = await getMyProfile(db, user.userId);
+      const shape = await merchantProfileShape(db);
+      const existing = await getMyProfile(db, user.userId, user.email || "");
       if (existing) return bad(request, env, "Merchant profile already exists", 409);
       const body = await readJson(request);
       const nickname = String(body.nickname || "").trim().toLowerCase();
-      if (!validateNickname(nickname)) return bad(request, env, "Nickname must be 3 to 30 chars using a-z, 0-9, _");
+      if (!validateNickname(nickname)) return bad(request, env, "nickname must match [a-z0-9_.-]{3,32}");
       const nicknameRow = await d1First(db, `SELECT id FROM merchant_profiles WHERE nickname = ? LIMIT 1`, nickname);
-      if (nicknameRow) return bad(request, env, "Nickname already taken", 409);
+      if (nicknameRow) return bad(request, env, "Nickname is already taken", 409);
       const displayName = String(body.display_name || "").trim();
-      if (!displayName) return bad(request, env, "Display name is required");
+      const merchantType = String(body.merchant_type || "").trim();
+      const discoverability = String(body.discoverability || "public").trim();
+      const defaultCurrency = String(body.default_currency || "USDT").trim().toUpperCase();
+      const bio = String(body.bio || "").trim();
+
+      if (displayName.length < 2 || displayName.length > 80) return bad(request, env, "display_name must be 2 to 80 characters");
+      if (!merchantType) return bad(request, env, "merchant_type is required");
+      if (!["public", "merchant_id_only", "hidden"].includes(discoverability)) return bad(request, env, "discoverability is invalid");
+      if (bio.length > 500) return bad(request, env, "bio must be 500 characters or fewer");
+
       const profile = {
         id: randomId("mrc_row_"),
-        owner_user_id: user.userId,
+        user_id: user.userId,
+        email: normalizeEmail(user.email || "") || null,
         merchant_id: merchantId(),
         nickname,
         display_name: displayName,
-        merchant_type: String(body.merchant_type || "independent"),
+        merchant_type: merchantType,
         region: String(body.region || "").trim(),
-        default_currency: String(body.default_currency || "USDT"),
-        discoverability: String(body.discoverability || "public"),
-        bio: String(body.bio || "").trim(),
+        default_currency: defaultCurrency,
+        discoverability: discoverability,
+        bio,
         status: "active",
         created_at: nowIso(),
         updated_at: nowIso(),
       };
-      await d1Run(db, `
-        INSERT INTO merchant_profiles
-          (id, owner_user_id, merchant_id, nickname, display_name, merchant_type, region, default_currency, discoverability, bio, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-        profile.id, profile.owner_user_id, profile.merchant_id, profile.nickname, profile.display_name, profile.merchant_type,
-        profile.region, profile.default_currency, profile.discoverability, profile.bio, profile.status, profile.created_at, profile.updated_at
-      );
+      const cols = ["id", shape.userCol, "merchant_id", "nickname", "display_name", "merchant_type", "region", "default_currency", "discoverability", "bio", "status", "created_at", "updated_at"];
+      const vals = [
+        profile.id, profile.user_id, profile.merchant_id, profile.nickname, profile.display_name,
+        profile.merchant_type, profile.region || null, profile.default_currency, profile.discoverability,
+        profile.bio || null, profile.status, profile.created_at, profile.updated_at,
+      ];
+      if (shape.hasEmail) {
+        cols.splice(2, 0, "email");
+        vals.splice(2, 0, profile.email);
+      }
+      await d1Run(db, `INSERT INTO merchant_profiles (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`, ...vals);
       await createAudit(db, {
         actor_user_id: user.userId,
         actor_merchant_id: profile.id,
@@ -372,36 +419,76 @@ async function handleMerchant(request, env) {
         action: "profile_created",
         detail: { merchant_id: profile.merchant_id, nickname: profile.nickname },
       });
-      return json(request, env, { ok: true, profile }, 201);
+      const created = await getMyProfile(db, user.userId, user.email || "");
+      return json(request, env, { profile: mapProfileRow(created) }, 201);
     }
     if (method === "PATCH" && path === "/profile/me") {
-      const profile = await getMyProfile(db, user.userId);
+      const shape = await merchantProfileShape(db);
+      const profile = await getMyProfile(db, user.userId, user.email || "");
       if (!profile) return bad(request, env, "Merchant profile not found", 404);
       const body = await readJson(request);
-      const next = {
-        display_name: String(body.display_name ?? profile.display_name).trim(),
-        bio: String(body.bio ?? profile.bio ?? "").trim(),
-        region: String(body.region ?? profile.region ?? "").trim(),
-        discoverability: String(body.discoverability ?? profile.discoverability),
-        merchant_type: String(body.merchant_type ?? profile.merchant_type),
-        updated_at: nowIso(),
-      };
-      if (!next.display_name) return bad(request, env, "Display name is required");
+      const patch = {};
+      if ("display_name" in body) {
+        patch.display_name = String(body.display_name || "").trim();
+        if (patch.display_name.length < 2 || patch.display_name.length > 80) return bad(request, env, "display_name must be 2 to 80 characters");
+      }
+      if ("nickname" in body) {
+        patch.nickname = String(body.nickname || "").trim().toLowerCase();
+        if (!validateNickname(patch.nickname)) return bad(request, env, "nickname must match [a-z0-9_.-]{3,32}");
+        if (patch.nickname !== profile.nickname) {
+          const nickTaken = await d1First(db, `SELECT id FROM merchant_profiles WHERE nickname = ? LIMIT 1`, patch.nickname);
+          if (nickTaken) return bad(request, env, "Nickname is already taken", 409);
+        }
+      }
+      if ("merchant_type" in body) {
+        patch.merchant_type = String(body.merchant_type || "").trim();
+        if (!patch.merchant_type) return bad(request, env, "merchant_type is required");
+      }
+      if ("region" in body) patch.region = String(body.region || "").trim();
+      if ("discoverability" in body) {
+        patch.discoverability = String(body.discoverability || "").trim();
+        if (!["public", "merchant_id_only", "hidden"].includes(patch.discoverability)) return bad(request, env, "discoverability is invalid");
+      }
+      if ("default_currency" in body) patch.default_currency = String(body.default_currency || "USDT").trim().toUpperCase();
+      if ("bio" in body) {
+        patch.bio = String(body.bio || "").trim();
+        if (patch.bio.length > 500) return bad(request, env, "bio must be 500 characters or fewer");
+      }
+      if (!Object.keys(patch).length) return bad(request, env, "No valid fields supplied", 400);
+
       await d1Run(db, `
         UPDATE merchant_profiles
-        SET display_name = ?, bio = ?, region = ?, discoverability = ?, merchant_type = ?, updated_at = ?
-        WHERE id = ?
-      `, next.display_name, next.bio, next.region, next.discoverability, next.merchant_type, next.updated_at, profile.id);
-      const updated = await getMyProfile(db, user.userId);
+        SET
+          display_name = COALESCE(?, display_name),
+          nickname = COALESCE(?, nickname),
+          merchant_type = COALESCE(?, merchant_type),
+          region = COALESCE(?, region),
+          discoverability = COALESCE(?, discoverability),
+          default_currency = COALESCE(?, default_currency),
+          bio = COALESCE(?, bio),
+          updated_at = ?
+        WHERE ${shape.userCol} = ?
+      `,
+        patch.display_name ?? null,
+        patch.nickname ?? null,
+        patch.merchant_type ?? null,
+        ("region" in patch) ? (patch.region || null) : null,
+        patch.discoverability ?? null,
+        patch.default_currency ?? null,
+        ("bio" in patch) ? (patch.bio || null) : null,
+        nowIso(),
+        user.userId
+      );
+      const updated = await getMyProfile(db, user.userId, user.email || "");
       await createAudit(db, {
         actor_user_id: user.userId,
         actor_merchant_id: profile.id,
         entity_type: "merchant_profile",
         entity_id: profile.id,
         action: "profile_updated",
-        detail: next,
+        detail: patch,
       });
-      return json(request, env, { ok: true, profile: updated });
+      return json(request, env, { profile: mapProfileRow(updated) }, 200);
     }
     if (method === "GET" && path.startsWith("/profile/")) {
       const key = decodeURIComponent(path.split("/").pop());
@@ -417,33 +504,73 @@ async function handleMerchant(request, env) {
     }
     if (method === "GET" && path === "/search") {
       const q = String(url.searchParams.get("q") || "").trim().toLowerCase();
-      const my = await getMyProfile(db, user.userId);
-      if (!q || q.length < 2) return json(request, env, { results: [] });
-      const rows = await d1All(db, `
+      const shape = await merchantProfileShape(db);
+      if (q.length < 2) return bad(request, env, "q must be at least 2 characters", 400);
+      const exactRows = await d1All(db, `
         SELECT id, merchant_id, nickname, display_name, merchant_type, region, bio, discoverability
         FROM merchant_profiles
         WHERE status = 'active'
+          AND ${shape.userCol} != ?
           AND (
-            merchant_id = ?
-            OR (
-              discoverability = 'public'
-              AND (
-                lower(display_name) LIKE ?
-                OR lower(nickname) LIKE ?
-              )
-            )
+            (discoverability = 'public' AND (lower(merchant_id) = lower(?) OR lower(nickname) = lower(?)))
+            OR
+            (discoverability = 'merchant_id_only' AND (lower(merchant_id) = lower(?) OR lower(nickname) = lower(?)))
           )
-        ORDER BY display_name ASC
+        ORDER BY CASE WHEN lower(merchant_id) = lower(?) THEN 0 WHEN lower(nickname) = lower(?) THEN 1 ELSE 2 END,
+                 display_name COLLATE NOCASE ASC
         LIMIT 25
-      `, q.toUpperCase(), `%${q}%`, `%${q}%`);
-      const filtered = rows.filter(r => !my || r.id !== my.id);
-      return json(request, env, { results: filtered });
+      `, user.userId, q, q, q, q, q, q);
+      const seen = new Set();
+      const results = [];
+      for (const row of exactRows) {
+        seen.add(row.id);
+        results.push({
+          id: row.id,
+          merchant_id: row.merchant_id,
+          nickname: row.nickname,
+          display_name: row.display_name,
+          merchant_type: row.merchant_type,
+          region: row.region,
+        });
+      }
+      if (results.length < 25) {
+        const generalRows = await d1All(db, `
+          SELECT id, merchant_id, nickname, display_name, merchant_type, region
+          FROM merchant_profiles
+          WHERE status = 'active'
+            AND ${shape.userCol} != ?
+            AND discoverability = 'public'
+            AND (
+              lower(display_name) LIKE lower(?) OR
+              lower(nickname) LIKE lower(?) OR
+              lower(merchant_id) LIKE lower(?) OR
+              lower(region) LIKE lower(?)
+            )
+          ORDER BY
+            CASE
+              WHEN lower(display_name) LIKE lower(?) THEN 0
+              WHEN lower(nickname) = lower(?) THEN 1
+              WHEN lower(merchant_id) = lower(?) THEN 2
+              ELSE 3
+            END,
+            display_name COLLATE NOCASE ASC
+          LIMIT 25
+        `, user.userId, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `${q}%`, q, q);
+        for (const row of generalRows) {
+          if (seen.has(row.id)) continue;
+          seen.add(row.id);
+          results.push(row);
+          if (results.length >= 25) break;
+        }
+      }
+      return json(request, env, { results });
     }
     if (method === "GET" && path === "/check-nickname") {
       const nickname = String(url.searchParams.get("nickname") || "").trim().toLowerCase();
-      if (!validateNickname(nickname)) return json(request, env, { available: false, valid: false });
-      const row = await d1First(db, `SELECT id FROM merchant_profiles WHERE nickname = ? LIMIT 1`, nickname);
-      return json(request, env, { available: !row, valid: true });
+      if (!nickname) return bad(request, env, "nickname is required", 400);
+      if (!validateNickname(nickname)) return bad(request, env, "nickname must match [a-z0-9_.-]{3,32}", 400);
+      const row = await d1First(db, `SELECT 1 FROM merchant_profiles WHERE nickname = ? LIMIT 1`, nickname);
+      return json(request, env, { nickname, available: !row });
     }
     if (method === "GET" && path.startsWith("/poll")) {
       const since = url.searchParams.get("since") || "0";
