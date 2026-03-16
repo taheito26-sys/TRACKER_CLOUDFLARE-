@@ -11250,11 +11250,16 @@ window.renderMerchants = function(){
   function _normBase(u){ return String(u||'').trim().replace(/\/$/, ''); }
   function _mkApiBases(){
     var bases = [];
-    // Priority: explicit override → same-origin proxy route → direct workers.dev.
+    // Priority: merchant override(s) → app api base(s) → same-origin → direct workers.dev.
     try {
       var ov = (typeof window !== 'undefined' && window.MERCHANT_API_URL) ? window.MERCHANT_API_URL : '';
+      if(!ov && typeof localStorage !== 'undefined') ov = localStorage.getItem('merchant_worker_url') || '';
       if(!ov && typeof localStorage !== 'undefined') ov = localStorage.getItem('merchant_api_base') || '';
       if(ov) bases.push(_normBase(ov));
+    } catch(e){}
+    try {
+      var pv = (typeof window !== 'undefined' && window.P2P_API_URL) ? window.P2P_API_URL : '';
+      if(pv) bases.push(_normBase(pv));
     } catch(e){}
     try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin)); } catch(e){}
     bases.push(_normBase(API_BASE));
@@ -11262,12 +11267,20 @@ window.renderMerchants = function(){
     return bases.filter(function(b, i){ return b && bases.indexOf(b)===i; });
   }
   var _apiBases = _mkApiBases();
-  const MERCHANT_API_BASE = "https://p2p-tracker.taheito26.workers.dev";
 
 
   async function _api(method, path, body) {
     var hasBody = body !== undefined && body !== null;
     var opts = { method: method, headers: {} };
+    try {
+      if (window._authUser) {
+        var userEmail = String(window._authUser.email || '').trim().toLowerCase();
+        var userId = String(window._authUser.id || '').trim();
+        if (userEmail) opts.headers['X-User-Email'] = userEmail;
+        if (userId) opts.headers['X-User-Id'] = userId;
+        else if (userEmail) opts.headers['X-User-Id'] = 'compat:' + userEmail;
+      }
+    } catch(_e){}
     // Avoid forcing CORS preflight for GET/HEAD by not sending Content-Type unless needed.
     if (hasBody) {
       opts.headers['Content-Type'] = 'application/json';
@@ -12782,7 +12795,7 @@ window.renderMerchants = function(){
       renderMerchants();
       if(typeof toast==='function'){
         if(_dirResults.length) toast('API unavailable — showing local matches only','warn');
-        else toast('Search failed (API unreachable). Set window.MERCHANT_API_URL or localStorage.merchant_api_base.','');
+        else toast('Search failed (API unreachable). Backend /api/merchant/search is not responding.','');
       }
     } finally {
       var btn2=$('#dir_search'); if(btn2){ btn2.textContent='🔍 Search'; btn2.disabled=false; }
@@ -14414,8 +14427,6 @@ window.renderMerchants = function(){
 
 </body>
 </html>
-
-
 
 
 
