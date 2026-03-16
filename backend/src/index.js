@@ -504,26 +504,39 @@ async function handleMerchant(request, env) {
     }
     if (method === "GET" && path === "/search") {
       const q = String(url.searchParams.get("q") || "").trim().toLowerCase();
-      const qNick = q.startsWith("@") ? q.slice(1) : q;
+      const qIdNorm = q
+        .replace(/^merchant\s*id\s*:?\s*/i, "")
+        .replace(/\s+/g, "")
+        .trim();
+      const qIdNoDash = qIdNorm.replace(/-/g, "");
       const shape = await merchantProfileShape(db);
       if (q.length < 2) return bad(request, env, "q must be at least 2 characters", 400);
-
       const exactRows = await d1All(db, `
         SELECT id, merchant_id, nickname, display_name, merchant_type, region, bio, discoverability
         FROM merchant_profiles
         WHERE status = 'active'
           AND ${shape.userCol} != ?
           AND (
-            (discoverability = 'public' AND (lower(merchant_id) = ? OR lower(nickname) = ?))
+            (discoverability = 'public' AND (
+              lower(merchant_id) = lower(?) OR
+              lower(replace(merchant_id, '-', '')) = lower(?) OR
+              lower(nickname) = lower(?)
+            ))
             OR
-            (discoverability = 'merchant_id_only' AND (lower(merchant_id) = ? OR lower(nickname) = ?))
-            OR
-            (discoverability = 'hidden' AND lower(merchant_id) = ?)
+            (discoverability = 'merchant_id_only' AND (
+              lower(merchant_id) = lower(?) OR
+              lower(replace(merchant_id, '-', '')) = lower(?) OR
+              lower(nickname) = lower(?)
+            ))
           )
-        ORDER BY CASE WHEN lower(merchant_id) = ? THEN 0 WHEN lower(nickname) = ? THEN 1 ELSE 2 END,
+        ORDER BY CASE
+                 WHEN lower(merchant_id) = lower(?) THEN 0
+                 WHEN lower(replace(merchant_id, '-', '')) = lower(?) THEN 1
+                 WHEN lower(nickname) = lower(?) THEN 2
+                 ELSE 3 END,
                  display_name COLLATE NOCASE ASC
         LIMIT 25
-      `, user.userId, q, qNick, q, qNick, q, q, qNick);
+      `, user.userId, qIdNorm, qIdNoDash, q, qIdNorm, qIdNoDash, q, qIdNorm, qIdNoDash, q);
       const seen = new Set();
       const results = [];
       for (const row of exactRows) {
@@ -548,6 +561,7 @@ async function handleMerchant(request, env) {
               lower(display_name) LIKE lower(?) OR
               lower(nickname) LIKE lower(?) OR
               lower(merchant_id) LIKE lower(?) OR
+              lower(replace(merchant_id, '-', '')) LIKE lower(?) OR
               lower(region) LIKE lower(?)
             )
           ORDER BY
@@ -555,11 +569,12 @@ async function handleMerchant(request, env) {
               WHEN lower(display_name) LIKE lower(?) THEN 0
               WHEN lower(nickname) = lower(?) THEN 1
               WHEN lower(merchant_id) = lower(?) THEN 2
-              ELSE 3
+              WHEN lower(replace(merchant_id, '-', '')) = lower(?) THEN 3
+              ELSE 4
             END,
             display_name COLLATE NOCASE ASC
           LIMIT 25
-        `, user.userId, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `${q}%`, q, q);
+        `, user.userId, `%${q}%`, `%${q}%`, `%${q}%`, `%${qIdNoDash}%`, `%${q}%`, `${q}%`, q, qIdNorm, qIdNoDash);
         for (const row of generalRows) {
           if (seen.has(row.id)) continue;
           seen.add(row.id);
