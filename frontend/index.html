@@ -7996,21 +7996,51 @@ function openUserProfileModal(){
 }
 
 // ── Topbar user ───────────────────────────────────────────────────
-function renderTopbarUser() {
+async function renderTopbarUser() {
   var el = document.getElementById("topbarUser");
   if (!el) return;
   if (!_authUser) { el.innerHTML = ""; return; }
-  var ident = _authUser.email || _authUser.name || _authUser.id || "";
-  var initials = ident.slice(0,2).toUpperCase();
+  
+  let displayName = _authUser.name || _authUser.email || _authUser.id || "";
+  let clientId = _authUser.id ? String(_authUser.id).substring(0,8) : "N/A";
+  let initials = displayName.slice(0, 2).toUpperCase();
+  
+  try {
+     if (window._merchantHub && window._merchantHub.profile) {
+        let mProfile = window._merchantHub.profile;
+        if (mProfile) {
+           displayName = mProfile.display_name || displayName;
+           clientId = mProfile.merchant_id || clientId;
+           initials = displayName.slice(0, 2).toUpperCase();
+        }
+     } else if (window.merchantApi) {
+        let mProfile = await window.merchantApi.fetchMyProfile();
+        if (mProfile) {
+           displayName = mProfile.display_name || displayName;
+           clientId = mProfile.merchant_id || clientId;
+           initials = displayName.slice(0, 2).toUpperCase();
+        }
+     }
+  } catch(e) {}
+
   el.innerHTML =
     "<button id='userProfileBtn' type='button' style='display:flex;align-items:center;gap:6px;background:transparent;border:0;padding:0;cursor:pointer;color:inherit;'>" +
       "<div style='width:24px;height:24px;border-radius:50%;background:var(--brand);color:#fff;" +
         "display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;'>" +
         initials + "</div>" +
-      "<span style='font-size:10px;font-weight:700;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>" +
-        esc(ident) + "</span>" +
+      "<div style='display:flex;flex-direction:column;align-items:flex-start;'>" +
+         "<span style='font-size:10px;font-weight:700;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>" + esc(displayName) + "</span>" +
+         "<span style='font-size:8px;color:var(--muted);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>Client ID: " + esc(clientId) + "</span>" +
+      "</div>" +
     "</button>" +
     "<button id='signOutBtn' class='rowBtn' style='font-size:9px;padding:2px 7px;margin-left:8px;'>Sign out</button>";
+
+  var brandVer = document.getElementById("brandVer");
+  if (brandVer && clientId !== "N/A") {
+    let cur = typeof curUnit === 'function' ? curUnit() : 'USDT';
+    brandVer.innerHTML = "Client ID: <span style='color:var(--text);font-weight:700;'>" + esc(clientId) + "</span> &middot; <span id='brandCur'>" + esc(cur) + "</span>";
+  }
+
   var pb = document.getElementById("userProfileBtn");
   if (pb) pb.addEventListener("click", function(){ try{ openUserProfileModal(); }catch(e){} });
   var sob = document.getElementById("signOutBtn");

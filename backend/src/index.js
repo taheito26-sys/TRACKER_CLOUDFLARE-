@@ -166,9 +166,7 @@ async function listSchemaMigrations(db) {
   );
 }
 function merchantId() {
-  const bytes = new Uint8Array(4);
-  crypto.getRandomValues(bytes);
-  return "MRC-" + [...bytes].map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+  return String(Math.floor(10000 + Math.random() * 90000));
 }
 function validateNickname(nick) {
   return /^[a-z0-9_.-]{3,32}$/.test(String(nick || ""));
@@ -390,7 +388,7 @@ async function handleMerchant(request, env) {
       if (bio.length > 500) return bad(request, env, "bio must be 500 characters or fewer");
 
       const newProfile = {
-        id: randomId("mrc_row_"),
+        id: email,
         user_id: user.userId,
         email: email || null,
         merchant_id: merchantId(),
