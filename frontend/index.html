@@ -11231,8 +11231,19 @@ window.renderMerchants = function(){
       (data.messages || []).forEach(function(msg) {
         var exists = MS.messages.some(function(m){ return m.id===msg.id; });
         if (!exists) {
+          var isIncoming = String(msg.sender_merchant_id||'') !== String(mid||'');
           MS.messages.push({ id:msg.id, relationship_id:msg.relationship_id, sender_merchant_id:msg.sender_merchant_id,
-            sender_name:msg.sender_name||msg.sender_merchant_id, body:msg.body, created_at:msg.created_at, read_at:null });
+            sender_name:msg.sender_name||msg.sender_merchant_id, body:msg.body, ts:Number(msg.created_at)||now(), created_at:msg.created_at, read_at:isIncoming?null:now() });
+          if (isIncoming) {
+            notify('message', 'New message from ' + (msg.sender_name||msg.sender_merchant_id), String(msg.body||'').slice(0, 80), msg.relationship_id);
+            if (typeof toast === 'function') toast('New message from ' + (msg.sender_name||msg.sender_merchant_id), 'good');
+            try {
+              if (typeof Notification !== 'undefined') {
+                if (Notification.permission === 'granted') new Notification('New message from ' + (msg.sender_name||msg.sender_merchant_id), { body: String(msg.body||'').slice(0, 120) });
+                else if (Notification.permission !== 'denied') Notification.requestPermission();
+              }
+            } catch(_e) {}
+          }
           changed = true;
         }
       });
@@ -12204,11 +12215,24 @@ window.renderMerchants = function(){
   /* ─── Workspace: Messages ──────────────────────────────────────────── */
   function _wsMessages(rel, relMsgs, cp){
     relMsgs.forEach(function(m){ if(m.sender_merchant_id!==MS.profile.merchant_id) m.read_at=now(); }); save();
+    var meName = (MS.profile && MS.profile.display_name) ? MS.profile.display_name : 'You';
     return '<div class="panel"><div class="panel-head"><h2>Messages with '+esc(cp)+'</h2></div><div class="panel-body">' +
-      '<div id="ws_msg_list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">' +
+      '<div id="ws_msg_list" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px;padding:2px 2px 4px;">' +
       (relMsgs.length ? relMsgs.map(function(m){
-        var isMe = m.sender_merchant_id===MS.profile.merchant_id;
-        return '<div style="display:flex;'+(isMe?'justify-content:flex-end;':'')+'"><div style="max-width:80%;padding:7px 10px;border-radius:12px;'+(isMe?'background:var(--brand);color:#fff;border-bottom-right-radius:3px;':'background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:3px;')+'"><div style="font-size:10px;">'+esc(m.body)+'</div><div style="font-size:8px;margin-top:2px;opacity:0.7;">'+fmtAgo(m.ts)+'</div></div></div>';
+        var isMe = String(m.sender_merchant_id||'')===String(MS.profile.merchant_id||'');
+        var senderName = isMe ? meName : (m.sender_name || cp);
+        var msgTs = Number(m.ts||m.created_at||now());
+        var wrapStyle = 'display:flex;align-items:flex-end;' + (isMe?'justify-content:flex-end;':'justify-content:flex-start;');
+        var bubbleStyle = isMe
+          ? 'max-width:78%;padding:8px 11px;border-radius:14px 14px 4px 14px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;box-shadow:0 4px 14px rgba(34,197,94,.22);'
+          : 'max-width:78%;padding:8px 11px;border-radius:14px 14px 14px 4px;background:linear-gradient(135deg,#334155,#1e293b);color:#e5e7eb;border:1px solid rgba(148,163,184,.25);';
+        return '<div style="'+wrapStyle+'">' +
+          '<div style="'+bubbleStyle+'">' +
+            '<div style="font-size:8px;font-weight:800;letter-spacing:.03em;opacity:.85;margin-bottom:3px;">'+esc(senderName)+'</div>' +
+            '<div style="font-size:10px;line-height:1.35;white-space:pre-wrap;word-break:break-word;">'+esc(m.body)+'</div>' +
+            '<div style="font-size:8px;margin-top:4px;opacity:.72;text-align:'+(isMe?'right':'left')+';">'+fmtAgo(msgTs)+'</div>' +
+          '</div>' +
+        '</div>';
       }).join('') : '<div class="muted" style="text-align:center;padding:20px;">No messages yet.</div>') +
       '</div><div style="display:flex;gap:6px;"><input id="ws_msg_input" class="inp-field" style="flex:1;" placeholder="Type a message…"/><button class="btn" id="ws_msg_send" style="font-size:10px;">Send</button></div></div></div>';
   }
@@ -12645,7 +12669,7 @@ window.renderMerchants = function(){
     var sendMsg = async function(){
       var inp=$('#ws_msg_input'); if(!inp) return;
       var body=(inp.value||'').trim(); if(!body) return;
-      MS.messages.push({ id:uid(), relationship_id:rel.id, sender_merchant_id:MS.profile.merchant_id, body:body, ts:now(), read_at:now() });
+      MS.messages.push({ id:uid(), relationship_id:rel.id, sender_merchant_id:MS.profile.merchant_id, sender_name:(MS.profile.display_name||MS.profile.merchant_id), body:body, ts:now(), created_at:now(), read_at:now() });
       audit('message_sent','message',rel.id,'Sent to '+cp);
       save(); renderMerchants();
     };
