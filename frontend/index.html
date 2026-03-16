@@ -7954,6 +7954,22 @@ function openUserProfileModal(){
   try{ url = (_gasUrl||""); }catch(e){}
   var loginEmail = "";
   try{ loginEmail = String((_authUser&&(_authUser.email||_authUser.id))||"").trim(); }catch(e){}
+  var userUid5 = "";
+  try{
+    var mProfile = (window._merchantHub&&window._merchantHub.profile) ? window._merchantHub.profile : null;
+    var rawMid = String((mProfile&&mProfile.merchant_id)||(_authUser&&_authUser.id)||"").trim();
+    var midDigits = rawMid.replace(/\D/g, "");
+    if(midDigits.length>=5) userUid5 = midDigits.slice(-5);
+    if(!userUid5){
+      var base = String((loginEmail||rawMid||"guest")+"|uid5");
+      var h = 0;
+      for(var i=0;i<base.length;i++){ h=((h<<5)-h)+base.charCodeAt(i); h|=0; }
+      userUid5 = String(Math.abs(h)%90000 + 10000);
+    }
+    localStorage.setItem("taheito_uid5", userUid5);
+  }catch(e){
+    try{ userUid5 = localStorage.getItem("taheito_uid5")||""; }catch(e2){}
+  }
   openModal("User Profile",
     "<div style='display:grid;gap:10px;'>" +
       "<div style='display:flex;gap:6px;flex-wrap:wrap;'>" +
@@ -7961,6 +7977,7 @@ function openUserProfileModal(){
         "<span class='pill'>Login count: "+lc+"</span>" +
         "<span class='pill'>Sessions: "+sess+"</span>" +
         (loginEmail ? "<span class='pill'>Email: "+esc(loginEmail)+"</span>" : "") +
+        (userUid5 ? "<span class='pill'>User ID: "+esc(userUid5)+"</span>" : "") +
       "</div>" +
       "<div style='display:flex;gap:6px;flex-wrap:wrap;'>" +
         "<span class='pill'>Last login: "+esc(_fmtTs(ll))+"</span>" +
