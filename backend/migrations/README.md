@@ -84,6 +84,47 @@ cd backend
 npx wrangler d1 execute DB --remote --command "SELECT id, version, description, applied_at FROM schema_migrations ORDER BY id ASC;"
 ```
 
+## D1 remote cleanup note (no explicit `BEGIN/COMMIT`)
+
+Cloudflare D1 rejects explicit SQL transaction statements (`BEGIN`, `COMMIT`, `SAVEPOINT`) in `wrangler d1 execute ... --remote --command` with error code `7500`.
+
+Use a single multi-statement command **without** `BEGIN/COMMIT`:
+
+```bash
+npx wrangler d1 execute p2p-merchant-db --remote --command "
+DELETE FROM relationships
+WHERE merchant_a_id IN ('MRC-ONPRLH5X','MRC-5XSD8NGS','MRC-DCTLSCPG','MRC-M4XQLEK9')
+   OR merchant_b_id IN ('MRC-ONPRLH5X','MRC-5XSD8NGS','MRC-DCTLSCPG','MRC-M4XQLEK9');
+
+DELETE FROM invites
+WHERE from_merchant_id IN ('MRC-ONPRLH5X','MRC-5XSD8NGS','MRC-DCTLSCPG','MRC-M4XQLEK9')
+   OR to_merchant_id   IN ('MRC-ONPRLH5X','MRC-5XSD8NGS','MRC-DCTLSCPG','MRC-M4XQLEK9');
+
+DELETE FROM merchant_profiles
+WHERE merchant_id IN ('MRC-ONPRLH5X','MRC-5XSD8NGS','MRC-DCTLSCPG','MRC-M4XQLEK9');
+"
+```
+
+Then verify records are gone:
+
+```bash
+npx wrangler d1 execute p2p-merchant-db --remote --command "
+SELECT 'relationships' AS table_name, COUNT(*) AS remaining
+FROM relationships
+WHERE merchant_a_id IN ('MRC-ONPRLH5X','MRC-5XSD8NGS','MRC-DCTLSCPG','MRC-M4XQLEK9')
+   OR merchant_b_id IN ('MRC-ONPRLH5X','MRC-5XSD8NGS','MRC-DCTLSCPG','MRC-M4XQLEK9')
+UNION ALL
+SELECT 'invites' AS table_name, COUNT(*) AS remaining
+FROM invites
+WHERE from_merchant_id IN ('MRC-ONPRLH5X','MRC-5XSD8NGS','MRC-DCTLSCPG','MRC-M4XQLEK9')
+   OR to_merchant_id   IN ('MRC-ONPRLH5X','MRC-5XSD8NGS','MRC-DCTLSCPG','MRC-M4XQLEK9')
+UNION ALL
+SELECT 'merchant_profiles' AS table_name, COUNT(*) AS remaining
+FROM merchant_profiles
+WHERE merchant_id IN ('MRC-ONPRLH5X','MRC-5XSD8NGS','MRC-DCTLSCPG','MRC-M4XQLEK9');
+"
+```
+
 ## Verify Worker endpoints after deploy
 
 ```bash

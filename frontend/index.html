@@ -2037,12 +2037,12 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
       </div>
 
       <!-- Advanced toggle -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="display:none !important;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <span style="font-size:9.5px;color:rgba(255,255,255,.32);">Cloud pre-configured · Advanced settings</span>
         <button id="cloudAdvancedToggleBtn" type="button" style="padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.04);color:rgba(255,255,255,.45);font-weight:800;font-size:9.5px;cursor:pointer;">Advanced</button>
       </div>
 
-      <div id="cloudAdvancedCfg" style="display:none;margin-bottom:14px;">
+      <div id="cloudAdvancedCfg" style="display:none !important;margin-bottom:14px;">
         <div style="margin-bottom:9px;">
           <label style="font-size:9.5px;font-weight:800;color:rgba(201,168,76,.8);display:block;margin-bottom:4px;">Cloud URL (Apps Script)</label>
           <input id="gasUrlOnLogin" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" style="width:100%;padding:9px 11px;border-radius:9px;border:1.5px solid rgba(201,168,76,.25);background:rgba(255,255,255,.06);font-size:11px;box-sizing:border-box;outline:none;color:#fff;transition:border .15s;" onfocus="this.style.borderColor='rgba(201,168,76,.6)'" onblur="this.style.borderColor='rgba(201,168,76,.25)'"/>
@@ -2054,6 +2054,8 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
       </div>
 
       <div style="margin-bottom:12px;"><div id="gsiBtnWrap" style="display:flex;justify-content:center;"></div><div id="gsiHint" style="display:none;margin-top:6px;font-size:9.5px;color:#f59e0b;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:7px 9px;text-align:left;"></div></div>
+
+      <button id="landingLoginBtn" type="button" style="width:100%;margin:2px 0 12px;background:rgba(255,255,255,.06);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:11px;padding:11px 14px;font-weight:900;font-size:13px;cursor:pointer;letter-spacing:.02em;">Log in</button>
 
       <!-- Login form -->
       <div id="authModeLogin" style="text-align:left;">
@@ -7952,12 +7954,32 @@ function openUserProfileModal(){
   try{ szKB = Math.max(1, Math.ceil(JSON.stringify(st||{}).length/1024)); }catch(e){}
   var url = "";
   try{ url = (_gasUrl||""); }catch(e){}
+  var loginEmail = "";
+  try{ loginEmail = String((_authUser&&(_authUser.email||_authUser.id))||"").trim(); }catch(e){}
+  var userUid5 = "";
+  try{
+    var mProfile = (window._merchantHub&&window._merchantHub.profile) ? window._merchantHub.profile : null;
+    var rawMid = String((mProfile&&mProfile.merchant_id)||(_authUser&&_authUser.id)||"").trim();
+    var midDigits = rawMid.replace(/\D/g, "");
+    if(midDigits.length>=5) userUid5 = midDigits.slice(-5);
+    if(!userUid5){
+      var base = String((loginEmail||rawMid||"guest")+"|uid5");
+      var h = 0;
+      for(var i=0;i<base.length;i++){ h=((h<<5)-h)+base.charCodeAt(i); h|=0; }
+      userUid5 = String(Math.abs(h)%90000 + 10000);
+    }
+    localStorage.setItem("taheito_uid5", userUid5);
+  }catch(e){
+    try{ userUid5 = localStorage.getItem("taheito_uid5")||""; }catch(e2){}
+  }
   openModal("User Profile",
     "<div style='display:grid;gap:10px;'>" +
       "<div style='display:flex;gap:6px;flex-wrap:wrap;'>" +
         "<span class='pill'>First seen: "+esc(_fmtTs(fs))+"</span>" +
         "<span class='pill'>Login count: "+lc+"</span>" +
         "<span class='pill'>Sessions: "+sess+"</span>" +
+        (loginEmail ? "<span class='pill'>Email: "+esc(loginEmail)+"</span>" : "") +
+        (userUid5 ? "<span class='pill'>User ID: "+esc(userUid5)+"</span>" : "") +
       "</div>" +
       "<div style='display:flex;gap:6px;flex-wrap:wrap;'>" +
         "<span class='pill'>Last login: "+esc(_fmtTs(ll))+"</span>" +
@@ -8229,6 +8251,17 @@ window.addEventListener("DOMContentLoaded", function(){
     });
   }
 
+
+  // Landing quick login button
+  var landingLoginBtn = document.getElementById("landingLoginBtn");
+  if (landingLoginBtn) landingLoginBtn.addEventListener("click", function(){
+    try { setAuthMode("login"); } catch(e) {}
+    clearLoginError();
+    var em = document.getElementById("loginEmail");
+    var pw = document.getElementById("loginPass");
+    if (em && (em.value || "").trim() && pw && (pw.value || "").trim()) authLogin();
+    else if (em) em.focus();
+  });
 
   // Submit
   var loginBtn = document.getElementById("loginBtn");
