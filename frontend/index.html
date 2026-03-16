@@ -7556,28 +7556,11 @@ function authGoogleLogin(idToken){
   if (rbtn) { rbtn.disabled = true; rbtn.textContent = "Working…"; }
 
   authApi("googleLogin", { idToken: idToken })
-    .then(function(res){
-      if (!res || res.ok === false) throw new Error((res && res.error) || "Google login failed");
-      _authUser = res.user || _authUser || { email: "", name: "" };
-      _authToken = res.token || "";
-      if (!_authToken) throw new Error("Missing token from backend");
-      authSave();
-
-      if (res.state) {
-        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
-      }
-
-      hideLoginScreen();
-      init();
-      renderTopbarUser();
-      withCloudSyncMuted_(function(){ load(); recompute(); render(); });
-      markCloudBaselineFromCurrentState_();
-      updateSyncBadge(_gasUrl ? "saved" : "");
-    })
+    .then(function(res){ authCompleteAndEnter(res, _authUser || { email: "", name: "" }); })
     .catch(function(e){ showLoginError(e.message || String(e)); updateSyncBadge("error"); })
     .finally(function(){
-      if (btn) { btn.disabled = false; btn.textContent = "Login"; }
-      if (rbtn) { rbtn.disabled = false; rbtn.textContent = "Create account"; }
+      if (btn) { btn.disabled = false; btn.textContent = "Sign In →"; }
+      if (rbtn) { rbtn.disabled = false; rbtn.textContent = "Create Account →"; }
     });
 }
 
@@ -7712,6 +7695,26 @@ function authApi(action, payload) {
   return gasPost(body);
 }
 
+function authCompleteAndEnter(res, fallbackUser, okToastMsg) {
+  if (!res || res.ok === false) throw new Error((res && res.error) || "Authentication failed");
+  _authUser = res.user || fallbackUser || _authUser || { email: "", name: "" };
+  _authToken = String(res.token || _authToken || "").trim();
+  if (!_authToken) _authToken = "local-" + uid();
+  authSave();
+
+  if (res.state) {
+    try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
+  }
+
+  hideLoginScreen();
+  init();
+  renderTopbarUser();
+  withCloudSyncMuted_(function(){ load(); recompute(); render(); });
+  markCloudBaselineFromCurrentState_();
+  updateSyncBadge(_gasUrl ? "saved" : "");
+  if (okToastMsg && typeof toast === "function") toast(okToastMsg, "good");
+}
+
 function authLogin(){
   clearLoginError();
   var email = (document.getElementById("loginEmail")?.value || "").trim().toLowerCase();
@@ -7726,27 +7729,9 @@ function authLogin(){
   if (btn) { btn.disabled = true; btn.textContent = "Logging in…"; }
 
   authApi("login", { email: email, password: pass })
-    .then(function(res){
-      if (!res || res.ok === false) throw new Error((res && res.error) || "Login failed");
-      _authUser = res.user || { email: email, name: email.split("@")[0] };
-      _authToken = res.token || "";
-      if (!_authToken) throw new Error("Missing token from backend");
-      authSave();
-
-      if (res.state) {
-        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
-      }
-
-      hideLoginScreen();
-      init();
-      renderTopbarUser();
-      // ensure state loaded from localStorage after restore without triggering backup
-      withCloudSyncMuted_(function(){ load(); recompute(); render(); });
-      markCloudBaselineFromCurrentState_();
-      updateSyncBadge(_gasUrl ? "saved" : "");
-    })
+    .then(function(res){ authCompleteAndEnter(res, { email: email, name: email.split("@")[0] }); })
     .catch(function(e){ showLoginError(e.message || String(e)); updateSyncBadge("error"); })
-    .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = "Login"; } });
+    .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = "Sign In →"; } });
 }
 
 function authRegister(){
@@ -7767,27 +7752,9 @@ function authRegister(){
   if (btn) { btn.disabled = true; btn.textContent = "Creating…"; }
 
   authApi("register", { name: name, email: email, password: p1 })
-    .then(function(res){
-      if (!res || res.ok === false) throw new Error((res && res.error) || "Registration failed");
-      _authUser = res.user || { email: email, name: name };
-      _authToken = res.token || "";
-      if (!_authToken) throw new Error("Missing token from backend");
-      authSave();
-
-      if (res.state) {
-        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
-      }
-
-      hideLoginScreen();
-      init();
-      renderTopbarUser();
-      withCloudSyncMuted_(function(){ load(); recompute(); render(); });
-      markCloudBaselineFromCurrentState_();
-      updateSyncBadge(_gasUrl ? "saved" : "");
-      toast("Account created ✓", "good");
-    })
+    .then(function(res){ authCompleteAndEnter(res, { email: email, name: name }, "Account created ✓"); })
     .catch(function(e){ showLoginError(e.message || String(e)); updateSyncBadge("error"); })
-    .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = "Create account"; } });
+    .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = "Create Account →"; } });
 }
 
 function authSignOut() {
