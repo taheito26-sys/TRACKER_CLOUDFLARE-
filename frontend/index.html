@@ -13884,7 +13884,7 @@ window.renderMerchants = function(){
   function crm6Store(){
     if (!window._crm6Store) {
       window._crm6Store = {
-        tab: 'customers',
+        tab: 'suppliers',
         selected: { customers:'', suppliers:'' },
         filters: { q:'', entity:'all', status:'all', tier:'all', location:'all', minVol:'', maxVol:'' },
         sort: { customers:{ key:'volume', dir:'desc' }, suppliers:{ key:'volume', dir:'desc' } }
@@ -13982,7 +13982,7 @@ window.renderMerchants = function(){
     openModal(isCustomer ? 'Edit Customer' : 'Edit Supplier',
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
         '<div class="form-field"><label class="form-label">' + (isCustomer ? 'Contact Person Name' : 'Supplier Name') + '</label><input id="crm6_name" class="inp-field" value="' + escHtml(rec.name || '') + '"/></div>' +
-        '<div class="form-field"><label class="form-label">Phone</label><input id="crm6_phone" class="inp-field" value="' + escHtml(rec.phone || '') + '"/></div>' +
+        '<div class="form-field"><label class="form-label">Phone' + (isCustomer ? '' : ' *') + '</label><input id="crm6_phone" class="inp-field" value="' + escHtml(rec.phone || '') + '"/><div class="msg err" id="crm6_phone_err" style="display:none;margin-top:6px;"></div></div>' +
         '<div class="form-field"><label class="form-label">Location</label><input id="crm6_location" class="inp-field" value="' + escHtml(rec.location || '') + '"/></div>' +
         '<div class="form-field"><label class="form-label">Status</label><select id="crm6_status" class="inp-field"><option value="active"' + (rec.status === 'active' ? ' selected' : '') + '>Active</option><option value="inactive"' + (rec.status === 'inactive' ? ' selected' : '') + '>Inactive</option><option value="blocked"' + (rec.status === 'blocked' ? ' selected' : '') + '>Blocked</option></select></div>' +
         (isCustomer ? '<div class="form-field" style="grid-column:span 2;"><label class="form-label">Tier</label><select id="crm6_tier" class="inp-field">' + ['A','B','C','D'].map(function(k){ return '<option value="' + k + '"' + (String(rec.tier || 'C') === k ? ' selected' : '') + '>' + crm6TierMeta(k).label + '</option>'; }).join('') + '</select><label style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:11px;color:var(--muted);"><input type="checkbox" id="crm6_tier_manual" ' + (rec.tierManual ? 'checked' : '') + '/>Manual override, suggested tier is ' + escHtml(crm6TierMeta(suggested).label) + '</label></div>' : '<div class="form-field" style="grid-column:span 2;"><label class="form-label">Typical Price (optional)</label><input id="crm6_typical" class="inp-field" inputmode="decimal" value="' + escHtml(rec.typicalPrice != null ? String(rec.typicalPrice) : '') + '"/></div>') +
@@ -13994,16 +13994,36 @@ window.renderMerchants = function(){
       qs('#m_c') && qs('#m_c').addEventListener('click', closeModal);
       qs('#m_s') && qs('#m_s').addEventListener('click', function(){
         var oldName = safe(rec.name).trim();
-        rec.name = safe(qs('#crm6_name') && qs('#crm6_name').value).trim() || rec.name;
-        rec.phone = safe(qs('#crm6_phone') && qs('#crm6_phone').value).trim();
-        rec.location = safe(qs('#crm6_location') && qs('#crm6_location').value).trim();
-        rec.status = safe(qs('#crm6_status') && qs('#crm6_status').value).trim() || 'active';
-        rec.notes = safe(qs('#crm6_notes') && qs('#crm6_notes').value);
+        var nextName = safe(qs('#crm6_name') && qs('#crm6_name').value).trim() || rec.name;
+        var nextPhone = safe(qs('#crm6_phone') && qs('#crm6_phone').value).trim();
+        var nextLocation = safe(qs('#crm6_location') && qs('#crm6_location').value).trim();
+        var nextStatus = safe(qs('#crm6_status') && qs('#crm6_status').value).trim() || 'active';
+        var nextNotes = safe(qs('#crm6_notes') && qs('#crm6_notes').value);
+        var phoneErr = qs('#crm6_phone_err');
+        if (phoneErr) { phoneErr.style.display = 'none'; phoneErr.textContent = ''; }
         if (isCustomer) {
+          rec.name = nextName;
+          rec.phone = nextPhone;
+          rec.location = nextLocation;
+          rec.status = nextStatus;
+          rec.notes = nextNotes;
           rec.tier = safe(qs('#crm6_tier') && qs('#crm6_tier').value).trim() || rec.tier || 'C';
           rec.tierManual = !!(qs('#crm6_tier_manual') && qs('#crm6_tier_manual').checked);
           if (!rec.tierManual) rec.tier = crm6SuggestedTier(crm6CustomerMetrics(rec).volume, rec.status);
         } else {
+          var check = validateSupplierProfileInput({ id: rec.id, oldName: oldName, name: nextName, phone: nextPhone });
+          if (!check.ok) {
+            if (phoneErr) {
+              phoneErr.textContent = check.message;
+              phoneErr.style.display = 'block';
+            } else if (typeof toast === 'function') toast(check.message, 'warn');
+            return;
+          }
+          rec.name = check.name;
+          rec.phone = check.phone;
+          rec.location = nextLocation;
+          rec.status = nextStatus;
+          rec.notes = nextNotes;
           rec.typicalPrice = num0(qs('#crm6_typical') && qs('#crm6_typical').value) || null;
           if (oldName && norm(oldName) !== norm(rec.name)) {
             (state.batches || []).forEach(function(b){ if (norm(b && b.source) === norm(oldName)) b.source = rec.name; });
@@ -14020,7 +14040,7 @@ window.renderMerchants = function(){
     openModal(isCustomer ? 'New Customer' : 'New Supplier',
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
         '<div class="form-field"><label class="form-label">' + (isCustomer ? 'Contact Person Name' : 'Supplier Name') + '</label><input id="crm6_new_name" class="inp-field"/></div>' +
-        '<div class="form-field"><label class="form-label">Phone</label><input id="crm6_new_phone" class="inp-field"/></div>' +
+        '<div class="form-field"><label class="form-label">Phone' + (isCustomer ? '' : ' *') + '</label><input id="crm6_new_phone" class="inp-field"/><div class="msg err" id="crm6_new_phone_err" style="display:none;margin-top:6px;"></div></div>' +
         '<div class="form-field"><label class="form-label">Location</label><input id="crm6_new_location" class="inp-field"/></div>' +
         (isCustomer ? '<div class="form-field"><label class="form-label">Tier</label><select id="crm6_new_tier" class="inp-field">' + ['A','B','C','D'].map(function(k){ return '<option value="' + k + '">' + crm6TierMeta(k).label + '</option>'; }).join('') + '</select></div>' : '<div class="form-field"><label class="form-label">Typical Price</label><input id="crm6_new_typical" class="inp-field" inputmode="decimal"/></div>') +
       '</div>',
@@ -14031,14 +14051,42 @@ window.renderMerchants = function(){
       qs('#m_s') && qs('#m_s').addEventListener('click', function(){
         var name = safe(qs('#crm6_new_name') && qs('#crm6_new_name').value).trim();
         if (!name) { if (typeof toast === 'function') toast((isCustomer ? 'Customer' : 'Supplier') + ' name is required', 'warn'); return; }
+        var phone = safe(qs('#crm6_new_phone') && qs('#crm6_new_phone').value).trim();
+        var location = safe(qs('#crm6_new_location') && qs('#crm6_new_location').value).trim();
+        var phoneErr = qs('#crm6_new_phone_err');
+        if (phoneErr) { phoneErr.style.display = 'none'; phoneErr.textContent = ''; }
+        if (!isCustomer) {
+          var addCheck = validateSupplierProfileInput({ name:name, phone:phone });
+          if (!addCheck.ok) {
+            if (phoneErr) {
+              phoneErr.textContent = addCheck.message;
+              phoneErr.style.display = 'block';
+            } else if (typeof toast === 'function') toast(addCheck.message, 'warn');
+            return;
+          }
+          var upsert = upsertSupplierProfile({ name:addCheck.name, phone:addCheck.phone, typicalPrice:num0(qs('#crm6_new_typical') && qs('#crm6_new_typical').value) || null, notes:'' });
+          if (!upsert.ok) {
+            if (phoneErr) {
+              phoneErr.textContent = upsert.message || 'Unable to save supplier.';
+              phoneErr.style.display = 'block';
+            }
+            return;
+          }
+          var supplier = upsert.supplier || {};
+          supplier.location = location;
+          supplier.updatedAt = Date.now();
+          saveRecompute('Supplier added', 'good');
+          closeModal();
+          return;
+        }
         var list = isCustomer ? state.customers : state.suppliers;
         var ex = list.find(function(r){ return norm(r.name) === norm(name); });
         var rec = ex || { id: uid(), name:name, createdAt:Date.now() };
         if (!ex) list.push(rec);
         crm6EnsureMeta(rec, isCustomer ? 'customer' : 'supplier');
         rec.name = name;
-        rec.phone = safe(qs('#crm6_new_phone') && qs('#crm6_new_phone').value).trim();
-        rec.location = safe(qs('#crm6_new_location') && qs('#crm6_new_location').value).trim();
+        rec.phone = phone;
+        rec.location = location;
         if (isCustomer) { rec.tier = safe(qs('#crm6_new_tier') && qs('#crm6_new_tier').value).trim() || 'C'; rec.tierManual = true; }
         else rec.typicalPrice = num0(qs('#crm6_new_typical') && qs('#crm6_new_typical').value) || null;
         rec.updatedAt = Date.now();
@@ -14099,10 +14147,16 @@ window.renderMerchants = function(){
     saveRecompute('Status updated', 'good');
   }
   function crm6Delete(kind, id){
-    openModal('Delete ' + (kind === 'customers' ? 'Customer' : 'Supplier'), '<div class="msg err">This removes the CRM profile only. Linked trades and batches stay in the ledger.</div>', '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" style="background:var(--bad);border-color:var(--bad);" id="m_s">Delete</button>');
+    var rec = ((kind === 'customers' ? state.customers : state.suppliers) || []).find(function(x){ return String(x.id) === String(id); });
+    var linkedBatches = (kind === 'suppliers' && rec) ? (state.batches || []).filter(function(b){ return norm(b && b.source) === norm(rec.name); }).length : 0;
+    var msg = linkedBatches > 0
+      ? '<div class="msg err">This supplier is linked to ' + escHtml(String(linkedBatches)) + ' batch record(s). Delete is blocked to protect stock/trade history.</div>'
+      : '<div class="msg err">This removes the CRM profile only. Linked trades and batches stay in the ledger.</div>';
+    openModal('Delete ' + (kind === 'customers' ? 'Customer' : 'Supplier'), msg, '<button class="btn secondary" id="m_c">Cancel</button><button class="btn" style="background:var(--bad);border-color:var(--bad);" id="m_s"' + (linkedBatches > 0 ? ' disabled' : '') + '>Delete</button>');
     setTimeout(function(){
       qs('#m_c') && qs('#m_c').addEventListener('click', closeModal);
       qs('#m_s') && qs('#m_s').addEventListener('click', function(){
+        if (linkedBatches > 0) return;
         if (kind === 'customers') state.customers = (state.customers || []).filter(function(x){ return String(x.id) !== String(id); });
         else state.suppliers = (state.suppliers || []).filter(function(x){ return String(x.id) !== String(id); });
         saveRecompute('CRM profile deleted', 'warn');
@@ -14305,7 +14359,6 @@ window.renderMerchants = function(){
 
 </body>
 </html>
-
 
 
 
