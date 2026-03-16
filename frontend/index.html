@@ -11239,7 +11239,9 @@ window.renderMerchants = function(){
      Cloudflare Worker + D1. Local MS state is kept in sync as a cache.
      Polling runs every 45s when the Merchants tab is open.
      ─────────────────────────────────────────────────────────────────── */
-  var API_BASE = 'https://p2p-tracker.taheito26.workers.dev';
+  var API_BASE = (typeof P2P_API_URL !== 'undefined' && P2P_API_URL)
+    ? String(P2P_API_URL)
+    : 'https://p2p-tracker.taheito26.workers.dev';
   var _pollTimer = null;
   var _lastPollTs = 0;
   var _syncStatus = 'idle';
@@ -11270,6 +11272,9 @@ window.renderMerchants = function(){
 
 
   async function _api(method, path, body) {
+    // Re-resolve on each call so runtime config changes (localStorage/window vars)
+    // are picked up without a full reload.
+    _apiBases = _mkApiBases();
     var hasBody = body !== undefined && body !== null;
     var opts = { method: method, headers: {} };
     try {
@@ -11292,7 +11297,6 @@ window.renderMerchants = function(){
     for (var hop=0; hop<attempts; hop++) {
       var idx = (_apiBaseIdx + hop) % attempts;
       var base = _apiBases[idx] || _normBase(API_BASE);
-      if (_apiBaseFail[base] && _apiBaseFail[base] >= 2) continue;
       try {
         var res = await fetch(base + path, opts);
         var text = await res.text();
@@ -14427,7 +14431,6 @@ window.renderMerchants = function(){
 
 </body>
 </html>
-
 
 
 
