@@ -7952,12 +7952,15 @@ function openUserProfileModal(){
   try{ szKB = Math.max(1, Math.ceil(JSON.stringify(st||{}).length/1024)); }catch(e){}
   var url = "";
   try{ url = (_gasUrl||""); }catch(e){}
+  var loginEmail = "";
+  try{ loginEmail = String((_authUser&&(_authUser.email||_authUser.id))||"").trim(); }catch(e){}
   openModal("User Profile",
     "<div style='display:grid;gap:10px;'>" +
       "<div style='display:flex;gap:6px;flex-wrap:wrap;'>" +
         "<span class='pill'>First seen: "+esc(_fmtTs(fs))+"</span>" +
         "<span class='pill'>Login count: "+lc+"</span>" +
         "<span class='pill'>Sessions: "+sess+"</span>" +
+        (loginEmail ? "<span class='pill'>Email: "+esc(loginEmail)+"</span>" : "") +
       "</div>" +
       "<div style='display:flex;gap:6px;flex-wrap:wrap;'>" +
         "<span class='pill'>Last login: "+esc(_fmtTs(ll))+"</span>" +
