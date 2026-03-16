@@ -64,14 +64,19 @@
     var saved = localStorage.getItem("merchant_worker_url") || "";
     if(saved) return saved.replace(/\/+$/,"");
     try { if(typeof P2P_API_URL !== "undefined" && P2P_API_URL) return String(P2P_API_URL).replace(/\/+$/,""); } catch(_) {}
-    try { if(typeof window !== "undefined" && window.location && window.location.origin) return window.location.origin; } catch(_) {}
+    try { if(typeof window !== "undefined" && window.location && window.location.origin) return String(window.location.origin).replace(/\/+$/,""); } catch(_) {}
     return "";
   }
   async function getHeaders(){
     var headers = { "Content-Type": "application/json" };
-    if (window._authUser) {
-      var userEmail = String(window._authUser.email || "").trim().toLowerCase();
-      var userId = String(window._authUser.id || "").trim();
+    var authUser = null;
+    try {
+      if (typeof window !== "undefined" && window._authUser) authUser = window._authUser;
+      else if (typeof _authUser !== "undefined" && _authUser) authUser = _authUser;
+    } catch(_) {}
+    if (authUser) {
+      var userEmail = String(authUser.email || "").trim().toLowerCase();
+      var userId = String(authUser.id || "").trim();
       if (userEmail) headers["X-User-Email"] = userEmail;
       if (userId) {
         headers["X-User-Id"] = userId;
@@ -84,11 +89,11 @@
   async function api(path, opts){
     var base = guessWorkerBase();
     hub.workerBase = base;
-    if(!base) throw new Error("Worker URL is not configured. Set merchant worker URL in Merchant Settings or reuse P2P_API_URL.");
     var init = opts || {};
     var headers = await getHeaders();
     init.headers = Object.assign({}, headers, init.headers || {});
-    var res = await fetch(base + path, init);
+    var url = base ? (base + path) : path;
+    var res = await fetch(url, init);
     var txt = await res.text();
     var data = {};
     try { data = txt ? JSON.parse(txt) : {}; } catch(_) {}
