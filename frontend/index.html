@@ -12787,7 +12787,9 @@ window.renderMerchants = function(){
      SHARED ACTIONS (Invites, Approvals, etc.)
      ═══════════════════════════════════════════════════════════════════════ */
   async function _dirSearch(){
-    var q=($('#dir_q')?.value||'').trim(); if(!q){ if(typeof toast==='function') toast('Enter a search term',''); return; }
+    var q=($('#dir_q')?.value||'').trim();
+    if(!q){ if(typeof toast==='function') toast('Enter a search term',''); return; }
+    if(q.length < 2){ if(typeof toast==='function') toast('Enter at least 2 characters',''); return; }
     var btn=$('#dir_search'); if(btn){ btn.textContent='Searching…'; btn.disabled=true; }
     try {
       var results = await _apiSearch(q);
@@ -12797,9 +12799,10 @@ window.renderMerchants = function(){
     } catch(e) {
       _dirResults = _localDirectorySearch(q);
       renderMerchants();
+      var errMsg = (e && e.message) ? String(e.message) : 'API unreachable';
       if(typeof toast==='function'){
         if(_dirResults.length) toast('API unavailable — showing local matches only','warn');
-        else toast('Search failed (API unreachable). Backend /api/merchant/search is not responding.','');
+        else toast('Search failed: ' + errMsg,'');
       }
     } finally {
       var btn2=$('#dir_search'); if(btn2){ btn2.textContent='🔍 Search'; btn2.disabled=false; }
@@ -14431,6 +14434,5 @@ window.renderMerchants = function(){
 
 </body>
 </html>
-
 
 
