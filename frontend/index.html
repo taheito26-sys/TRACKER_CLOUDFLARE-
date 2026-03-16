@@ -7791,6 +7791,7 @@ function authLoad() {
     if (a && a.user && a.user.email && a.token) {
       _authUser = a.user;
       _authToken = a.token;
+      try { if (typeof window !== 'undefined') { window._authUser = _authUser; window._authToken = _authToken; } } catch(e) {}
       return true;
     }
   } catch(e) {}
@@ -7798,9 +7799,11 @@ function authLoad() {
 }
 function authSave() {
   try { localStorage.setItem(_AUTH_KEY, JSON.stringify({ user:_authUser, token:_authToken })); } catch(e) {}
+  try { if (typeof window !== 'undefined') { window._authUser = _authUser; window._authToken = _authToken; } } catch(e) {}
 }
 function authClear() {
   _authUser = null; _authToken = "";
+  try { if (typeof window !== 'undefined') { window._authUser = null; window._authToken = ""; } } catch(e) {}
   try { localStorage.removeItem(_AUTH_KEY); } catch(e) {}
 }
 
@@ -11278,9 +11281,12 @@ window.renderMerchants = function(){
     var hasBody = body !== undefined && body !== null;
     var opts = { method: method, headers: {} };
     try {
-      if (window._authUser) {
-        var userEmail = String(window._authUser.email || '').trim().toLowerCase();
-        var userId = String(window._authUser.id || '').trim();
+      var authUser = null;
+      if (typeof window !== 'undefined' && window._authUser) authUser = window._authUser;
+      else if (typeof _authUser !== 'undefined' && _authUser) authUser = _authUser;
+      if (authUser) {
+        var userEmail = String(authUser.email || '').trim().toLowerCase();
+        var userId = String(authUser.id || '').trim();
         if (userEmail) opts.headers['X-User-Email'] = userEmail;
         if (userId) opts.headers['X-User-Id'] = userId;
         else if (userEmail) opts.headers['X-User-Id'] = 'compat:' + userEmail;
@@ -14434,5 +14440,3 @@ window.renderMerchants = function(){
 
 </body>
 </html>
-
-

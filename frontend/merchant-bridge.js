@@ -69,9 +69,14 @@
   }
   async function getHeaders(){
     var headers = { "Content-Type": "application/json" };
-    if (window._authUser) {
-      var userEmail = String(window._authUser.email || "").trim().toLowerCase();
-      var userId = String(window._authUser.id || "").trim();
+    var authUser = null;
+    try {
+      if (typeof window !== "undefined" && window._authUser) authUser = window._authUser;
+      else if (typeof _authUser !== "undefined" && _authUser) authUser = _authUser;
+    } catch(_) {}
+    if (authUser) {
+      var userEmail = String(authUser.email || "").trim().toLowerCase();
+      var userId = String(authUser.id || "").trim();
       if (userEmail) headers["X-User-Email"] = userEmail;
       if (userId) {
         headers["X-User-Id"] = userId;
