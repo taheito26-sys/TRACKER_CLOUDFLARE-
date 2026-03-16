@@ -11888,6 +11888,8 @@ window.renderMerchants = function(){
   async function _bootSyncMerchantState(){
     if(!MS || !MS.profile || !MS.profile.merchant_id) return;
 
+    _publishProfile(); // Sync profile on boot so directory search finds it
+
     var mid = encodeURIComponent(MS.profile.merchant_id);
 
     try{
