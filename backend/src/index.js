@@ -127,11 +127,13 @@ async function getUserContext(request, env) {
     };
   }
   const compatUserId = request.headers.get("X-User-Id") || request.headers.get("X-Compat-User");
-  if (compatUserId) {
-    return { mode: "compat", userId: String(compatUserId), email: "" };
-  }
   const compatEmail = normalizeEmail(request.headers.get("X-User-Email"));
-  if (compatEmail) {
+  
+  if (compatEmail && compatUserId) {
+    return { mode: "compat", userId: String(compatUserId), email: compatEmail };
+  } else if (compatUserId) {
+    return { mode: "compat", userId: String(compatUserId), email: "" };
+  } else if (compatEmail) {
     return { mode: "compat", userId: `compat:${compatEmail}`, email: compatEmail };
   }
   throw new Error("Unauthorized");
@@ -364,30 +366,33 @@ async function handleMerchant(request, env) {
       const profile = await getMyProfile(db, user.userId, user.email || "");
       return json(request, env, { profile: mapProfileRow(profile) }, 200);
     }
-    if (method === "POST" && path === "/profile") {
+    if (method === "POST" && path === "/profile/ensure") {
       const shape = await merchantProfileShape(db);
-      const existing = await getMyProfile(db, user.userId, user.email || "");
-      if (existing) return bad(request, env, "Merchant profile already exists", 409);
+      const email = normalizeEmail(user.email || "");
+      if (!email && !user.userId) return bad(request, env, "No authenticated identity found", 401);
+
+      let profile = await getMyProfile(db, user.userId, email);
+      if (profile) return json(request, env, { profile: mapProfileRow(profile) }, 200);
+
       const body = await readJson(request);
       const nickname = String(body.nickname || "").trim().toLowerCase();
       if (!validateNickname(nickname)) return bad(request, env, "nickname must match [a-z0-9_.-]{3,32}");
-      const nicknameRow = await d1First(db, `SELECT id FROM merchant_profiles WHERE nickname = ? LIMIT 1`, nickname);
-      if (nicknameRow) return bad(request, env, "Nickname is already taken", 409);
+      
       const displayName = String(body.display_name || "").trim();
-      const merchantType = String(body.merchant_type || "").trim();
+      if (displayName.length < 2 || displayName.length > 80) return bad(request, env, "display_name must be 2 to 80 characters");
+      
+      const merchantType = String(body.merchant_type || "independent").trim();
       const discoverability = String(body.discoverability || "public").trim();
       const defaultCurrency = String(body.default_currency || "USDT").trim().toUpperCase();
       const bio = String(body.bio || "").trim();
-
-      if (displayName.length < 2 || displayName.length > 80) return bad(request, env, "display_name must be 2 to 80 characters");
-      if (!merchantType) return bad(request, env, "merchant_type is required");
+      
       if (!["public", "merchant_id_only", "hidden"].includes(discoverability)) return bad(request, env, "discoverability is invalid");
       if (bio.length > 500) return bad(request, env, "bio must be 500 characters or fewer");
 
-      const profile = {
+      const newProfile = {
         id: randomId("mrc_row_"),
         user_id: user.userId,
-        email: normalizeEmail(user.email || "") || null,
+        email: email || null,
         merchant_id: merchantId(),
         nickname,
         display_name: displayName,
@@ -395,32 +400,54 @@ async function handleMerchant(request, env) {
         region: String(body.region || "").trim(),
         default_currency: defaultCurrency,
         discoverability: discoverability,
-        bio,
+        bio: bio || null,
         status: "active",
         created_at: nowIso(),
         updated_at: nowIso(),
       };
+
       const cols = ["id", shape.userCol, "merchant_id", "nickname", "display_name", "merchant_type", "region", "default_currency", "discoverability", "bio", "status", "created_at", "updated_at"];
       const vals = [
-        profile.id, profile.user_id, profile.merchant_id, profile.nickname, profile.display_name,
-        profile.merchant_type, profile.region || null, profile.default_currency, profile.discoverability,
-        profile.bio || null, profile.status, profile.created_at, profile.updated_at,
+        newProfile.id, newProfile.user_id, newProfile.merchant_id, newProfile.nickname, newProfile.display_name,
+        newProfile.merchant_type, newProfile.region || null, newProfile.default_currency, newProfile.discoverability,
+        newProfile.bio, newProfile.status, newProfile.created_at, newProfile.updated_at,
       ];
+      
       if (shape.hasEmail) {
         cols.splice(2, 0, "email");
-        vals.splice(2, 0, profile.email);
+        vals.splice(2, 0, newProfile.email);
       }
-      await d1Run(db, `INSERT INTO merchant_profiles (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`, ...vals);
-      await createAudit(db, {
-        actor_user_id: user.userId,
-        actor_merchant_id: profile.id,
-        entity_type: "merchant_profile",
-        entity_id: profile.id,
-        action: "profile_created",
-        detail: { merchant_id: profile.merchant_id, nickname: profile.nickname },
-      });
-      const created = await getMyProfile(db, user.userId, user.email || "");
-      return json(request, env, { profile: mapProfileRow(created) }, 201);
+
+      const sql = `INSERT INTO merchant_profiles (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})
+                   ON CONFLICT(user_id) DO NOTHING
+                   ${shape.hasEmail ? "ON CONFLICT(email) DO NOTHING" : ""}`;
+      
+      // We expect the SQLite engine to handle the ON CONFLICT properly if constraints are hit.
+      // D1 driver: ON CONFLICT can be tricky if there's syntax limitations. Another approach: explicit INSERT OR IGNORE
+      
+      const insertSql = `INSERT OR IGNORE INTO merchant_profiles (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`;
+      await d1Run(db, insertSql, ...vals);
+      
+      profile = await getMyProfile(db, user.userId, email);
+      if (!profile) {
+          // If insert failed and getMyProfile failed, the nickname might be taken.
+          const nickTaken = await d1First(db, `SELECT id FROM merchant_profiles WHERE nickname = ? LIMIT 1`, nickname);
+          if (nickTaken) return bad(request, env, "Nickname is already taken", 409);
+          return bad(request, env, "Failed to create or load profile", 500);
+      }
+      
+      if (profile.id === newProfile.id) {
+          await createAudit(db, {
+            actor_user_id: user.userId,
+            actor_merchant_id: profile.id,
+            entity_type: "merchant_profile",
+            entity_id: profile.id,
+            action: "profile_created",
+            detail: { merchant_id: profile.merchant_id, nickname: profile.nickname },
+          });
+          return json(request, env, { profile: mapProfileRow(profile) }, 201);
+      }
+      return json(request, env, { profile: mapProfileRow(profile) }, 200);
     }
     if (method === "PATCH" && path === "/profile/me") {
       const shape = await merchantProfileShape(db);

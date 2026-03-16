@@ -103,7 +103,7 @@
 
   var merchantApi = {
     fetchMyProfile: function(){ return api("/api/merchant/profile/me").then(function(r){ return r.profile; }); },
-    createProfile: function(body){ return api("/api/merchant/profile", { method:"POST", body: JSON.stringify(body) }); },
+    ensureProfile: function(body){ return api("/api/merchant/profile/ensure", { method:"POST", body: JSON.stringify(body) }); },
     updateProfile: function(body){ return api("/api/merchant/profile/me", { method:"PATCH", body: JSON.stringify(body) }); },
     searchMerchants: function(qs){ return api("/api/merchant/search?q=" + encodeURIComponent(qs)).then(function(r){ return r.results || []; }); },
     checkNickname: function(nick){ return api("/api/merchant/check-nickname?nickname=" + encodeURIComponent(nick)); },
@@ -544,7 +544,7 @@
       try {
         var worker = (q('#m_worker_url_inline')?.value || '').trim().replace(/\/+$/,'');
         if(worker) localStorage.setItem('merchant_worker_url', worker);
-        await merchantApi.createProfile({
+        var res = await merchantApi.ensureProfile({
           display_name: q('#m_on_name')?.value || '',
           nickname: (q('#m_on_nick')?.value || '').trim().toLowerCase(),
           merchant_type: q('#m_on_type')?.value || 'independent',
@@ -552,7 +552,8 @@
           discoverability: q('#m_on_discover')?.value || 'public',
           bio: q('#m_on_bio')?.value || ''
         });
-        toast('Merchant profile created','good');
+        hub.profile = res.profile;
+        toast('Merchant profile ready','good');
         await boot(true);
       } catch(err){
         var msg3 = q('#m_on_msg');
