@@ -11594,13 +11594,14 @@ window.renderMerchants = function(){
     var merchantCards = rels.length ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin-bottom:12px;">' +
       rels.map(function(r){
         var cp = r.merchant_a_id===MS.profile.merchant_id ? r.merchant_b_id : r.merchant_a_id;
+        var cpLabel = _merchantLabel(cp, r);
         var relAdv = MS.advances.filter(function(a){ return a.relationship_id===r.id && (a.status==='sent'||a.status==='acknowledged'); });
         var relPs = MS.profitShares.filter(function(d){ return d.relationship_id===r.id && d.status==='active'; });
         var outstanding = relAdv.reduce(function(s,a){ return s+(a.principal-a.returned_amount); },0) + relPs.reduce(function(s,d){ return s+d.capital; },0);
         var relMsgs = MS.messages.filter(function(m){ return m.relationship_id===r.id; });
         var lastMsg = relMsgs.length ? relMsgs[relMsgs.length-1] : null;
         return '<div style="padding:12px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--lt-radius-sm);cursor:pointer;" class="rel-open" data-id="'+r.id+'">'+
-          '<div style="font-weight:700;font-size:11px;margin-bottom:6px;">'+esc(cp)+' '+badge(r.status)+'</div>'+
+          '<div style="font-weight:700;font-size:11px;margin-bottom:6px;">'+esc(cpLabel)+' '+badge(r.status)+'</div>'+
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;">'+
             '<div><span class="muted">Outstanding</span><div style="font-weight:600;">'+fmtU(outstanding,0)+'</div></div>'+
             '<div><span class="muted">Active Deals</span><div style="font-weight:600;">'+(relAdv.length+relPs.length)+'</div></div>'+
