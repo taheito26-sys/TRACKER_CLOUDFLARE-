@@ -2227,51 +2227,6 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
 (()=>{
 "use strict";
 const SK="usdt_pro_v15";
-const API_ONLY_FLAG_KEY="taheito_api_only_mode";
-function isApiOnlyMode(){
-  try{
-    const qp=new URLSearchParams(location.search||"");
-    if(qp.get("apiOnly")==="1") return true;
-  }catch(_){ }
-  try{return localStorage.getItem(API_ONLY_FLAG_KEY)==="true";}catch(_){return false;}
-}
-function setApiOnlyMode(on){
-  try{localStorage.setItem(API_ONLY_FLAG_KEY,on?"true":"false");}catch(_){ }
-  try{toast("API-only mode "+(on?"enabled":"disabled"),on?"good":"warn");}catch(_){ }
-}
-window.setApiOnlyMode=setApiOnlyMode;
-async function syncTradingStateFromApi(){
-  if(!(window.TaheitoAPI&&typeof window.TaheitoAPI.getBatches==='function'&&typeof window.TaheitoAPI.getTrades==='function')){
-    throw new Error('TaheitoAPI trading client is not available');
-  }
-  const [bRes,tRes]=await Promise.all([window.TaheitoAPI.getBatches(),window.TaheitoAPI.getTrades()]);
-  const bRows=Array.isArray(bRes?.batches)?bRes.batches:[];
-  const tRows=Array.isArray(tRes?.trades)?tRes.trades:[];
-  state.batches=bRows.map(b=>({
-    id:String(b.id||uid()),
-    ts:Number(new Date(b.acquired_at||b.created_at||Date.now())),
-    source:String(b.source||b.asset_symbol||'API'),
-    note:String(b.notes||''),
-    buyPriceQAR:num(b.unit_cost,0),
-    initialUSDT:num(b.quantity,0),
-    revisions:Array.isArray(b.revisions)?b.revisions:[]
-  })).filter(b=>b.initialUSDT>0&&b.buyPriceQAR>=0);
-  state.trades=tRows.map(t=>({
-    id:String(t.id||uid()),
-    ts:Number(new Date(t.traded_at||t.created_at||Date.now())),
-    inputMode:'USDT',
-    amountUSDT:num(t.quantity,0),
-    sellPriceQAR:num(t.unit_price,0),
-    feeQAR:num(t.fee,0),
-    note:String(t.notes||''),
-    voided:String(t.status||'active').toLowerCase()==='void',
-    usesStock:String(t.side||'sell').toLowerCase()==='sell',
-    revisions:Array.isArray(t.revisions)?t.revisions:[],
-    customerId:String(t.customer_id||'')
-  })).filter(t=>t.amountUSDT>0&&t.sellPriceQAR>=0);
-  recompute();
-  render();
-}
 const PCOLORS=["#45B8C8","#E05252","#F5A623","#5B9BD5","#E8835A","#2ECC71","#9B59B6","#F0C040","#1ABC9C","#2E4A6B"];
 
 // ── HELPERS ──────────────────────────────────────────────────────
@@ -2602,7 +2557,7 @@ const I18N_AR = [
   ["FIFO cost basis · margin bar","تكلفة FIFO · شريط الهامش"],
   ["FIFO layers · progress = remaining","طبقات FIFO · التقدم = المتبقي"],
   ["Visual daily trading activity view","عرض مرئي للنشاط اليومي"],
-  ["Customer Directory · Customer Intel · Supplier Network","دليل العملاء · بيانات العملاء · شبكة الموردين"],
+  ["Trade Pipeline · Customer Intel · Supplier Network","مسار الصفقات · بيانات العملاء · شبكة الموردين"],
   ["Directory · Customers + Suppliers · History","الدليل · العملاء + الموردون · السجل"],
   // Topbar / filters
   ["Search...","بحث..."],["Search","بحث"],["Date range filter","مرشح المدة"],["Display currency","عملة العرض"],
@@ -2846,31 +2801,12 @@ function sanitize(s){
   return out;
 }
 function load(){
-  if(isApiOnlyMode()){
-    storageOk=true;
-    syncTradingStateFromApi().catch(function(err){
-      storageOk=false;
-      try{toast('API sync failed: '+(err?.message||err),'warn');}catch(_){ }
-      try{const r=localStorage.getItem(SK);if(r){state=sanitize(JSON.parse(r));}}catch(_){ }
-      recompute();render();
-    });
-    return;
-  }
   try{const r=localStorage.getItem(SK);if(r){state=sanitize(JSON.parse(r));return;}}catch{storageOk=false;}
   for(const k of["usdt_pro_v14","usdt_pro_v13","usdt_pro_v12","usdt_pro_v11","usdt_pro_x_v4","usdt_v10"]){
     try{const r=localStorage.getItem(k);if(r){state=sanitize(JSON.parse(r));save();return;}}catch{}
   }
 }
-function save(){
-  // Phase 9: decommission localStorage writes for main financial state
-  storageOk = true;
-  return;
-}
-function writeMainStateToStorage(nextState){
-  // Phase 9: block direct main-state persistence to localStorage in all modes
-  storageOk = true;
-  return false;
-}
+function save(){try{localStorage.setItem(SK,JSON.stringify(state));storageOk=true;}catch{storageOk=false;}}
 function saveRecompute(msg,type=""){save();recompute();render();if(msg)toast(msg,type);}
 
 // ── RANGE ────────────────────────────────────────────────────────
@@ -3111,7 +3047,7 @@ function chartOpts(extra={}){
 }
 
 // ── ACTIONS ──────────────────────────────────────────────────────
-async function addTrade(){
+function addTrade(){
   const ts=inputToTs($("#t_dt")?.value),mode=$("#t_mode_val")?.value||"USDT";
   const sell=num($("#t_sell")?.value),raw=num($("#t_amt")?.value);const fee=0;
   const usesStock=$("#t_stock")?.checked??true;
@@ -3132,29 +3068,8 @@ async function addTrade(){
   if(errs.length){const el=$("#t_msg");if(el){el.textContent="Fix: "+errs.join(", ");el.className="msg err";}return;}
   const id=uid(),trade={id,ts,inputMode:mode,amountUSDT,sellPriceQAR:sell,feeQAR:fee,note:"",voided:false,usesStock,revisions:[],customerId};
   if(!state.prefs.allowInvalidTrades&&usesStock){const tmp=sanitize({...state,trades:state.trades.concat([trade])});const calc=recomputeFor(tmp).tradeCalc.get(id);if(!calc?.ok){const el=$("#t_msg");if(el){el.textContent="No eligible stock";el.className="msg err";}return;}}
-  if(isApiOnlyMode()){
-    try{
-      if(!(window.TaheitoAPI&&typeof window.TaheitoAPI.createTrade==='function')) throw new Error('TaheitoAPI trade client is unavailable');
-      await window.TaheitoAPI.createTrade({
-        asset_symbol:'USDT',
-        side:'sell',
-        traded_at:new Date(ts).toISOString(),
-        quantity:amountUSDT,
-        unit_price:sell,
-        fee:fee,
-        status:'active',
-        notes:''
-      });
-      await syncTradingStateFromApi();
-      toast("Trade logged via API ✓","good");
-    }catch(e){
-      const el=$("#t_msg");if(el){el.textContent="API trade save failed: "+(e?.message||e);el.className="msg err";}
-      return;
-    }
-  }else{
-    state.trades.push(trade);if(!inRange(ts))state.range="all";
-    saveRecompute("Trade logged ✓","good");
-  }
+  state.trades.push(trade);if(!inRange(ts))state.range="all";
+  saveRecompute("Trade logged ✓","good");
   ["t_amt"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
   const tm=$("#t_msg");if(tm){tm.textContent="";tm.className="msg";}
   updateSalePreview();
@@ -3199,7 +3114,7 @@ function setBatchMode(m){
   $("#b_amt").value = ""; // Clear on toggle
 }
 
-async function addBatch(){
+function addBatch(){
   const ts=inputToTs($("#b_dt")?.value);
   const px=num($("#b_px")?.value);
   const rawAmt=num($("#b_amt")?.value);
@@ -3256,8 +3171,8 @@ function updateSalePreview(){
     <div class="pr"><span>Cost (FIFO)</span><strong>${ok?fmtQWithUnit(cost):"—"}</strong></div>
     <div class="pr" style="border-top:1px solid color-mix(in srgb,var(--brand) 20%,transparent);padding-top:6px;margin-top:4px;"><span style="font-weight:900">Net</span><strong style="color:${Number.isFinite(net)?(net>=0?"var(--good)":"var(--bad)"):"var(--muted)"};">${Number.isFinite(net)?((net>=0?"+":"")+fmtQWithUnit(net)):"—"}</strong></div>`;
 }
-async function toggleVoidTrade(id){const t=state.trades.find(x=>x.id===id);if(!t)return;if(isApiOnlyMode()){try{if(!(window.TaheitoAPI&&typeof window.TaheitoAPI.voidTrade==='function'))throw new Error('TaheitoAPI trade client is unavailable');await window.TaheitoAPI.voidTrade(id);await syncTradingStateFromApi();toast('Trade void toggled via API','good');}catch(e){toast('API void failed: '+(e?.message||e),'warn');}return;}t.voided=!t.voided;saveRecompute(t.voided?"Trade voided":"Trade restored",t.voided?"warn":"good");}
-async function deleteTrade(id, skipConfirm){
+function toggleVoidTrade(id){const t=state.trades.find(x=>x.id===id);if(!t)return;t.voided=!t.voided;saveRecompute(t.voided?"Trade voided":"Trade restored",t.voided?"warn":"good");}
+function deleteTrade(id, skipConfirm){
   const t=state.trades.find(x=>x.id===id);if(!t)return;
   if(!skipConfirm && !confirm("Delete this trade permanently? (Restore via Vault snapshot if needed)")) return;
   // Best-effort safety snapshot (Ring 1) before destructive action
@@ -3266,15 +3181,6 @@ async function deleteTrade(id, skipConfirm){
       window.VaultAPI.idbSave("snap_"+Date.now(), JSON.parse(JSON.stringify(state)), "pre_delete_trade").catch(function(){});
     }
   }catch(e){}
-  if(isApiOnlyMode()){
-    try{
-      if(!(window.TaheitoAPI&&typeof window.TaheitoAPI.deleteTrade==='function')) throw new Error('TaheitoAPI trade client is unavailable');
-      await window.TaheitoAPI.deleteTrade(id);
-      await syncTradingStateFromApi();
-      toast('Trade deleted via API','warn');
-    }catch(e){toast('API trade delete failed: '+(e?.message||e),'warn');}
-    return;
-  }
   state.trades = (state.trades||[]).filter(x=>x.id!==id);
   saveRecompute("Trade deleted","warn");
 }
@@ -3384,7 +3290,7 @@ function correctTrade(id){
     });
   },0);
 }
-async function deleteBatch(id, skipConfirm){
+function deleteBatch(id, skipConfirm){
   const b=state.batches.find(x=>x.id===id);if(!b)return;
   const db=derived.batches.find(x=>x.id===id);
   const used=db?Math.max(0,b.initialUSDT-(db.remainingUSDT||0)):0;
@@ -3397,15 +3303,6 @@ async function deleteBatch(id, skipConfirm){
       window.VaultAPI.idbSave("snap_"+Date.now(), JSON.parse(JSON.stringify(state)), "pre_delete_batch").catch(function(){});
     }
   }catch(e){}
-  if(isApiOnlyMode()){
-    try{
-      if(!(window.TaheitoAPI&&typeof window.TaheitoAPI.deleteBatch==='function')) throw new Error('TaheitoAPI batch client is unavailable');
-      await window.TaheitoAPI.deleteBatch(id);
-      await syncTradingStateFromApi();
-      toast('Batch deleted via API','warn');
-    }catch(e){toast('API batch delete failed: '+(e?.message||e),'warn');}
-    return;
-  }
   state.batches=(state.batches||[]).filter(x=>x.id!==id);
   saveRecompute("Batch deleted","warn");
 }
@@ -3569,23 +3466,18 @@ function clearAll(){
 //   Primary  → YOUR Cloudflare Worker (set P2P_API_URL after deploying)
 //   Fallback → direct Binance fetch via CORS proxy (original behaviour)
 //
-// After you deploy the Worker, set P2P_API_URL to your active market-data worker.
-// Legacy deployment used p2p-monitor; newer deployments may use p2p-tracker-api.
-// Keep both in the failover list so P2P tab survives worker-name transitions.
-// Leave P2P_API_URL as "" only if you intentionally want direct Binance fallback.
+// After you deploy the Worker, set P2P_API_URL to:
+//   "https://p2p-monitor.YOUR-SUBDOMAIN.workers.dev"
+// Leave it as "" to keep using the direct Binance fallback.
 //
-const P2P_API_URL = "https://p2p-tracker.taheito26.workers.dev/";
-const P2P_API_FALLBACK_URLS = [
-  "https://p2p-monitor.taheito26.workers.dev/",
-  "https://p2p-tracker.taheito26.workers.dev/"
-];
+const P2P_API_URL = "https://p2p-monitor.taheito26.workers.dev/";   // ← FILL THIS IN after Step 4 of the guide
 
 const BINANCE="https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search";
 
 // ── Direct Binance fetch (fallback) ──────────────────────────────
 async function p2pFetchDirect(tt){
   const body=JSON.stringify({page:1,rows:10,payTypes:[],publisherType:null,asset:"USDT",tradeType:tt,fiat:"QAR",merchantCheck:false});
-  const urls=[BINANCE,`https://corsproxy.io/?url=${encodeURIComponent(BINANCE)}`,`https://proxy.cors.sh/${BINANCE}`,`https://cors.isomorphic-git.org/${BINANCE}`];
+  const urls=[BINANCE,`https://corsproxy.io/?url=${encodeURIComponent(BINANCE)}`,`https://proxy.cors.sh/${BINANCE}`];
   for(const u of urls){try{const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json",...(u!==BINANCE?{"x-requested-with":"XMLHttpRequest"}:{})},body,signal:AbortSignal.timeout(8000)});if(r.ok){const j=await r.json();if(Array.isArray(j?.data))return j.data;}}catch{}}
   throw new Error("P2P unreachable — no CORS proxy responded");
 }
@@ -3625,45 +3517,23 @@ function _applyP2PResponse(data){
   p2p.dayStats   = data.dayStats   || null;
   p2p.ageMs      = data.ageMs      || null;
   p2p.source     = data.source     || "api";
-  // Merge backend history — backend has 7d+, session history overlaps
+  // Merge backend history — backend has 24h+, session history overlaps
   if(Array.isArray(data.history)&&data.history.length>0){
     // Combine backend history with any local session points newer than the last backend point
     const lastBackendTs=data.history[data.history.length-1]?.ts||0;
     const localNew=p2p.history.filter(h=>h.ts>lastBackendTs);
-    p2p.history=[...data.history,...localNew].slice(-2016);
+    p2p.history=[...data.history,...localNew].slice(-720);
   }
 }
 
 // ── Primary: fetch from your Cloudflare Worker API ───────────────
 async function p2pFetchFromAPI(){
-  const candidates=[];
-  const seen=new Set();
-  function pushBase(v){
-    const b=String(v||"").trim().replace(/\/+$/,"");
-    if(!b||seen.has(b))return;
-    seen.add(b);
-    candidates.push(b);
-  }
-  pushBase(P2P_API_URL);
-  for(const u of (P2P_API_FALLBACK_URLS||[])) pushBase(u);
-  if(candidates.length===0) throw new Error("no-api-url");
-
-  let lastErr=null;
-  for(const base of candidates){
-    try{
-      const url = base+"/api/p2p";
-      const r=await fetch((/^\/api\//.test(url) ? MERCHANT_API_BASE + url : url),{signal:AbortSignal.timeout(10000)});
-      if(!r.ok) throw new Error(`Worker API ${r.status} @ ${base}`);
-      const data=await r.json();
-      if(data.error) throw new Error(data.error+` @ ${base}`);
-      data._sourceBase=base;
-      return data;
-    }catch(err){
-      lastErr=err;
-      console.warn('[p2p] API endpoint failed:', base, err?.message||err);
-    }
-  }
-  throw (lastErr||new Error('No API endpoint responded'));
+  const url=P2P_API_URL.replace(/\/+$/,"")+"/api/p2p";
+  const r=await fetch((/^\/api\//.test(url) ? MERCHANT_API_BASE + url : url),{signal:AbortSignal.timeout(10000)});
+  if(!r.ok) throw new Error(`Worker API ${r.status}`);
+  const data=await r.json();
+  if(data.error) throw new Error(data.error);
+  return data;
 }
 
 // ── Main refresh: API-first, falls back to direct Binance ─────────
@@ -3682,7 +3552,7 @@ async function refreshP2P(){
         // If backend data is stale (>4min), note it but don't error
         const staleWarn=p2p.ageMs&&p2p.ageMs>240000;
         toast(
-          `Sell ${fmtP(p2p.sellAvg)} · Buy ${fmtP(p2p.buyAvg)}`+((data._sourceBase?` · ${data._sourceBase.replace(/^https?:\/\//,"")}`:"") )+(staleWarn?" · ⚠ cached "+Math.round(p2p.ageMs/60000)+"m ago":""),
+          `Sell ${fmtP(p2p.sellAvg)} · Buy ${fmtP(p2p.buyAvg)}`+(staleWarn?" · ⚠ cached "+Math.round(p2p.ageMs/60000)+"m ago":""),
           staleWarn?"warn":"good"
         );
         p2p.usingAPI=true;
@@ -4186,7 +4056,7 @@ function renderBatchTable(batches){
 
 // ── P2P ──────────────────────────────────────────────────────────
 function renderP2P(){
-  setHeader("P2P Market","Live Binance QAR · 7d backend monitoring (5m polls)");
+  setHeader("P2P Market","Live Binance QAR · 24h backend monitoring");
   const wacop=getWACOP(), stock=totalStock(), cash=num(state.cashQAR,0);
   const ts=p2p.ts?new Date(p2p.ts).toLocaleTimeString():"—";
   const spread=p2p.sellAvg&&p2p.buyAvg?p2p.sellAvg-p2p.buyAvg:null;
@@ -4210,44 +4080,6 @@ function renderP2P(){
         return`<div title="${fmtP(v)}" style="width:5px;height:${h2}px;border-radius:2px 2px 0 0;background:${isLast?`var(--${color})`:`color-mix(in srgb,var(--${color}) 40%,transparent)`};flex-shrink:0;"></div>`;
       }).join("")+
       `<span style="font-size:9px;color:var(--${color});margin-left:4px;align-self:center;">${fmtP(vals[vals.length-1])}</span></div>`;
-  }
-
-
-  function mkHistoryReview(){
-    const h=(p2p.history||[]).filter(x=>x&&x.ts&&x.sellAvg>0&&x.buyAvg>0);
-    if(!h.length) return `<div class="muted" style="font-size:10px;padding:8px;">Need backend history to build a 7-day review.</div>`;
-    const byDay=new Map();
-    for(const row of h){
-      const k=new Date(row.ts).toISOString().slice(0,10);
-      if(!byDay.has(k)) byDay.set(k,[]);
-      byDay.get(k).push(row);
-    }
-    const days=[...byDay.keys()].sort().slice(-7).reverse();
-    if(!days.length) return `<div class="muted" style="font-size:10px;padding:8px;">No review rows yet.</div>`;
-    const rows=days.map(dayKey=>{
-      const arr=byDay.get(dayKey)||[];
-      const sell=arr.map(x=>num(x.sellAvg)).filter(v=>v>0);
-      const buy=arr.map(x=>num(x.buyAvg)).filter(v=>v>0);
-      const open=arr[0]||null, close=arr[arr.length-1]||null;
-      const avgSell=sell.length?sell.reduce((a,b)=>a+b,0)/sell.length:null;
-      const avgBuy=buy.length?buy.reduce((a,b)=>a+b,0)/buy.length:null;
-      const hiSell=sell.length?Math.max(...sell):null;
-      const loBuy=buy.length?Math.min(...buy):null;
-      const dSell=(open&&close&&open.sellAvg&&close.sellAvg)?close.sellAvg-open.sellAvg:null;
-      return {dayKey, polls:arr.length, avgSell, avgBuy, hiSell, loBuy, dSell};
-    });
-    return `<div class="tableWrap" style="max-height:190px;overflow:auto;"><table>
-      <thead><tr><th>Day</th><th class="r">Polls</th><th class="r">Avg Sell</th><th class="r">Avg Buy</th><th class="r">High Sell</th><th class="r">Low Buy</th><th class="r">Δ Sell</th></tr></thead>
-      <tbody>${rows.map(r=>`<tr>
-        <td class="mono" style="font-size:10px;">${esc(r.dayKey)}</td>
-        <td class="mono r">${r.polls}</td>
-        <td class="mono r">${r.avgSell?fmtP(r.avgSell):'—'}</td>
-        <td class="mono r">${r.avgBuy?fmtP(r.avgBuy):'—'}</td>
-        <td class="mono r" style="color:var(--good);">${r.hiSell?fmtP(r.hiSell):'—'}</td>
-        <td class="mono r" style="color:var(--bad);">${r.loBuy?fmtP(r.loBuy):'—'}</td>
-        <td class="mono r" style="color:${r.dSell===null?'var(--muted)':(r.dSell>=0?'var(--good)':'var(--bad)')};">${r.dSell===null?'—':((r.dSell>=0?'+':'')+r.dSell.toFixed(3))}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
   }
 
   // offer table with relative price bars + fit check
@@ -4286,7 +4118,7 @@ function renderP2P(){
     </button>
     <span class="pill" style="font-size:10px;">Updated ${esc(ts)}</span>
     ${usingBackend
-      ?`<span class="pill good" style="font-size:9px;font-weight:800;">☁ Backend · 7d monitoring active (5m polls)</span>`
+      ?`<span class="pill good" style="font-size:9px;font-weight:800;">☁ Backend · 24h monitoring active</span>`
       :`<span class="pill warn" style="font-size:9px;">⚡ Direct · <a href="#" id="p_setup_link" style="color:inherit;">Connect backend →</a></span>`}
     ${spread!==null?`<span class="pill warn" style="font-weight:700;">Spread ${fmtP(spread)} (${spreadPct?.toFixed(2)}%)</span>`:""}
     ${p2p.sellAvg&&wacop?`<span class="pill ${sellIsGood?"good":"warn"}">${sellIsGood?"✓ Sell zone":"⏳ Below target"}</span>`:""}
@@ -4332,7 +4164,7 @@ function renderP2P(){
     <div class="panel">
       <div class="panel-head">
         <h2>📈 Price History</h2>
-        <span class="pill">${p2p.history.length} pts${usingBackend?" · 7d":"· session"}</span>
+        <span class="pill">${p2p.history.length} pts${usingBackend?" · 24h":"· session"}</span>
       </div>
       <div class="panel-body">
         <div style="margin-bottom:10px;">
@@ -4353,7 +4185,7 @@ function renderP2P(){
           </div>`;
         })():""}
         ${!usingBackend?`<div style="margin-top:10px;padding:8px;border-radius:8px;background:color-mix(in srgb,var(--brand) 8%,transparent);border:1px solid color-mix(in srgb,var(--brand) 20%,transparent);font-size:10px;color:var(--muted);">
-          Deploy the backend Worker to get persistent 7-day history (5-minute polls) that survives page reloads.
+          Deploy the backend Worker to get persistent 24h history that survives page reloads.
         </div>`:""}
       </div>
     </div>
@@ -4388,17 +4220,6 @@ function renderP2P(){
           ${p2p.buyAvg?`<button class="btn secondary" id="p_apply_buy" style="flex:1;">Apply Buy Rate</button>`:""}
         </div>
       </div>
-    </div>
-  </div>
-
-  <div class="panel" style="margin-bottom:10px;">
-    <div class="panel-head">
-      <h2>🗓️ 7-Day P2P Review</h2>
-      <span class="pill">Daily summary from ${p2p.history.length} pts</span>
-    </div>
-    <div class="panel-body">
-      <div class="muted" style="font-size:10px;margin-bottom:8px;">Review each day’s average/high/low and sell trend across the retained 7-day history.</div>
-      ${mkHistoryReview()}
     </div>
   </div>
 
@@ -4576,12 +4397,12 @@ function renderCalendar(){
 window.selectCalDay=d=>{state.cal.selectedDay=state.cal.selectedDay===d?null:d;save();renderCalendar();};
 
 // ── CRM ──────────────────────────────────────────────────────────
-// ── CRM v2 — Directory Board ─────────────────────────────────────
-// Completely redesigned: customer directory + supplier analytics
-var _crmView = "list"; // list | suppliers
+// ── CRM v2 — Pipeline Board ──────────────────────────────────────
+// Completely redesigned: Kanban pipeline + supplier analytics
+var _crmView = "pipeline"; // pipeline | list | suppliers
 
 function renderCRM() {
-  setHeader("CRM", "Customer Directory · Customer Intel · Supplier Network");
+  setHeader("CRM", "Trade Pipeline · Customer Intel · Supplier Network");
   var q = (state.q || "").trim().toLowerCase();
 
   // ── Tier config
@@ -4763,16 +4584,11 @@ function renderCRM() {
       var t = TIER[k];
       return "<button class='rowBtn crm-tier-btn' data-tp='"+k+"' style='flex:1;font-weight:800;font-size:10px;border-color:"+t.color+";color:"+t.color+";'>"+t.icon+" "+k+"</button>";
     }).join("");
-    var custTabStyle = _addTab === "customer"
-      ? "background:#00f26a;color:#052b17;border-color:#00f26a;font-weight:900;box-shadow:0 0 14px rgba(0,242,106,.28);"
-      : "background:rgba(0,242,106,.08);color:#5de39a;border-color:rgba(0,242,106,.45);font-weight:800;";
-    var suppTabStyle = _addTab === "supplier"
-      ? "background:#2f6bff;color:#eaf1ff;border-color:#2f6bff;font-weight:900;box-shadow:0 0 14px rgba(47,107,255,.32);"
-      : "background:rgba(47,107,255,.10);color:#8ab2ff;border-color:rgba(47,107,255,.45);font-weight:800;";
+    var tabActStyle = "background:var(--brand);color:#fff;border-color:var(--brand);font-weight:800;";
     var formHtml = "<div class='form-panel'>" +
-      "<div style='display:flex;gap:6px;margin-bottom:10px;'>" +
-        "<button class='rowBtn crm-addtab-btn' data-addtab='customer' style='flex:1;"+custTabStyle+"'>👤 Customer</button>" +
-        "<button class='rowBtn crm-addtab-btn' data-addtab='supplier' style='flex:1;"+suppTabStyle+"'>🏭 Supplier</button>" +
+      "<div style='display:flex;gap:4px;margin-bottom:10px;'>" +
+        "<button class='rowBtn crm-addtab-btn' data-addtab='customer' style='flex:1;"+(_addTab==="customer"?tabActStyle:"")+"'>👤 Customer</button>" +
+        "<button class='rowBtn crm-addtab-btn' data-addtab='supplier' style='flex:1;"+(_addTab==="supplier"?tabActStyle:"")+"'>🏭 Supplier</button>" +
       "</div>";
     if (_addTab === "customer") {
       formHtml += "<div class='form-panel-body'>" +
@@ -4806,13 +4622,12 @@ function renderCRM() {
   "</div>";
 
   // ─── VIEW TOGGLE ───────────────────────────────────────────────
-  var v = (_crmView === "suppliers") ? "suppliers" : "list";
-  _crmView = v;
+  var v = _crmView;
   function vBtn(id, label, active) {
     return "<button class='rowBtn crm-view-btn' data-view='"+id+"' style='"+(active?"background:var(--brand);color:#fff;border-color:var(--brand);font-weight:800;":"")+"'>"+label+"</button>";
   }
   var viewBar = "<div style='display:flex;gap:5px;margin-bottom:10px;align-items:center;flex-wrap:wrap;'>" +
-    vBtn("list","☰ List",v==="list") + vBtn("suppliers","🏭 Suppliers",v==="suppliers") +
+    vBtn("pipeline","⠿ Pipeline",v==="pipeline") + vBtn("list","☰ List",v==="list") + vBtn("suppliers","🏭 Suppliers",v==="suppliers") +
     "<span style='flex:1'></span>" +
     "<span style='font-size:9px;color:var(--muted);'>"+( state.customers.length)+" clients · "+suppList.length+" suppliers</span>" +
   "</div>";
@@ -4843,7 +4658,10 @@ function buildSupplierPanel(full){
   "</div>";
 }
 
-var customerContent = buildList(); // keep customers visible on all CRM views
+var customerContent;
+if (v === "pipeline") customerContent = buildPipeline();
+else if (v === "list") customerContent = buildList();
+else customerContent = buildList(); // keep customers visible even on Suppliers view
 
 var supplierPanelHtml = buildSupplierPanel(v === "suppliers");
 var showForm = true; // keep Log Contact panel visible
@@ -4910,7 +4728,7 @@ document.getElementById("pageBody").innerHTML =
       var name = ((document.getElementById("cn_name")||{}).value||"").trim();
       if (!name) { var msg=document.getElementById("cn_msg"); if(msg){msg.textContent="Name is required";msg.className="msg err";} return; }
       state.customers.push({id:uid(),name:name,phone:((document.getElementById("cn_phone")||{}).value||"").trim(),tier:((document.getElementById("cn_tier")||{}).value)||"C",createdAt:Date.now()});
-      _crmView = "list"; saveRecompute("Customer added","good");
+      _crmView = "pipeline"; saveRecompute("Customer added","good");
     });
     // Add supplier
     var snAdd = document.getElementById("sn_add");
@@ -4931,7 +4749,7 @@ document.getElementById("pageBody").innerHTML =
     var name = ((document.getElementById("cn_name")||{}).value||"").trim();
     if (!name) { var msg=document.getElementById("cn_msg"); if(msg){msg.textContent="Name is required";msg.className="msg err";} return; }
     state.customers.push({id:uid(),name:name,phone:((document.getElementById("cn_phone")||{}).value||"").trim(),tier:((document.getElementById("cn_tier")||{}).value)||"C",createdAt:Date.now()});
-    _crmView = "list";
+    _crmView = "pipeline";
     saveRecompute("Customer added","good");
   });
   // Supplier add button
@@ -6328,7 +6146,7 @@ function renderVault(){
         if (!confirm("⚠ Checksum mismatch — the snapshot may be corrupted. Restore anyway?")) return;
       }
       if (typeof applyRestore==="function") { applyRestore(snap.state); toast("✓ Restored from local snapshot","good"); }
-      else { try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk&&!isApiOnlyMode()){localStorage.setItem(sk,JSON.stringify(snap.state));location.reload();}}catch(e){toast("Restore failed: "+e.message,"warn");} }
+      else { try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk){localStorage.setItem(sk,JSON.stringify(snap.state));location.reload();}}catch(e){toast("Restore failed: "+e.message,"warn");} }
     });
   };
 
@@ -6619,7 +6437,7 @@ function renderVault(){
         var chk = window.VaultAPI.stateChecksum(res.state);
         if(res.checksum && res.checksum!==chk && !confirm("⚠ Checksum mismatch. Restore anyway?")) return;
         if(typeof applyRestore==="function") applyRestore(res.state);
-        else{ try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk&&!isApiOnlyMode()){localStorage.setItem(sk,JSON.stringify(res.state));location.reload();}}catch(e){toast("Restore failed","warn");return;} }
+        else{ try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk){localStorage.setItem(sk,JSON.stringify(res.state));location.reload();}}catch(e){toast("Restore failed","warn");return;} }
         toast("✓ Restored from cloud","good");
       } else toast("Restore failed","warn");
     }).catch(function(e){ toast("Restore error: "+e.message,"warn"); });
@@ -6743,7 +6561,7 @@ function renderVault(){
     var mode = (document.querySelector('input[name="vaultMergeMode"]:checked')||{}).value||"merge";
     var merged = window.VaultAPI.mergeStates(currentState, _importedState, sections, mode);
     if(typeof applyRestore==="function"){ applyRestore(merged); toast("✓ Applied ("+mode+" mode)","good"); }
-    else{ try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk&&!isApiOnlyMode()){localStorage.setItem(sk,JSON.stringify(merged));toast("Applied. Reload to see changes.","good");}}catch(e){toast("Apply failed","warn");} }
+    else{ try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk){localStorage.setItem(sk,JSON.stringify(merged));toast("Applied. Reload to see changes.","good");}}catch(e){toast("Apply failed","warn");} }
     document.getElementById("vaultImportPreview").style.display = "none";
   });
 
@@ -6895,14 +6713,6 @@ function _kpiDefs(){
   const totalPurch=allBatches.reduce((s,b)=>s+b.initialUSDT,0);
   const totalRem=totalStock();
   const utilPct=totalPurch>0?Math.round((totalPurch-totalRem)/totalPurch*100):0;
-  const supplierPurch=allBatches.reduce((m,b)=>{const k=(b.source||"Unknown").trim()||"Unknown";m[k]=(m[k]||0)+(Number(b.initialUSDT)||0);return m;},{});
-  const supplierEntries=Object.entries(supplierPurch).sort((a,b)=>b[1]-a[1]);
-  const topSupplier=supplierEntries.length?supplierEntries[0]:null;
-  const topSupplierPct=totalPurch>0&&topSupplier?Math.round((topSupplier[1]/totalPurch)*100):0;
-  const topSupplierName=topSupplier?topSupplier[0]:"—";
-  const batchCyclesMs=allBatches.map(b=>batchCycleTime(b.id)).filter(v=>typeof v==='number'&&v>0);
-  const avgCycleH=batchCyclesMs.length?(batchCyclesMs.reduce((s,v)=>s+v,0)/batchCyclesMs.length/36e5):null;
-  const avgCycleHLabel=avgCycleH!==null?Math.round(avgCycleH)+"h":"—";
   const custRepeats=(state.customers||[]).filter(c=>{const ct=allTrades.filter(t=>t.customerId===c.id).length;return ct>1;}).length;
   const roiD=stCost>0?((d1.net/stCost)*100).toFixed(3):"—";
   const roi7=stCost>0?((d7.net/stCost)*100).toFixed(2):"—";
@@ -7002,16 +6812,6 @@ function _kpiDefs(){
      col:"var(--t5)",badge:"FIFO",bc:BC.t5,
      desc:"% of purchased USDT that has been sold via FIFO.",
      why:"Low=capital idle. High=watch for stock-out.",formula:"sold ÷ purchased × 100"},
-    {id:"avg_cycle_time",e:false,tab:"stock",icon:"⏱️",lbl:"Avg Cycle Time",cat:"Stock",
-     val:avgCycleHLabel,sub:batchCyclesMs.length?`${batchCyclesMs.length} closed batches`:"No closed cycles yet",
-     col:"var(--warn)",badge:"FIFO",bc:BC.warn,
-     desc:"Average time between batch buy timestamp and its latest linked FIFO sell.",
-     why:"Shorter cycles rotate capital faster and reduce price exposure.",formula:"avg(max(sellTs)-buyTs)"},
-    {id:"top_supplier_share",e:false,tab:"stock",icon:"🏗️",lbl:"Top Supplier Share",cat:"Stock",
-     val:`${topSupplierPct}%`,sub:topSupplier?`${topSupplierName} · ${fmtU(topSupplier[1],0)} USDT`:"No supplier data",
-     col:"var(--t2,var(--brand2,#8b5cf6))",badge:"Concentration",bc:BC.brand,
-     desc:"Share of purchased USDT volume sourced from your #1 supplier.",
-     why:"High concentration increases sourcing risk if that supplier pauses.",formula:"topSupplierUSDT ÷ totalPurchasedUSDT × 100"},
   ];
   return {defs,TM,BC};
 }
@@ -7455,7 +7255,7 @@ function gasRestore() {
         var mc = document.getElementById("m_c"); if (mc) mc.addEventListener("click", closeModal);
         var mr = document.getElementById("m_r"); if (mr) mr.addEventListener("click", function() {
           try {
-            if(!writeMainStateToStorage(backup.state)) throw new Error("Restore blocked in API-only mode");
+            localStorage.setItem(SK, JSON.stringify(backup.state));
             load(); recompute(); render();
             _gasLastSync = Date.now(); gasSaveConfig();
             toast("✓ Restored from Cloud", "good");
@@ -7598,7 +7398,7 @@ function gasBkpRestore(vid){
       if (!res || res.ok === false) throw new Error((res && res.error) || "Restore rejected");
       if (!res.state) { toast("No backup content", "warn"); return; }
       try {
-        if(!writeMainStateToStorage(res.state)) throw new Error("Restore blocked in API-only mode");
+        localStorage.setItem(SK, JSON.stringify(res.state));
         load(); recompute(); render();
         closeModal();
         toast("✓ Restored version " + String(vid).slice(0,8), "good");
@@ -7762,7 +7562,7 @@ function authGoogleLogin(idToken){
       authSave();
 
       if (res.state) {
-        writeMainStateToStorage(res.state);
+        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
       }
 
       hideLoginScreen();
@@ -7791,7 +7591,6 @@ function authLoad() {
     if (a && a.user && a.user.email && a.token) {
       _authUser = a.user;
       _authToken = a.token;
-      try { if (typeof window !== 'undefined') { window._authUser = _authUser; window._authToken = _authToken; } } catch(e) {}
       return true;
     }
   } catch(e) {}
@@ -7799,11 +7598,9 @@ function authLoad() {
 }
 function authSave() {
   try { localStorage.setItem(_AUTH_KEY, JSON.stringify({ user:_authUser, token:_authToken })); } catch(e) {}
-  try { if (typeof window !== 'undefined') { window._authUser = _authUser; window._authToken = _authToken; } } catch(e) {}
 }
 function authClear() {
   _authUser = null; _authToken = "";
-  try { if (typeof window !== 'undefined') { window._authUser = null; window._authToken = ""; } } catch(e) {}
   try { localStorage.removeItem(_AUTH_KEY); } catch(e) {}
 }
 
@@ -7935,7 +7732,7 @@ function authLogin(){
       authSave();
 
       if (res.state) {
-        writeMainStateToStorage(res.state);
+        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
       }
 
       hideLoginScreen();
@@ -7976,7 +7773,7 @@ function authRegister(){
       authSave();
 
       if (res.state) {
-        writeMainStateToStorage(res.state);
+        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
       }
 
       hideLoginScreen();
@@ -8003,7 +7800,7 @@ function gasRestoreSilent() {
   return gasPost({ action: "restore", email: _authUser.email, token: _authToken })
     .then(function(res){
       if (res && res.state) {
-        writeMainStateToStorage(res.state);
+        try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
       }
     }).catch(function(){});
 }
@@ -8776,7 +8573,7 @@ window.addEventListener("DOMContentLoaded", function(){
             document.getElementById("m_c")?.addEventListener("click", closeModal);
             document.getElementById("m_r")?.addEventListener("click", function(){
               try {
-                if(!writeMainStateToStorage(stateObj || {})){ if (typeof toast === "function") toast("Restore blocked in API-only mode","warn"); return; }
+                localStorage.setItem(SK, JSON.stringify(stateObj || {}));
                 if (typeof load === "function") load();
                 if (typeof recompute === "function") recompute();
                 if (typeof render === "function") render();
@@ -10808,7 +10605,8 @@ function runSettingsTest() {
         _emitRaw("data", "restore", { fromSnapshot: snapId, snapTs: snap ? snap.ts : null }, _stateSummary(typeof state !== "undefined" ? state : null), _stateSummary(restored), "user");
         if (typeof state !== "undefined" && typeof sanitize === "function") {
           Object.assign(state, sanitize(restored));
-          writeMainStateToStorage(state);
+          var SK = "usdt_pro_v15";
+          try { localStorage.setItem(SK, JSON.stringify(state)); } catch(e) {}
           if (typeof recompute === "function") recompute();
           if (typeof render === "function") render();
           if (typeof toast === "function") toast("✓ Restored to " + _fmtDateTime(snap ? snap.ts : Date.now()), "good");
@@ -11242,9 +11040,7 @@ window.renderMerchants = function(){
      Cloudflare Worker + D1. Local MS state is kept in sync as a cache.
      Polling runs every 45s when the Merchants tab is open.
      ─────────────────────────────────────────────────────────────────── */
-  var API_BASE = (typeof P2P_API_URL !== 'undefined' && P2P_API_URL)
-    ? String(P2P_API_URL)
-    : 'https://p2p-tracker.taheito26.workers.dev';
+  var API_BASE = 'https://p2p-merchant-api.taheito26.workers.dev';
   var _pollTimer = null;
   var _lastPollTs = 0;
   var _syncStatus = 'idle';
@@ -11255,43 +11051,24 @@ window.renderMerchants = function(){
   function _normBase(u){ return String(u||'').trim().replace(/\/$/, ''); }
   function _mkApiBases(){
     var bases = [];
-    // Priority: merchant override(s) → app api base(s) → same-origin → direct workers.dev.
+    // Priority: explicit override → same-origin proxy route → direct workers.dev.
     try {
       var ov = (typeof window !== 'undefined' && window.MERCHANT_API_URL) ? window.MERCHANT_API_URL : '';
-      if(!ov && typeof localStorage !== 'undefined') ov = localStorage.getItem('merchant_worker_url') || '';
       if(!ov && typeof localStorage !== 'undefined') ov = localStorage.getItem('merchant_api_base') || '';
       if(ov) bases.push(_normBase(ov));
     } catch(e){}
-    try {
-      var pv = (typeof window !== 'undefined' && window.P2P_API_URL) ? window.P2P_API_URL : '';
-      if(pv) bases.push(_normBase(pv));
-    } catch(e){}
-    try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin)); } catch(e){}
+    try { if (typeof window !== 'undefined' && window.location && window.location.origin) bases.push(_normBase(window.location.origin + '/merchant-api')); } catch(e){}
     bases.push(_normBase(API_BASE));
     // De-duplicate while preserving order.
     return bases.filter(function(b, i){ return b && bases.indexOf(b)===i; });
   }
   var _apiBases = _mkApiBases();
+  const MERCHANT_API_BASE = "https://p2p-merchant-api.taheito26.workers.dev";
 
 
   async function _api(method, path, body) {
-    // Re-resolve on each call so runtime config changes (localStorage/window vars)
-    // are picked up without a full reload.
-    _apiBases = _mkApiBases();
     var hasBody = body !== undefined && body !== null;
     var opts = { method: method, headers: {} };
-    try {
-      var authUser = null;
-      if (typeof window !== 'undefined' && window._authUser) authUser = window._authUser;
-      else if (typeof _authUser !== 'undefined' && _authUser) authUser = _authUser;
-      if (authUser) {
-        var userEmail = String(authUser.email || '').trim().toLowerCase();
-        var userId = String(authUser.id || '').trim();
-        if (userEmail) opts.headers['X-User-Email'] = userEmail;
-        if (userId) opts.headers['X-User-Id'] = userId;
-        else if (userEmail) opts.headers['X-User-Id'] = 'compat:' + userEmail;
-      }
-    } catch(_e){}
     // Avoid forcing CORS preflight for GET/HEAD by not sending Content-Type unless needed.
     if (hasBody) {
       opts.headers['Content-Type'] = 'application/json';
@@ -11303,6 +11080,7 @@ window.renderMerchants = function(){
     for (var hop=0; hop<attempts; hop++) {
       var idx = (_apiBaseIdx + hop) % attempts;
       var base = _apiBases[idx] || _normBase(API_BASE);
+      if (_apiBaseFail[base] && _apiBaseFail[base] >= 2) continue;
       try {
         var res = await fetch(base + path, opts);
         var text = await res.text();
@@ -11323,7 +11101,7 @@ window.renderMerchants = function(){
   async function _publishProfile() {
     if (!MS.profile) return;
     try {
-      await _api('POST', '/api/merchant/profile', {
+      await _api('POST', '/api/profiles', {
         merchant_id:    MS.profile.merchant_id,
         display_name:   MS.profile.display_name,
         nickname:       MS.profile.nickname,
@@ -11336,7 +11114,7 @@ window.renderMerchants = function(){
   }
 
   async function _apiSearch(q) {
-    return _api('GET', '/api/merchant/search?q=' + encodeURIComponent(q) + '&limit=20').then(function(r){ return r.results || []; });
+    return _api('GET', '/api/profiles/search?q=' + encodeURIComponent(q) + '&limit=20');
   }
 
   function _localDirectorySearch(q){
@@ -11352,23 +11130,23 @@ window.renderMerchants = function(){
   }
 
   async function _apiSendInvite(inv) {
-    return _api('POST', '/api/merchant/invites', inv);
+    return _api('POST', '/api/invites', inv);
   }
 
   async function _apiAcceptInvite(inviteId, myMid) {
-    return _api('POST', '/api/merchant/invites/' + inviteId + '/accept', { accepting_merchant_id: myMid });
+    return _api('POST', '/api/invites/' + inviteId + '/accept', { accepting_merchant_id: myMid });
   }
 
   async function _apiRejectInvite(inviteId, myMid) {
-    return _api('POST', '/api/merchant/invites/' + inviteId + '/reject', { rejecting_merchant_id: myMid });
+    return _api('POST', '/api/invites/' + inviteId + '/reject', { rejecting_merchant_id: myMid });
   }
 
   async function _apiWithdrawInvite(inviteId, myMid) {
-    return _api('POST', '/api/merchant/invites/' + inviteId + '/withdraw', { withdrawing_merchant_id: myMid });
+    return _api('POST', '/api/invites/' + inviteId + '/withdraw', { withdrawing_merchant_id: myMid });
   }
 
   async function _apiSendMessage(msg) {
-    return _api('POST', '/api/merchant/messages/' + msg.relationship_id + '/messages', msg);
+    return _api('POST', '/api/messages', msg);
   }
 
   async function _pollD1() {
@@ -11377,7 +11155,7 @@ window.renderMerchants = function(){
     var since = _lastPollTs;
     _lastPollTs = Date.now();
     try {
-      var data = await _api('GET', '/api/merchant/poll?mid=' + mid + '&since=' + since);
+      var data = await _api('GET', '/api/poll/' + mid + '?since=' + since);
       var changed = false;
       (data.invites || []).forEach(function(ri) {
         var exists = MS.invites.some(function(i) { return i.id === ri.id; });
@@ -11841,9 +11619,9 @@ window.renderMerchants = function(){
       var inbox = [];
       var sent = [];
 
-      try { rels = await _api('GET','/api/merchant/relationships'); } catch(_e) {}
-      try { inbox = await _api('GET','/api/merchant/invites/inbox'); } catch(_e) {}
-      try { sent = await _api('GET','/api/merchant/invites/sent'); } catch(_e) {}
+      try { rels = await _api('GET','/api/relationships/' + mid); } catch(_e) {}
+      try { inbox = await _api('GET','/api/invites/inbox/' + mid); } catch(_e) {}
+      try { sent = await _api('GET','/api/invites/sent/' + mid); } catch(_e) {}
 
       MS.relationships = Array.isArray(rels) ? rels : [];
 
@@ -11888,7 +11666,9 @@ window.renderMerchants = function(){
   async function _bootSyncMerchantState(){
     if(!MS || !MS.profile || !MS.profile.merchant_id) return;
 
-    _publishProfile(); // Sync profile on boot so directory search finds it
+    // Always re-publish local profile to D1 on boot — ensures profile
+    // is searchable even if the initial onboarding publish silently failed.
+    try { await _publishProfile(); } catch(_pe) { console.warn('boot publishProfile:', _pe.message); }
 
     var mid = encodeURIComponent(MS.profile.merchant_id);
 
@@ -11897,9 +11677,9 @@ window.renderMerchants = function(){
       var inbox = [];
       var sent = [];
 
-      try { rels = await _api('GET','/api/merchant/relationships'); } catch(_e) {}
-      try { inbox = await _api('GET','/api/merchant/invites/inbox'); } catch(_e) {}
-      try { sent = await _api('GET','/api/merchant/invites/sent'); } catch(_e) {}
+      try { rels = await _api('GET','/api/relationships/' + mid); } catch(_e) {}
+      try { inbox = await _api('GET','/api/invites/inbox/' + mid); } catch(_e) {}
+      try { sent = await _api('GET','/api/invites/sent/' + mid); } catch(_e) {}
 
       MS.relationships = Array.isArray(rels) ? rels : [];
 
@@ -12795,9 +12575,7 @@ window.renderMerchants = function(){
      SHARED ACTIONS (Invites, Approvals, etc.)
      ═══════════════════════════════════════════════════════════════════════ */
   async function _dirSearch(){
-    var q=($('#dir_q')?.value||'').trim();
-    if(!q){ if(typeof toast==='function') toast('Enter a search term',''); return; }
-    if(q.length < 2){ if(typeof toast==='function') toast('Enter at least 2 characters',''); return; }
+    var q=($('#dir_q')?.value||'').trim(); if(!q){ if(typeof toast==='function') toast('Enter a search term',''); return; }
     var btn=$('#dir_search'); if(btn){ btn.textContent='Searching…'; btn.disabled=true; }
     try {
       var results = await _apiSearch(q);
@@ -12807,10 +12585,9 @@ window.renderMerchants = function(){
     } catch(e) {
       _dirResults = _localDirectorySearch(q);
       renderMerchants();
-      var errMsg = (e && e.message) ? String(e.message) : 'API unreachable';
       if(typeof toast==='function'){
         if(_dirResults.length) toast('API unavailable — showing local matches only','warn');
-        else toast('Search failed: ' + errMsg,'');
+        else toast('Search failed (API unreachable). Set window.MERCHANT_API_URL or localStorage.merchant_api_base.','');
       }
     } finally {
       var btn2=$('#dir_search'); if(btn2){ btn2.textContent='🔍 Search'; btn2.disabled=false; }
@@ -14442,3 +14219,12 @@ window.renderMerchants = function(){
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
