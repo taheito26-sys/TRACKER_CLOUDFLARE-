@@ -245,9 +245,13 @@ async function expireInvites(db) {
     nowIso()
   );
 }
+function profileOwnerUserId(profile) {
+  return profile?.owner_user_id || profile?.user_id || "";
+}
 async function assertRelationshipAccess(db, relId, userId) {
+  const shape = await merchantProfileShape(db);
   const rel = await d1First(db, `
-    SELECT r.*, pa.owner_user_id AS owner_a, pb.owner_user_id AS owner_b
+    SELECT r.*, pa.${shape.userCol} AS owner_a, pb.${shape.userCol} AS owner_b
     FROM merchant_relationships r
     JOIN merchant_profiles pa ON pa.id = r.merchant_a_id
     JOIN merchant_profiles pb ON pb.id = r.merchant_b_id
@@ -685,7 +689,7 @@ async function handleMerchant(request, env) {
         invite.requested_role, invite.message, invite.requested_scope, invite.expires_at, invite.created_at, invite.updated_at
       );
       await createNotification(db, {
-        user_id: counterparty.owner_user_id,
+        user_id: profileOwnerUserId(counterparty),
         category: "invite",
         title: "New merchant invite",
         body: `${myProfile.display_name} invited you to collaborate`,
@@ -754,12 +758,12 @@ async function handleMerchant(request, env) {
         INSERT INTO merchant_roles (id, relationship_id, merchant_id, user_id, role, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?)
       `,
-        randomId("role_"), relId, invite.from_merchant_id, inviter.owner_user_id, "owner", createdAt, createdAt,
-        randomId("role_"), relId, invite.to_merchant_id, myProfile.owner_user_id, invite.requested_role || "operator", createdAt, createdAt
+        randomId("role_"), relId, invite.from_merchant_id, profileOwnerUserId(inviter), "owner", createdAt, createdAt,
+        randomId("role_"), relId, invite.to_merchant_id, profileOwnerUserId(myProfile), invite.requested_role || "operator", createdAt, createdAt
       );
       await d1Run(db, `UPDATE merchant_invites SET status = 'accepted', updated_at = ? WHERE id = ?`, nowIso(), inviteId);
       await createNotification(db, {
-        user_id: inviter.owner_user_id,
+        user_id: profileOwnerUserId(inviter),
         relationship_id: relId,
         category: "invite",
         title: "Invite accepted",
@@ -793,7 +797,7 @@ async function handleMerchant(request, env) {
       await d1Run(db, `UPDATE merchant_invites SET status = 'rejected', updated_at = ? WHERE id = ?`, nowIso(), inviteId);
       const inviter = await d1First(db, `SELECT * FROM merchant_profiles WHERE id = ? LIMIT 1`, invite.from_merchant_id);
       await createNotification(db, {
-        user_id: inviter.owner_user_id,
+        user_id: profileOwnerUserId(inviter),
         category: "invite",
         title: "Invite rejected",
         body: `${myProfile.display_name} rejected your invite`,
@@ -834,10 +838,11 @@ async function handleMerchant(request, env) {
 if (method === "GET" && path === "/relationships") {
   const myProfile = await getMyProfile(db, user.userId);
   if (!myProfile) return json(request, env, { relationships: [] });
+  const shape = await merchantProfileShape(db);
   const rows = await d1All(db, `
     SELECT r.*,
-           pa.display_name AS merchant_a_name, pa.owner_user_id AS merchant_a_owner, pa.merchant_id AS merchant_a_public_id,
-           pb.display_name AS merchant_b_name, pb.owner_user_id AS merchant_b_owner, pb.merchant_id AS merchant_b_public_id
+           pa.display_name AS merchant_a_name, pa.${shape.userCol} AS merchant_a_owner, pa.merchant_id AS merchant_a_public_id,
+           pb.display_name AS merchant_b_name, pb.${shape.userCol} AS merchant_b_owner, pb.merchant_id AS merchant_b_public_id
     FROM merchant_relationships r
     JOIN merchant_profiles pa ON pa.id = r.merchant_a_id
     JOIN merchant_profiles pb ON pb.id = r.merchant_b_id
@@ -927,7 +932,7 @@ if (method === "POST" && path.match(/^\/relationships\/[^/]+\/suspend$/)) {
     status: "pending",
     submitted_by_user_id: user.userId,
     submitted_by_merchant_id: myProfile.id,
-    reviewer_user_id: counterparty.owner_user_id,
+    reviewer_user_id: profileOwnerUserId(counterparty),
     resolution_note: null,
     submitted_at: nowIso(),
     resolved_at: null,
@@ -944,7 +949,7 @@ if (method === "POST" && path.match(/^\/relationships\/[^/]+\/suspend$/)) {
     approval.reviewer_user_id, approval.resolution_note, approval.submitted_at, approval.resolved_at, approval.created_at, approval.updated_at
   );
   await createNotification(db, {
-    user_id: counterparty.owner_user_id,
+    user_id: profileOwnerUserId(counterparty),
     relationship_id: relId,
     category: "approval",
     title: "Relationship suspend request",
@@ -973,7 +978,7 @@ if (method === "POST" && path.match(/^\/relationships\/[^/]+\/terminate$/)) {
     status: "pending",
     submitted_by_user_id: user.userId,
     submitted_by_merchant_id: myProfile.id,
-    reviewer_user_id: counterparty.owner_user_id,
+    reviewer_user_id: profileOwnerUserId(counterparty),
     resolution_note: null,
     submitted_at: nowIso(),
     resolved_at: null,
@@ -990,7 +995,7 @@ if (method === "POST" && path.match(/^\/relationships\/[^/]+\/terminate$/)) {
     approval.reviewer_user_id, approval.resolution_note, approval.submitted_at, approval.resolved_at, approval.created_at, approval.updated_at
   );
   await createNotification(db, {
-    user_id: counterparty.owner_user_id,
+    user_id: profileOwnerUserId(counterparty),
     relationship_id: relId,
     category: "approval",
     title: "Relationship termination request",
@@ -1013,13 +1018,14 @@ if (method === "GET" && path === "/deals") {
     await assertRelationshipAccess(db, relFilter, user.userId);
     rows = await d1All(db, `SELECT * FROM merchant_deals WHERE relationship_id = ? ORDER BY created_at DESC`, relFilter);
   } else {
+    const shape = await merchantProfileShape(db);
     rows = await d1All(db, `
       SELECT d.*
       FROM merchant_deals d
       JOIN merchant_relationships r ON r.id = d.relationship_id
       JOIN merchant_profiles pa ON pa.id = r.merchant_a_id
       JOIN merchant_profiles pb ON pb.id = r.merchant_b_id
-      WHERE pa.owner_user_id = ? OR pb.owner_user_id = ?
+      WHERE pa.${shape.userCol} = ? OR pb.${shape.userCol} = ?
       ORDER BY d.created_at DESC
     `, user.userId, user.userId);
   }
@@ -1128,10 +1134,10 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/submit-settlement$/)) {
   `,
     approvalId, deal.relationship_id, "settlement_submit", "settlement", settlementId,
     JSON.stringify({ deal_id: deal.id, amount, currency: String(body.currency || deal.currency || "USDT"), note: String(body.note || "").trim() }),
-    "pending", user.userId, myProfile.id, counterparty.owner_user_id, null, nowIso(), null, nowIso(), nowIso()
+    "pending", user.userId, myProfile.id, profileOwnerUserId(counterparty), null, nowIso(), null, nowIso(), nowIso()
   );
   await createNotification(db, {
-    user_id: counterparty.owner_user_id,
+    user_id: profileOwnerUserId(counterparty),
     relationship_id: deal.relationship_id,
     category: "approval",
     title: "Settlement approval needed",
@@ -1173,10 +1179,10 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/record-profit$/)) {
   `,
     approvalId, deal.relationship_id, "profit_record_submit", "profit_record", profitId,
     JSON.stringify({ deal_id: deal.id, amount, period_key: String(body.period_key || nowIso().slice(0, 7)), note: String(body.note || "").trim() }),
-    "pending", user.userId, myProfile.id, counterparty.owner_user_id, null, nowIso(), null, nowIso(), nowIso()
+    "pending", user.userId, myProfile.id, profileOwnerUserId(counterparty), null, nowIso(), null, nowIso(), nowIso()
   );
   await createNotification(db, {
-    user_id: counterparty.owner_user_id,
+    user_id: profileOwnerUserId(counterparty),
     relationship_id: deal.relationship_id,
     category: "approval",
     title: "Profit record approval needed",
@@ -1201,10 +1207,10 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/close$/)) {
   `,
     approvalId, deal.relationship_id, "deal_close", "deal", deal.id,
     JSON.stringify({ close_date: String(body.close_date || nowIso().slice(0, 10)), note: String(body.note || "").trim() }),
-    "pending", user.userId, myProfile.id, counterparty.owner_user_id, null, nowIso(), null, nowIso(), nowIso()
+    "pending", user.userId, myProfile.id, profileOwnerUserId(counterparty), null, nowIso(), null, nowIso(), nowIso()
   );
   await createNotification(db, {
-    user_id: counterparty.owner_user_id,
+    user_id: profileOwnerUserId(counterparty),
     relationship_id: deal.relationship_id,
     category: "approval",
     title: "Deal close approval needed",
@@ -1258,7 +1264,7 @@ if (method === "POST" && path.match(/^\/deals\/[^/]+\/close$/)) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `, row.id, row.relationship_id, row.sender_user_id, row.sender_merchant_id, row.body, row.message_type, row.metadata, row.created_at);
       await createNotification(db, {
-        user_id: counterparty.owner_user_id,
+        user_id: profileOwnerUserId(counterparty),
         relationship_id: relId,
         category: "message",
         title: "New relationship message",
