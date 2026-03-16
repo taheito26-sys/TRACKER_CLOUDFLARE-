@@ -504,22 +504,26 @@ async function handleMerchant(request, env) {
     }
     if (method === "GET" && path === "/search") {
       const q = String(url.searchParams.get("q") || "").trim().toLowerCase();
+      const qNick = q.startsWith("@") ? q.slice(1) : q;
       const shape = await merchantProfileShape(db);
       if (q.length < 2) return bad(request, env, "q must be at least 2 characters", 400);
+
       const exactRows = await d1All(db, `
         SELECT id, merchant_id, nickname, display_name, merchant_type, region, bio, discoverability
         FROM merchant_profiles
         WHERE status = 'active'
           AND ${shape.userCol} != ?
           AND (
-            (discoverability = 'public' AND (lower(merchant_id) = lower(?) OR lower(nickname) = lower(?)))
+            (discoverability = 'public' AND (lower(merchant_id) = ? OR lower(nickname) = ?))
             OR
-            (discoverability = 'merchant_id_only' AND (lower(merchant_id) = lower(?) OR lower(nickname) = lower(?)))
+            (discoverability = 'merchant_id_only' AND (lower(merchant_id) = ? OR lower(nickname) = ?))
+            OR
+            (discoverability = 'hidden' AND lower(merchant_id) = ?)
           )
-        ORDER BY CASE WHEN lower(merchant_id) = lower(?) THEN 0 WHEN lower(nickname) = lower(?) THEN 1 ELSE 2 END,
+        ORDER BY CASE WHEN lower(merchant_id) = ? THEN 0 WHEN lower(nickname) = ? THEN 1 ELSE 2 END,
                  display_name COLLATE NOCASE ASC
         LIMIT 25
-      `, user.userId, q, q, q, q, q, q);
+      `, user.userId, q, qNick, q, qNick, q, q, qNick);
       const seen = new Set();
       const results = [];
       for (const row of exactRows) {
