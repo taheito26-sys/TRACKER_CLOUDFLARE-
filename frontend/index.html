@@ -5074,7 +5074,7 @@ function renderSettings(){
   // Layout picker
   $$(".lt-card[data-lt]").forEach(c=>{c.addEventListener("click",()=>{settingsDraftSet_("ui.layout", c.dataset.lt); applyLayoutPreview_(); render(); toast("Pending layout: "+c.dataset.lt,"warn");});});
   // Theme color picker
-  $$(".tc-btn[data-tc]").forEach(c=>{c.addEventListener("click",()=>{settingsDraftSet_("ui.theme", c.dataset.tc); applyLayoutPreview_(); render(); toast("Pending theme: "+c.dataset.tc,"warn");});});
+  $$(".tc-btn[data-tc]").forEach(c=>{c.addEventListener("click",()=>{settingsDraftSet_("ui.theme", c.dataset.tc); debouncedSyncPrefs({ theme: c.dataset.tc }); applyLayoutPreview_(); render(); toast("Pending theme: "+c.dataset.tc,"warn");});});
   // Settings
   $("#saveLthr")?.addEventListener("click",()=>{settingsDraftSet_("settings.lowStockThreshold", num($("#lthr").value,5000)); toast("Pending: threshold", "warn");});
   $("#allowInv")?.addEventListener("change",e=>{

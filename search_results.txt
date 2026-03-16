@@ -1,0 +1,175 @@
+Line 20: 5 completely different layout templates, each with 5 theme colors
+Line 47: [data-layout="flux"][data-theme="t1"] {
+Line 60: [data-layout="flux"][data-theme="t2"] {
+Line 73: [data-layout="flux"][data-theme="t3"] {
+Line 86: [data-layout="flux"][data-theme="t4"] {
+Line 99: [data-layout="flux"][data-theme="t5"] {
+Line 125: [data-layout="cipher"][data-theme="t1"] {
+Line 137: [data-layout="cipher"][data-theme="t2"] {
+Line 149: [data-layout="cipher"][data-theme="t3"] {
+Line 161: [data-layout="cipher"][data-theme="t4"] {
+Line 173: [data-layout="cipher"][data-theme="t5"] {
+Line 210: [data-layout="vector"][data-theme="t1"] {
+Line 222: [data-layout="vector"][data-theme="t2"] {
+Line 234: [data-layout="vector"][data-theme="t3"] {
+Line 246: [data-layout="vector"][data-theme="t4"] {
+Line 258: [data-layout="vector"][data-theme="t5"] {
+Line 796: .theme-colors { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin-top: 10px; }
+Line 856: #pageBody > *,.panel,.card,.tableWrap,.twoColPage,.dash-bottom,.chart-grid,.kpis,.kpi-band-grid,.analytics-stats,.lt-grid,.theme-colors{width:100%;m
+Line 911: body[data-page="settings"] .theme-colors{grid-template-columns:repeat(2,minmax(0,1fr));}
+Line 951: body[data-page="settings"] .theme-colors{grid-template-columns:repeat(2,minmax(0,1fr));}
+Line 993: [data-layout="aurora"][data-theme="t1"] {
+Line 1004: [data-layout="aurora"][data-theme="t2"] {
+Line 1015: [data-layout="aurora"][data-theme="t3"] {
+Line 1026: [data-layout="aurora"][data-theme="t4"] {
+Line 1037: [data-layout="aurora"][data-theme="t5"] {
+Line 1066: [data-layout="carbon"][data-theme="t1"] {
+Line 1077: [data-layout="carbon"][data-theme="t2"] {
+Line 1088: [data-layout="carbon"][data-theme="t3"] {
+Line 1099: [data-layout="carbon"][data-theme="t4"] {
+Line 1110: [data-layout="carbon"][data-theme="t5"] {
+Line 1161: [data-layout="prism"][data-theme="t1"] {
+Line 1172: [data-layout="prism"][data-theme="t2"] {
+Line 1183: [data-layout="prism"][data-theme="t3"] {
+Line 1194: [data-layout="prism"][data-theme="t4"] {
+Line 1205: [data-layout="prism"][data-theme="t5"] {
+Line 1234: [data-layout="noir"][data-theme="t1"] {
+Line 1245: [data-layout="noir"][data-theme="t2"] {
+Line 1256: [data-layout="noir"][data-theme="t3"] {
+Line 1267: [data-layout="noir"][data-theme="t4"] {
+Line 1278: [data-layout="noir"][data-theme="t5"] {
+Line 1459: [data-layout="pulse"][data-theme="t1"] {
+Line 1475: [data-layout="pulse"][data-theme="t2"] {
+Line 1491: [data-layout="pulse"][data-theme="t3"] {
+Line 1507: [data-layout="pulse"][data-theme="t4"] {
+Line 1523: [data-layout="pulse"][data-theme="t5"] {
+Line 1865: <body data-layout="flux" data-theme="t1">
+Line 2144: <button class="navBtn" data-go="settings" data-tip="Settings&#10;Layouts · themes · fonts · data export"><svg viewBox="0 0 24 24" fill="none"><p
+Line 2148: <button class="iconBtn" id="themeToggleBtn" title="Toggle theme mode">
+Line 2216: <button class="mBtn" data-go="settings" data-tip="Settings&#10;Layouts · themes · fonts · data export"><svg viewBox="0 0 24 24" fill="none"><path d=
+Line 2515: const v = (localStorage.getItem(UI_LANG_KEY) || "en").toLowerCase();
+Line 2540: try { localStorage.setItem(UI_LANG_KEY, uiLang); } catch(e){}
+Line 2556: ["Live rates","أسعار مباشرة"],["Backup & cloud","نسخ احتياطي · سحابة"],["Layout · themes","تخطيط · سمات"],
+Line 2737: const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cashOwner:"",cal:{year:new Date().getFullYear
+Line 2765: out.theme=["t1","t2","t3","t4","t5"].includes(out.theme)?out.theme:"t1";
+Line 2804: try{const r=localStorage.getItem(SK);if(r){state=sanitize(JSON.parse(r));return;}}catch{storageOk=false;}
+Line 2806: try{const r=localStorage.getItem(k);if(r){state=sanitize(JSON.parse(r));save();return;}}catch{}
+Line 2809: function save(){try{localStorage.setItem(SK,JSON.stringify(state));storageOk=true;}catch{storageOk=false;}}
+Line 2870: ui: { theme: state.theme, layout: state.layout }
+Line 2896: state.theme    = String((_settingsDraft.ui && _settingsDraft.ui.theme) || state.theme || "indigo");
+Line 2956: // Apply layout/theme/font preview from draft (no persistence)
+Line 2957: var theme = state.theme, layout = state.layout;
+Line 2961: theme = String(_settingsDraft.ui.theme || theme);
+Line 2967: document.body.setAttribute("data-theme", theme);
+Line 3000: b.setAttribute("data-theme",state.theme);
+Line 3460: setTimeout(()=>{$("#m_c")?.addEventListener("click",closeModal);$("#m_cl")?.addEventListener("click",()=>{try{localStorage.removeItem(SK);}catch{}st
+Line 4303: // ── ANALYTICS (theme-aware charts) ───────────────────────────────
+Line 4924: setHeader("Settings","Layout templates · themes · data");
+Line 4941: const effTheme  = (_settingsDraft && _settingsDraft.ui && _settingsDraft.ui.theme) ? String(_settingsDraft.ui.theme) : state.theme;
+Line 4975: <div class="theme-colors">
+Line 5077: $$(".tc-btn[data-tc]").forEach(c=>{c.addEventListener("click",()=>{settingsDraftSet_("ui.theme", c.dataset.tc); applyLayoutPreview_(); render(); toa
+Line 5473: var sk = Object.keys(localStorage).find(k => k.startsWith("taheito") || k.startsWith("p2p_tracker"));
+Line 5474: var st = sk ? JSON.parse(localStorage.getItem(sk)||"{}") : {};
+Line 5932: var sk = Object.keys(localStorage).find(k => k.startsWith("taheito") || k.startsWith("p2p_tracker"));
+Line 5933: if (sk) currentState = JSON.parse(localStorage.getItem(sk)||"{}");
+Line 6032: <input type="checkbox" id="gasAutoSave" ${localStorage.getItem("gasAutoSave")==="true"?"checked":""}/>
+Line 6149: else { try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk){localStorage.setItem(sk,JSON.st
+Line 6440: else{ try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk){localStorage.setItem(sk,JSON.s
+Line 6564: else{ try{var sk=Object.keys(localStorage).find(k=>k.startsWith("taheito")||k.startsWith("p2p_tracker"));if(sk){localStorage.setItem(sk,JSON.strin
+Line 6627: localStorage.setItem("gasAutoSave", gasAutoEl.checked ? "true" : "false");
+Line 7184: var raw = localStorage.getItem(_GAS_CFG_KEY) || "";
+Line 7192: localStorage.setItem(_GAS_CFG_KEY, JSON.stringify({ url: _gasUrl, lastSync: _gasLastSync, ver: "v2026-03-01" }));
+Line 7201: localStorage.setItem(_GAS_CFG_KEY, JSON.stringify({
+Line 7210: if (!_authUser || !_authUser.email || !_authToken) { toast("Please login first", "warn"); return; }
+Line 7217: email: _authUser.email,
+Line 7220: state: JSON.parse(localStorage.getItem(SK) || "{}")
+Line 7239: if (!_authUser || !_authUser.email || !_authToken) { toast("Please login first", "warn"); return; }
+Line 7244: gasPost({ action: "restore", email: _authUser.email, token: _authToken })
+Line 7258: localStorage.setItem(SK, JSON.stringify(backup.state));
+Line 7280: if (!_authUser || !_authToken) { toast("Please login first", "warn"); return; }
+Line 7285: "<span class='pill'>👤 "+esc(_authUser.email)+"</span>" +
+Line 7326: gasPost({ action:"meta", email:_authUser.email, token:_authToken })
+Line 7368: gasPost({ action:"restoreVersion", email:_authUser.email, token:_authToken, versionId:vid })
+Line 7396: gasPost({ action:"restoreVersion", email:_authUser.email, token:_authToken, versionId:vid })
+Line 7401: localStorage.setItem(SK, JSON.stringify(res.state));
+Line 7471: var raw = localStorage.getItem(_GOOGLE_KEY) || "";
+Line 7477: localStorage.setItem(_GOOGLE_KEY, JSON.stringify({ clientId: _googleClientId, ver: "v2026-03-01" }));
+Line 7485: localStorage.setItem(_GOOGLE_KEY, JSON.stringify({ clientId: _googleClientId || "", ver: "v2026-03-01" }));
+Line 7533: theme: "outline",
+Line 7559: _authUser = res.user || _authUser || { email: "", name: "" };
+Line 7565: try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
+Line 7582: var _authUser    = null;   // { name, email }
+Line 7590: var a = JSON.parse(localStorage.getItem(_AUTH_KEY) || "null");
+Line 7592: _authUser = a.user;
+Line 7600: try { localStorage.setItem(_AUTH_KEY, JSON.stringify({ user:_authUser, token:_authToken })); } catch(e) {}
+Line 7603: _authUser = null; _authToken = "";
+Line 7604: try { localStorage.removeItem(_AUTH_KEY); } catch(e) {}
+Line 7617: try { localStorage.setItem("taheito_auth_mode", mode); } catch(e) {}
+Line 7702: try { if (typeof _authUser !== "undefined" && _authUser && _authUser.email) p.email = _authUser.email; } catch(e){}
+Line 7729: _authUser = res.user || { email: email, name: email.split("@")[0] };
+Line 7735: try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
+Line 7741: // ensure state loaded from localStorage after restore without triggering backup
+Line 7770: _authUser = res.user || { email: email, name: name };
+Line 7776: try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
+Line 7799: if (!_gasUrl || !_authUser || !_authUser.email || !_authToken) return Promise.resolve();
+Line 7800: return gasPost({ action: "restore", email: _authUser.email, token: _authToken })
+Line 7803: try { localStorage.setItem(SK, JSON.stringify(res.state)); } catch(e) {}
+Line 7824: try { s = JSON.parse(localStorage.getItem(SK) || "{}"); } catch(e) { s = {}; }
+Line 7852: if (!_gasUrl || !_authUser || !_authToken) return;
+Line 7865: if (!_gasUrl || _syncBusy || !_authUser || !_authToken) return Promise.resolve();
+Line 7877: email: _authUser.email,
+Line 7922: var fs = +localStorage.getItem(_PROFILE_FS_KEY) || 0;
+Line 7923: if(!fs){ localStorage.setItem(_PROFILE_FS_KEY, String(now)); }
+Line 7924: var lc = +localStorage.getItem(_PROFILE_LC_KEY) || 0;
+Line 7926: localStorage.setItem(_PROFILE_LC_KEY, String(lc));
+Line 7927: localStorage.setItem(_PROFILE_LL_KEY, String(now));
+Line 7936: var fs = +localStorage.getItem(_PROFILE_FS_KEY) || 0;
+Line 7937: if(!fs){ fs = Date.now(); try{ localStorage.setItem(_PROFILE_FS_KEY, String(fs)); }catch(e){} }
+Line 7938: var lc = +localStorage.getItem(_PROFILE_LC_KEY) || 0;
+Line 7939: var ll = +localStorage.getItem(_PROFILE_LL_KEY) || 0;
+Line 7940: var lb = +localStorage.getItem(_PROFILE_LB_KEY) || 0;
+Line 7941: var lr = +localStorage.getItem(_PROFILE_LR_KEY) || 0;
+Line 7944: try{ var raw = localStorage.getItem("taheito_sessions_v1")||"[]"; var arr = JSON.parse(raw); sess = Array.isArray(arr)?arr.length:0; }catch(e){}
+Line 7946: try{ st = JSON.parse(localStorage.getItem(SK)||"{}"); }catch(e){ st = (typeof state!=="undefined")?state:{}; }
+Line 8002: if (!_authUser) { el.innerHTML = ""; return; }
+Line 8003: var initials = (_authUser.name || _authUser.email).slice(0,2).toUpperCase();
+Line 8010: esc(_authUser.name || _authUser.email) + "</span>" +
+Line 8017: if (confirm("Sign out of " + (_authUser.email || "your account") + "?\n\nYour local data stays saved.")) authSignOut();
+Line 8061: updateSyncBadge((_gasUrl && _authUser && _authToken) ? "saved" : "");
+Line 8072: $("#themeToggleBtn")?.addEventListener("click",()=>{
+Line 8078: $("#helpBtn")?.addEventListener("click",()=>openModal("Keyboard Shortcuts",`<div style="display:grid;gap:6px;font-size:calc(12px * var(--ui-scale,1)
+Line 8095: if(e.key==="T"||e.key==="t"){const i=THEMES_LIST.indexOf(state.theme);state.theme=THEMES_LIST[(i+1)%THEMES_LIST.length];applyLayout();save();rende
+Line 8151: var m = localStorage.getItem("taheito_auth_mode") || "login";
+Line 8189: try { mode = localStorage.getItem("taheito_auth_mode") || "login"; } catch(e2) {}
+Line 8250: var raw = localStorage.getItem(_UI_PREF_KEY) || "";
+Line 8260: try { localStorage.setItem(_UI_PREF_KEY, JSON.stringify(p || getUiPrefs())); } catch(e) {}
+Line 8280: try { _logBuf = _safeParse(localStorage.getItem(_LOG_KEY) || "[]", []) || []; }
+Line 8285: try { localStorage.setItem(_LOG_KEY, JSON.stringify(_logBuf.slice(-_LOG_MAX))); } catch(e) {}
+Line 8430: if (window._authUser && window._authUser.email && window._authToken) {
+Line 8431: base.email = window._authUser.email;
+Line 8443: if (window._authUser && window._authUser.email && window._authToken) return true;
+Line 8457: layout: st.layout || null, theme: st.theme || null,
+Line 8576: localStorage.setItem(SK, JSON.stringify(stateObj || {}));
+Line 9789: settingsDraftSet_("theme", "dark");
+Line 9883: var raw = localStorage.getItem(SK) || "{}";
+Line 10051: settingsDraftSet_("theme", "dark");
+Line 10122: try { _journal = JSON.parse(localStorage.getItem(J_KEY) || "[]"); } catch(e) { _journal = []; }
+Line 10123: try { _snapshots = JSON.parse(localStorage.getItem(SN_KEY) || "[]"); } catch(e) { _snapshots = []; }
+Line 10124: try { _sessions  = JSON.parse(localStorage.getItem(SS_KEY) || "[]"); } catch(e) { _sessions = []; }
+Line 10133: localStorage.setItem(J_KEY, JSON.stringify(_journal.slice(-J_MAX)));
+Line 10136: try { localStorage.setItem(J_KEY, JSON.stringify(_journal)); } catch(e2) {}
+Line 10145: try { localStorage.setItem(SN_KEY, JSON.stringify(toSave.slice(-SN_MAX))); } catch(e) {}
+Line 10149: try { localStorage.setItem(SS_KEY, JSON.stringify(_sessions.slice(-10))); } catch(e) {}
+Line 10277: theme:     s.theme   || null
+Line 10390: layout: state.layout, theme: state.theme,
+Line 10395: layout: state.layout, theme: state.theme,
+Line 10546: issues.push({ sev: "error", msg: "localStorage quota hit — old events were pruned" });
+Line 10570: check("theme",     "Theme",        null);
+Line 10609: try { localStorage.setItem(SK, JSON.stringify(state)); } catch(e) {}
+Line 10656: case "settings.commit": return (m.layout ? m.layout + " · " + m.theme : "");
+Line 10955: function mLoad(){ try{ return JSON.parse(localStorage.getItem(MKEY)||'null')||null; }catch(e){ return null; } }
+Line 10956: function mSave(s){ try{ localStorage.setItem(MKEY,JSON.stringify(s)); }catch(e){} }
+Line 10992: var v2 = JSON.parse(localStorage.getItem(v2key)||'null');
+Line 11057: if(!ov && typeof localStorage !== 'undefined') ov = localStorage.getItem('merchant_api_base') || '';
+Line 12590: else toast('Search failed (API unreachable). Set window.MERCHANT_API_URL or localStorage.merchant_api_base.','');
+Line 12851: if(pb) pb.innerHTML = '<div style="padding:40px;text-align:center;"><div style="font-size:24px;margin-bottom:10px;">⚠️</div><div style="font-wei
