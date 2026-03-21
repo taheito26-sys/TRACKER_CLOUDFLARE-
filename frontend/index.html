@@ -3544,7 +3544,8 @@ function _applyP2PResponse(data,target=p2p){
 
 // ── Primary: fetch from your Cloudflare Worker API ───────────────
 async function p2pFetchFromAPI(fiat=p2pFiat){
-  const url=P2P_API_URL.replace(/\/+$/,"")+"/api/p2p";
+  const baseUrl=P2P_API_URL.replace(/\/+$/,"")+"/api/p2p";
+  const url=baseUrl+(baseUrl.includes("?")?"&":"?")+"fiat="+encodeURIComponent(String(fiat||p2pFiat||"QAR").toUpperCase());
   const r=await fetch((/^\/api\//.test(url) ? MERCHANT_API_BASE + url : url),{signal:AbortSignal.timeout(10000)});
   if(!r.ok) throw new Error(`Worker API ${r.status}`);
   const data=await r.json();
