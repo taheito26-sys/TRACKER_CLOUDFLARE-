@@ -15,6 +15,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer>
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/big.js/6.2.1/big.min.js" defer></script>
+<script src="./p2p-profit-model.js"></script>
 <style>
 /* ═══════════════════════ LAYOUT TEMPLATE SYSTEM ═══════════════════
    5 completely different layout templates, each with 5 theme colors
@@ -2738,16 +2739,29 @@ const isToday=ts=>ts>=startOfDay(Date.now());
 // ── STATE ──────────────────────────────────────────────────────
 const dflt=()=>({v:15,layout:"flux",theme:"t1",page:"dashboard",range:"7d",q:"",currency:"QAR",cashQAR:0,cashOwner:"",cal:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null},batches:[],trades:[],customers:[],suppliers:[],archivedSuppliers:[],merchants:[],checksDone:{},prefs:{allowInvalidTrades:true,ledgerFont:"Inter",ledgerFontSize:11},settings:{lowStockThreshold:5000,priceAlertThreshold:2}});
 let state=dflt(), derived={batches:[],tradeCalc:new Map(),health:{ok:true,issues:[]}};
-let charts={}, p2p={
-  ts:0, buyAvg:null, sellAvg:null, buyOffers:[], sellOffers:[],
-  loading:false, err:"",
-  // Extended fields (populated by backend Worker)
-  bestSell:null, bestBuy:null, sellDepth:0, buyDepth:0,
-  spread:null, history:[], dayStats:null, ageMs:null,
-  source:"", usingAPI:false,
-  // UI state
-  _calcMode:"sell", autoRefresh:false, _arTimer:null, _arCountdown:0
+const P2P_MARKETS={
+  QAR:{fiat:"QAR",label:"Qatar",flag:"🇶🇦"},
+  AED:{fiat:"AED",label:"UAE",flag:"🇦🇪"},
+  EGP:{fiat:"EGP",label:"Egypt",flag:"🇪🇬"}
 };
+function createP2PState(){
+  return {
+    ts:0, buyAvg:null, sellAvg:null, buyOffers:[], sellOffers:[],
+    loading:false, err:"",
+    bestSell:null, bestBuy:null, sellDepth:0, buyDepth:0,
+    spread:null, history:[], dayStats:null, ageMs:null,
+    source:"", usingAPI:false,
+    _calcMode:"sell", autoRefresh:false, _arTimer:null, _arCountdown:0
+  };
+}
+let charts={}, p2pFiat="QAR", p2pByFiat=Object.fromEntries(Object.keys(P2P_MARKETS).map(k=>[k,createP2PState()])), p2p=p2pByFiat[p2pFiat];
+function setActiveP2PMarket(fiat,{renderPage=true,refreshIfNeeded=true}={}){
+  if(!P2P_MARKETS[fiat])return;
+  p2pFiat=fiat;
+  p2p=p2pByFiat[fiat];
+  if(renderPage&&state.page==="p2p")render();
+  if(refreshIfNeeded&&!p2p.ts&&!p2p.loading)refreshP2P(fiat);
+}
 let storageOk=true;
 
 // ── TOAST ────────────────────────────────────────────────────────
@@ -3475,10 +3489,19 @@ function clearAll(){
 const P2P_API_URL = "https://p2p-monitor.taheito26.workers.dev/";   // ← FILL THIS IN after Step 4 of the guide
 
 const BINANCE="https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search";
+function getP2PApiBases(){
+  const sameOrigin=(typeof window!=="undefined"&&window.location&&window.location.origin)?window.location.origin:"";
+  return [
+    sameOrigin,
+    P2P_API_URL,
+    "https://p2p-tracker-api.taheito26.workers.dev/",
+    "https://p2p-tracker.taheito26.workers.dev/"
+  ].filter(Boolean).filter((base,idx,arr)=>arr.indexOf(base)===idx);
+}
 
 // ── Direct Binance fetch (fallback) ──────────────────────────────
-async function p2pFetchDirect(tt){
-  const body=JSON.stringify({page:1,rows:10,payTypes:[],publisherType:null,asset:"USDT",tradeType:tt,fiat:"QAR",merchantCheck:false});
+async function p2pFetchDirect(tt,fiat=p2pFiat){
+  const body=JSON.stringify({page:1,rows:10,payTypes:[],publisherType:null,asset:"USDT",tradeType:tt,fiat:String(fiat||p2pFiat||"QAR"),merchantCheck:false});
   const urls=[BINANCE,`https://corsproxy.io/?url=${encodeURIComponent(BINANCE)}`,`https://proxy.cors.sh/${BINANCE}`];
   for(const u of urls){try{const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json",...(u!==BINANCE?{"x-requested-with":"XMLHttpRequest"}:{})},body,signal:AbortSignal.timeout(8000)});if(r.ok){const j=await r.json();if(Array.isArray(j?.data))return j.data;}}catch{}}
   throw new Error("P2P unreachable — no CORS proxy responded");
@@ -3505,63 +3528,78 @@ function parseP2PDirect(data,side){
 }
 
 // ── Apply a Worker API response to the p2p state object ──────────
-function _applyP2PResponse(data){
-  p2p.sellAvg    = data.sellAvg    || null;
-  p2p.buyAvg     = data.buyAvg     || null;
-  p2p.bestSell   = data.bestSell   || null;
-  p2p.bestBuy    = data.bestBuy    || null;
-  p2p.sellDepth  = data.sellDepth  || 0;
-  p2p.buyDepth   = data.buyDepth   || 0;
-  p2p.spread     = data.spread     || null;
-  p2p.sellOffers = Array.isArray(data.sellOffers) ? data.sellOffers : [];
-  p2p.buyOffers  = Array.isArray(data.buyOffers)  ? data.buyOffers  : [];
-  p2p.ts         = data.ts         || Date.now();
-  p2p.dayStats   = data.dayStats   || null;
-  p2p.ageMs      = data.ageMs      || null;
-  p2p.source     = data.source     || "api";
+function _applyP2PResponse(data,target=p2p){
+  target.sellAvg    = data.sellAvg    || null;
+  target.buyAvg     = data.buyAvg     || null;
+  target.bestSell   = data.bestSell   || null;
+  target.bestBuy    = data.bestBuy    || null;
+  target.sellDepth  = data.sellDepth  || 0;
+  target.buyDepth   = data.buyDepth   || 0;
+  target.spread     = data.spread     || null;
+  target.sellOffers = Array.isArray(data.sellOffers) ? data.sellOffers : [];
+  target.buyOffers  = Array.isArray(data.buyOffers)  ? data.buyOffers  : [];
+  target.ts         = data.ts         || Date.now();
+  target.dayStats   = data.dayStats   || null;
+  target.ageMs      = data.ageMs      || null;
+  target.source     = data.source     || "api";
   // Merge backend history — backend has 24h+, session history overlaps
   if(Array.isArray(data.history)&&data.history.length>0){
     // Combine backend history with any local session points newer than the last backend point
     const lastBackendTs=data.history[data.history.length-1]?.ts||0;
-    const localNew=p2p.history.filter(h=>h.ts>lastBackendTs);
-    p2p.history=[...data.history,...localNew].slice(-720);
+    const localNew=target.history.filter(h=>h.ts>lastBackendTs);
+    target.history=[...data.history,...localNew].slice(-720);
   }
 }
 
 // ── Primary: fetch from your Cloudflare Worker API ───────────────
-async function p2pFetchFromAPI(){
-  const url=P2P_API_URL.replace(/\/+$/,"")+"/api/p2p";
-  const r=await fetch((/^\/api\//.test(url) ? MERCHANT_API_BASE + url : url),{signal:AbortSignal.timeout(10000)});
-  if(!r.ok) throw new Error(`Worker API ${r.status}`);
-  const data=await r.json();
-  if(data.error) throw new Error(data.error);
-  return data;
+async function p2pFetchFromAPI(fiat=p2pFiat){
+  const fiatCode=encodeURIComponent(String(fiat||p2pFiat||"QAR").toUpperCase());
+  const apiBases=getP2PApiBases();
+  let lastErr=null;
+  for(const base of apiBases){
+    const root=String(base||"").replace(/\/+$/,'');
+    const baseUrl=(root?root:"")+"/api/p2p";
+    const url=baseUrl+(baseUrl.includes("?")?"&":"?")+"fiat="+fiatCode;
+    try{
+      const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
+      if(!r.ok) throw new Error(`Worker API ${r.status}`);
+      const data=await r.json();
+      if(data.error) throw new Error(data.error);
+      return data;
+    }catch(err){
+      lastErr=err;
+    }
+  }
+  throw lastErr||new Error("Worker API unavailable");
 }
 
 // ── Main refresh: API-first, falls back to direct Binance ─────────
-async function refreshP2P(){
-  if(p2p.loading)return;
-  p2p.loading=true;
-  p2p.err="";
+async function refreshP2P(fiat=p2pFiat){
+  const market=P2P_MARKETS[fiat]||P2P_MARKETS.QAR;
+  const target=p2pByFiat[market.fiat]||p2p;
+  if(target.loading)return;
+  if(p2pFiat!==market.fiat){ p2pFiat=market.fiat; p2p=target; }
+  target.loading=true;
+  target.err="";
   if(state.page==="p2p")render();
 
   try{
     // ── Try Worker API first ───────────────────────────────────
     if(P2P_API_URL&&P2P_API_URL.trim()){
       try{
-        const data=await p2pFetchFromAPI();
-        _applyP2PResponse(data);
+        const data=await p2pFetchFromAPI(market.fiat);
+        _applyP2PResponse(data,target);
         // If backend data is stale (>4min), note it but don't error
-        const staleWarn=p2p.ageMs&&p2p.ageMs>240000;
+        const staleWarn=target.ageMs&&target.ageMs>240000;
         toast(
-          `Sell ${fmtP(p2p.sellAvg)} · Buy ${fmtP(p2p.buyAvg)}`+(staleWarn?" · ⚠ cached "+Math.round(p2p.ageMs/60000)+"m ago":""),
+          `${market.flag} ${market.label} · Sell ${fmtP(target.sellAvg)} · Buy ${fmtP(target.buyAvg)}`+(staleWarn?" · ⚠ cached "+Math.round(target.ageMs/60000)+"m ago":""),
           staleWarn?"warn":"good"
         );
-        p2p.usingAPI=true;
+        target.usingAPI=true;
       }catch(apiErr){
         // API failed — fall through to direct
         console.warn("[p2p] Worker API failed, falling back to direct:",apiErr.message);
-        p2p.usingAPI=false;
+        target.usingAPI=false;
         throw apiErr;  // will be caught by outer catch which does direct
       }
     } else {
@@ -3570,35 +3608,35 @@ async function refreshP2P(){
     }
   }catch(e){
     // ── Fallback: direct Binance ───────────────────────────────
-    if(e.message==="no-api-url"||!p2p.usingAPI){
+    if(e.message==="no-api-url"||!target.usingAPI){
       try{
-        const[bD,sD]=await Promise.all([p2pFetchDirect("BUY"),p2pFetchDirect("SELL")]);
+        const[bD,sD]=await Promise.all([p2pFetchDirect("BUY",market.fiat),p2pFetchDirect("SELL",market.fiat)]);
         const s1=parseP2PDirect(bD,"sell"),s2=parseP2PDirect(sD,"buy");
-        p2p.sellAvg=s1.avg;   p2p.sellOffers=s1.offers;
-        p2p.bestSell=s1.best; p2p.sellDepth=s1.depth;
-        p2p.buyAvg=s2.avg;    p2p.buyOffers=s2.offers;
-        p2p.bestBuy=s2.best;  p2p.buyDepth=s2.depth;
-        p2p.ts=Date.now();
-        p2p.source="direct";
+        target.sellAvg=s1.avg;   target.sellOffers=s1.offers;
+        target.bestSell=s1.best; target.sellDepth=s1.depth;
+        target.buyAvg=s2.avg;    target.buyOffers=s2.offers;
+        target.bestBuy=s2.best;  target.buyDepth=s2.depth;
+        target.ts=Date.now();
+        target.source="direct";
         // Append to local session history
-        p2p.history.push({ts:p2p.ts,sellAvg:p2p.sellAvg,buyAvg:p2p.buyAvg,spread:p2p.sellAvg&&p2p.buyAvg?p2p.sellAvg-p2p.buyAvg:null});
-        if(p2p.history.length>20)p2p.history=p2p.history.slice(-20);
-        toast(`Sell ${fmtP(p2p.sellAvg)} · Buy ${fmtP(p2p.buyAvg)}`+(P2P_API_URL?" · via fallback":""),"good");
-        p2p.usingAPI=false;
+        target.history.push({ts:target.ts,sellAvg:target.sellAvg,buyAvg:target.buyAvg,spread:target.sellAvg&&target.buyAvg?target.sellAvg-target.buyAvg:null});
+        if(target.history.length>20)target.history=target.history.slice(-20);
+        toast(`${market.flag} ${market.label} · Sell ${fmtP(target.sellAvg)} · Buy ${fmtP(target.buyAvg)}`+((market.fiat==="QAR"&&P2P_API_URL)?" · via fallback":""),"good");
+        target.usingAPI=false;
       }catch(fallbackErr){
-        p2p.err=String(fallbackErr.message||fallbackErr);
-        toast("P2P failed: "+p2p.err,"bad");
+        target.err=String(fallbackErr.message||fallbackErr);
+        toast(`${market.label} P2P failed: ${target.err}`,"bad");
       }
     } else {
-      p2p.err=String(e.message||e);
-      toast("P2P failed: "+p2p.err,"bad");
+      target.err=String(e.message||e);
+      toast(`${market.label} P2P failed: ${target.err}`,"bad");
     }
   }finally{
-    p2p.loading=false;
+    target.loading=false;
     // Price alert check
-    if(p2p.sellAvg){
+    if(target.sellAvg){
       const w=getWACOP();
-      if(w){const spPct=Math.abs((p2p.sellAvg-w)/w*100);const thr=num(state.settings?.priceAlertThreshold,2);if(thr>0&&spPct>thr)setTimeout(()=>toast("⚠ Price alert: "+String(Math.trunc(spPct))+"% from Av Price","warn"),900);}
+      if(w){const spPct=Math.abs((target.sellAvg-w)/w*100);const thr=num(state.settings?.priceAlertThreshold,2);if(thr>0&&spPct>thr)setTimeout(()=>toast("⚠ Price alert: "+String(Math.trunc(spPct))+"% from Av Price","warn"),900);}
     }
     if(state.page==="p2p")render();
   }
@@ -3871,7 +3909,7 @@ function renderLedger(){
   $("#t_csv")?.addEventListener("click",exportCsv);
   ["t_amt","t_sell","t_dt"].forEach(id=>document.getElementById(id)?.addEventListener("input",updateSalePreview));
   updateSalePreview();
-  $("#t_p2p")?.addEventListener("click",async()=>{if(!p2p.ts)await refreshP2P();if(p2p.sellAvg&&$("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();toast("P2P rate applied","good");}});
+  $("#t_p2p")?.addEventListener("click",async()=>{if(!p2p.ts)await refreshP2P(p2pFiat);if(p2p.sellAvg&&$("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();toast("P2P rate applied","good");}});
   $("#showAll_t")?.addEventListener("click",()=>{state.range="all";saveRecompute();});
   const pb=$("#pageBody");
   if(pb)pb.addEventListener("click",e=>{const btn=e.target.closest("button[data-act]");if(!btn)return;const id=btn.dataset.id,act=btn.dataset.act;if(act==="edit")editTrade(id);if(act==="detail"){const safeId=id.replace(/[^a-zA-Z0-9_-]/g,"_");const r=document.getElementById("det-"+safeId);if(r){r.style.display=r.style.display==="none"?"table-row":"none";btn.textContent=r.style.display!=="none"?"▼ Hide":"▶ Details";}}});
@@ -4058,7 +4096,9 @@ function renderBatchTable(batches){
 
 // ── P2P ──────────────────────────────────────────────────────────
 function renderP2P(){
-  setHeader("P2P Market","Live Binance QAR · 24h backend monitoring");
+  const market=P2P_MARKETS[p2pFiat]||P2P_MARKETS.QAR;
+  const fiat=market.fiat;
+  setHeader("P2P Market",`${market.flag} ${market.label} · Live Binance ${fiat}${fiat==="QAR"?" · 24h backend monitoring":""}`);
   const wacop=getWACOP(), stock=totalStock(), cash=num(state.cashQAR,0);
   const ts=p2p.ts?new Date(p2p.ts).toLocaleTimeString():"—";
   const spread=p2p.sellAvg&&p2p.buyAvg?p2p.sellAvg-p2p.buyAvg:null;
@@ -4067,7 +4107,14 @@ function renderP2P(){
   const targetSell=wacop?wacop*(1+targetMargin/100):null;
   const sellIsGood=p2p.sellAvg&&targetSell?p2p.sellAvg>=targetSell:false;
   const restockIsGood=p2p.buyAvg&&wacop?p2p.buyAvg<wacop:false;
-  const profitNow=p2p.sellAvg&&wacop&&stock>0?stock*(p2p.sellAvg-wacop):null;
+  const profitModel=(typeof resolveP2PProfitModel==="function"?resolveP2PProfitModel:()=>({available:false,model:"unavailable",subtitle:"Profit model unavailable."}))({
+    holdingsQty:stock,
+    avgCostPerUsdtInAccounting:wacop,
+    accountingCurrency:"QAR",
+    marketFiat:fiat,
+    marketSellAvgPerUsdt:p2p.sellAvg,
+    normalizationRateToAccounting:null
+  });
   const day=p2p.dayStats;
   const calcMode=p2p._calcMode||"sell";
   const usingBackend=p2p.usingAPI&&P2P_API_URL;
@@ -4111,6 +4158,9 @@ function renderP2P(){
   }
 
   $("#pageBody").innerHTML=`
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+    ${Object.values(P2P_MARKETS).map(m=>`<button class="btn ${p2pFiat===m.fiat?"":"secondary"}" data-p2p-market="${m.fiat}" style="min-width:110px;">${m.flag} ${m.label}</button>`).join("")}
+  </div>
   ${p2p.err?`<div class="msg err" style="margin-bottom:10px;">${esc(p2p.err)}</div>`:""}
 
   <!-- TOOLBAR -->
@@ -4131,7 +4181,7 @@ function renderP2P(){
     <div class="card" style="padding:12px;">
       <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Best Sell</div>
       <div style="font-size:20px;font-weight:900;color:var(--good);">${p2p.bestSell?fmtP(p2p.bestSell):"-"}</div>
-      <div style="font-size:9px;color:var(--muted);">Top offer QAR</div>
+      <div style="font-size:9px;color:var(--muted);">Top offer ${fiat}</div>
     </div>
     <div class="card" style="padding:12px;">
       <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Sell Avg (top 5)</div>
@@ -4145,8 +4195,8 @@ function renderP2P(){
     </div>
     <div class="card" style="padding:12px;">
       <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Profit if Sold Now</div>
-      <div style="font-size:18px;font-weight:900;color:var(--${profitNow!==null?(profitNow>=0?"good":"bad"):"muted"});">${profitNow!==null?(profitNow>=0?"+":"")+fmtQWithUnit(profitNow):"—"}</div>
-      <div style="font-size:9px;color:var(--muted);">${stock>0?fmtU(stock)+" USDT @ market":"No stock"}</div>
+      <div style="font-size:18px;font-weight:900;color:var(--${profitModel.available?(profitModel.profitIfSoldNow>=0?"good":"bad"):"muted"});">${profitModel.available?(profitModel.profitIfSoldNow>=0?"+":"")+fmtQWithUnit(profitModel.profitIfSoldNow):"—"}</div>
+      <div style="font-size:9px;color:var(--muted);">${profitModel.subtitle||"Not enough data"}</div>
     </div>
     ${day?`
     <div class="card" style="padding:12px;">
@@ -4202,10 +4252,10 @@ function renderP2P(){
         <div style="display:grid;gap:6px;font-size:11px;">
           ${wacop?`
           <div style="display:flex;justify-content:space-between;padding:6px 8px;border-radius:8px;background:var(--panel2);">
-            <span style="color:var(--muted);">Your Av Price</span><span class="mono" style="font-weight:700;">${fmtP(wacop)} QAR</span>
+            <span style="color:var(--muted);">Your Av Price</span><span class="mono" style="font-weight:700;">${fmtP(wacop)} ${fiat}</span>
           </div>
           ${targetSell?`<div style="display:flex;justify-content:space-between;padding:6px 8px;border-radius:8px;background:var(--panel2);">
-            <span style="color:var(--muted);">Target (${targetMargin}% margin)</span><span class="mono" style="font-weight:700;color:var(--brand);">${fmtP(targetSell)} QAR</span>
+            <span style="color:var(--muted);">Target (${targetMargin}% margin)</span><span class="mono" style="font-weight:700;color:var(--brand);">${fmtP(targetSell)} ${fiat}</span>
           </div>`:""}
           `:""}
           ${p2p.sellAvg&&wacop?`<div style="padding:8px;border-radius:8px;background:color-mix(in srgb,var(--${sellIsGood?"good":"warn"}) 10%,transparent);border:1px solid color-mix(in srgb,var(--${sellIsGood?"good":"warn"}) 30%,transparent);">
@@ -4248,17 +4298,17 @@ function renderP2P(){
       ${calcMode==="sell"?`
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <div class="field"><div class="label">USDT to sell</div><input class="input" id="c_usdt" inputmode="decimal" placeholder="${stock>0?stock.toFixed(2):"500"}"/></div>
-          <div class="field"><div class="label">Sell rate QAR <button class="rowBtn" id="c_fill_sell" style="font-size:9px;padding:1px 5px;margin-left:4px;">Use avg</button></div><input class="input" id="c_rate" inputmode="decimal" placeholder="${p2p.sellAvg?p2p.sellAvg.toFixed(2):"3.65"}"/></div>
+          <div class="field"><div class="label">Sell rate ${fiat} <button class="rowBtn" id="c_fill_sell" style="font-size:9px;padding:1px 5px;margin-left:4px;">Use avg</button></div><input class="input" id="c_rate" inputmode="decimal" placeholder="${p2p.sellAvg?p2p.sellAvg.toFixed(2):"3.65"}"/></div>
         </div>
         <div id="c_out" class="muted" style="font-size:11px;">Enter amount and rate</div>
         <button class="btn" id="c_use_sell" style="margin-top:8px;">Use Rate in Orders →</button>
       `:""}
       ${calcMode==="buy"?`
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <div class="field"><div class="label">QAR to spend</div><input class="input" id="c_qar" inputmode="decimal" placeholder="${cash>0?fmtQ(cash):"1000"}"/></div>
+          <div class="field"><div class="label">${fiat} to spend</div><input class="input" id="c_qar" inputmode="decimal" placeholder="${cash>0?fmtQ(cash):"1000"}"/></div>
           <div class="field"><div class="label">Buy rate <button class="rowBtn" id="c_fill_buy" style="font-size:9px;padding:1px 5px;margin-left:4px;">Use avg</button></div><input class="input" id="c_brate" inputmode="decimal" placeholder="${p2p.buyAvg?p2p.buyAvg.toFixed(2):"3.60"}"/></div>
         </div>
-        <div id="c_out" class="muted" style="font-size:11px;">Enter QAR and rate</div>
+        <div id="c_out" class="muted" style="font-size:11px;">Enter ${fiat} and rate</div>
       `:""}
       ${calcMode==="margin"?`
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
@@ -4272,7 +4322,8 @@ function renderP2P(){
   </div>`;
 
   // ── Wire events ──────────────────────────────────────────────────
-  $("#p_refresh")?.addEventListener("click",refreshP2P);
+  document.querySelectorAll("[data-p2p-market]").forEach(b=>b.addEventListener("click",()=>setActiveP2PMarket(b.dataset.p2pMarket)));
+  $("#p_refresh")?.addEventListener("click",()=>refreshP2P(p2pFiat));
   $("#p_setup_link")?.addEventListener("click",e=>{e.preventDefault();toast("Set P2P_API_URL in frontend/index.html after deploying the Worker","warn");});
   $("#p_apply_sell")?.addEventListener("click",()=>{if(p2p.sellAvg){navTo("orders");setTimeout(()=>{if($("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();}},80);}});
   $("#p_apply_buy")?.addEventListener("click",()=>{if(p2p.buyAvg){toast(`Restock rate ${fmtP(p2p.buyAvg)} — navigate to Stock to add batch`,"good");navTo("stock");}});
@@ -4290,13 +4341,13 @@ function renderP2P(){
   if(calcMode==="buy"){
     if(p2p.buyAvg&&$("#c_brate"))$("#c_brate").value=p2p.buyAvg.toFixed(2);
     if(cash>0&&$("#c_qar"))$("#c_qar").value=cash.toFixed(0);
-    const upd=()=>{const q=num($("#c_qar")?.value),r=num($("#c_brate")?.value);const out=$("#c_out");if(!out)return;if(q>0&&r>0){const usdt=q/r,nw=wacop&&stock>0?((stock*wacop)+(usdt*r))/(stock+usdt):r;out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="pill">${fmtQ(q)} ÷ ${fmtP(r)} = <strong>${fmtU(usdt)} USDT</strong></span>${wacop&&stock>0?`<span class="pill warn">New Av Price: ${fmtP(nw)}</span>`:""}</div>`;}else{out.textContent="Enter QAR and rate";}};
+    const upd=()=>{const q=num($("#c_qar")?.value),r=num($("#c_brate")?.value);const out=$("#c_out");if(!out)return;if(q>0&&r>0){const usdt=q/r,nw=wacop&&stock>0?((stock*wacop)+(usdt*r))/(stock+usdt):r;out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="pill">${fmtQ(q)} ÷ ${fmtP(r)} = <strong>${fmtU(usdt)} USDT</strong></span>${wacop&&stock>0?`<span class="pill warn">New Av Price: ${fmtP(nw)}</span>`:""}</div>`;}else{out.textContent="Enter ${fiat} and rate";}};
     ["c_qar","c_brate"].forEach(id=>document.getElementById(id)?.addEventListener("input",upd));
     $("#c_fill_buy")?.addEventListener("click",()=>{if(p2p.buyAvg&&$("#c_brate")){$("#c_brate").value=p2p.buyAvg.toFixed(2);upd();}});
     upd();
   }
   if(calcMode==="margin"){
-    const upd=()=>{const bp=num($("#c_buy_px")?.value),mp=num($("#c_mpct")?.value),mu=num($("#c_musdt")?.value);const out=$("#c_out");if(!out)return;if(bp>0&&mp>0){const need=bp*(1+mp/100),vs=p2p.sellAvg?p2p.sellAvg-need:null,profit=mu>0?mu*(need-bp):null;out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="pill brand">Need ${fmtP(need)} QAR for ${mp}% margin</span>${vs!==null?`<span class="pill ${vs>=0?"good":"warn"}">${vs>=0?"✓ "+fmtP(Math.abs(vs))+" above target":"⚠ "+fmtP(Math.abs(vs))+" below"}</span>`:""} ${profit!==null?`<span class="pill good">+${fmtQWithUnit(profit)} profit</span>`:""}</div>`;}else{out.textContent="Enter buy price and target margin";}};
+    const upd=()=>{const bp=num($("#c_buy_px")?.value),mp=num($("#c_mpct")?.value),mu=num($("#c_musdt")?.value);const out=$("#c_out");if(!out)return;if(bp>0&&mp>0){const need=bp*(1+mp/100),vs=p2p.sellAvg?p2p.sellAvg-need:null,profit=mu>0?mu*(need-bp):null;out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;"><span class="pill brand">Need ${fmtP(need)} ${fiat} for ${mp}% margin</span>${vs!==null?`<span class="pill ${vs>=0?"good":"warn"}">${vs>=0?"✓ "+fmtP(Math.abs(vs))+" above target":"⚠ "+fmtP(Math.abs(vs))+" below"}</span>`:""} ${profit!==null?`<span class="pill good">+${fmtQWithUnit(profit)} profit</span>`:""}</div>`;}else{out.textContent="Enter buy price and target margin";}};
     ["c_buy_px","c_mpct","c_musdt"].forEach(id=>document.getElementById(id)?.addEventListener("input",upd));
     upd();
   }
