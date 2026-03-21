@@ -15,6 +15,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer>
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/big.js/6.2.1/big.min.js" defer></script>
+<script src="./p2p-profit-model.js"></script>
 <style>
 /* ═══════════════════════ LAYOUT TEMPLATE SYSTEM ═══════════════════
    5 completely different layout templates, each with 5 theme colors
@@ -4085,7 +4086,14 @@ function renderP2P(){
   const targetSell=wacop?wacop*(1+targetMargin/100):null;
   const sellIsGood=p2p.sellAvg&&targetSell?p2p.sellAvg>=targetSell:false;
   const restockIsGood=p2p.buyAvg&&wacop?p2p.buyAvg<wacop:false;
-  const profitNow=p2p.sellAvg&&wacop&&stock>0?stock*(p2p.sellAvg-wacop):null;
+  const profitModel=(typeof resolveP2PProfitModel==="function"?resolveP2PProfitModel:()=>({available:false,model:"unavailable",subtitle:"Profit model unavailable."}))({
+    holdingsQty:stock,
+    avgCostPerUsdtInAccounting:wacop,
+    accountingCurrency:"QAR",
+    marketFiat:fiat,
+    marketSellAvgPerUsdt:p2p.sellAvg,
+    normalizationRateToAccounting:null
+  });
   const day=p2p.dayStats;
   const calcMode=p2p._calcMode||"sell";
   const usingBackend=p2p.usingAPI&&P2P_API_URL;
@@ -4166,8 +4174,8 @@ function renderP2P(){
     </div>
     <div class="card" style="padding:12px;">
       <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">Profit if Sold Now</div>
-      <div style="font-size:18px;font-weight:900;color:var(--${profitNow!==null?(profitNow>=0?"good":"bad"):"muted"});">${profitNow!==null?(profitNow>=0?"+":"")+fmtQWithUnit(profitNow):"—"}</div>
-      <div style="font-size:9px;color:var(--muted);">${stock>0?fmtU(stock)+" USDT @ market":"No stock"}</div>
+      <div style="font-size:18px;font-weight:900;color:var(--${profitModel.available?(profitModel.profitIfSoldNow>=0?"good":"bad"):"muted"});">${profitModel.available?(profitModel.profitIfSoldNow>=0?"+":"")+fmtQWithUnit(profitModel.profitIfSoldNow):"—"}</div>
+      <div style="font-size:9px;color:var(--muted);">${profitModel.subtitle||"Not enough data"}</div>
     </div>
     ${day?`
     <div class="card" style="padding:12px;">
