@@ -2017,7 +2017,15 @@ async function handleTrading(request, env) {
   }
 }
 
-async function fetchSide(tradeType) {
+function p2pFiatCode(input) {
+  const fiat = String(input || "QAR").trim().toUpperCase();
+  return fiat || "QAR";
+}
+function p2pKey(fiat, suffix) {
+  return `p2p:${p2pFiatCode(fiat)}:${suffix}`;
+}
+
+async function fetchSide(tradeType, fiat = "QAR") {
   const body = JSON.stringify({
     page: 1,
     rows: 10,
@@ -2025,7 +2033,7 @@ async function fetchSide(tradeType) {
     publisherType: null,
     asset: "USDT",
     tradeType,
-    fiat: "QAR",
+    fiat: p2pFiatCode(fiat),
     merchantCheck: false,
   });
   const res = await fetch(BINANCE, {
@@ -2061,14 +2069,16 @@ function parseSide(data, side) {
   }, 0);
   return { avg, best, depth, offers };
 }
-async function pollAndStore(env) {
-  const [buyRaw, sellRaw] = await Promise.all([fetchSide("BUY"), fetchSide("SELL")]);
+async function pollAndStore(env, fiat = "QAR") {
+  const normalizedFiat = p2pFiatCode(fiat);
+  const [buyRaw, sellRaw] = await Promise.all([fetchSide("BUY", normalizedFiat), fetchSide("SELL", normalizedFiat)]);
   const sellSide = parseSide(buyRaw, "sell");
   const buySide = parseSide(sellRaw, "buy");
   const ts = Date.now();
   const spread = sellSide.avg && buySide.avg ? sellSide.avg - buySide.avg : null;
   const spreadPct = spread && buySide.avg ? (spread / buySide.avg) * 100 : null;
   const snapshot = {
+    fiat: normalizedFiat,
     ts,
     sellAvg: sellSide.avg,
     buyAvg: buySide.avg,
@@ -2082,20 +2092,20 @@ async function pollAndStore(env) {
     buyOffers: buySide.offers,
   };
   if (!env.P2P_KV) return { snapshot, history: [], day: null };
-  await env.P2P_KV.put("p2p:latest", JSON.stringify(snapshot), { expirationTtl: 3600 });
+  await env.P2P_KV.put(p2pKey(normalizedFiat, "latest"), JSON.stringify(snapshot), { expirationTtl: 3600 });
   let history = [];
   try {
-    const raw = await env.P2P_KV.get("p2p:history");
+    const raw = await env.P2P_KV.get(p2pKey(normalizedFiat, "history"));
     if (raw) history = JSON.parse(raw);
     if (!Array.isArray(history)) history = [];
   } catch {}
   history.push({ ts, sellAvg: sellSide.avg, buyAvg: buySide.avg, spread, spreadPct });
   if (history.length > P2P_HISTORY_POINTS) history = history.slice(-P2P_HISTORY_POINTS);
-  await env.P2P_KV.put("p2p:history", JSON.stringify(history), { expirationTtl: 691200 });
+  await env.P2P_KV.put(p2pKey(normalizedFiat, "history"), JSON.stringify(history), { expirationTtl: 691200 });
   const today = new Date(ts).toISOString().slice(0, 10);
   let day = { date: today, highSell: 0, lowSell: null, highBuy: 0, lowBuy: null, polls: 0 };
   try {
-    const raw = await env.P2P_KV.get(`p2p:day:${today}`);
+    const raw = await env.P2P_KV.get(p2pKey(normalizedFiat, `day:${today}`));
     if (raw) day = JSON.parse(raw);
   } catch {}
   if (sellSide.avg) {
@@ -2107,7 +2117,7 @@ async function pollAndStore(env) {
     day.lowBuy = day.lowBuy === null ? buySide.avg : Math.min(day.lowBuy, buySide.avg);
   }
   day.polls = Number(day.polls || 0) + 1;
-  await env.P2P_KV.put(`p2p:day:${today}`, JSON.stringify(day), { expirationTtl: 172800 });
+  await env.P2P_KV.put(p2pKey(normalizedFiat, `day:${today}`), JSON.stringify(day), { expirationTtl: 172800 });
   return { snapshot, history, day };
 }
 
@@ -2559,21 +2569,22 @@ async function handleFinancials(request, env) {
 
 async function handleP2P(request, env) {
   const url = new URL(request.url);
+  const fiat = p2pFiatCode(url.searchParams.get("fiat") || "QAR");
   if (url.pathname === "/api/p2p" || url.pathname === "/") {
     try {
       if (!env.P2P_KV) {
-        const fresh = await pollAndStore(env);
+        const fresh = await pollAndStore(env, fiat);
         return json(request, env, { ...fresh.snapshot, history: fresh.history, dayStats: fresh.day, source: "fresh-no-kv" });
       }
-      const [latestRaw, historyRaw] = await Promise.all([env.P2P_KV.get("p2p:latest"), env.P2P_KV.get("p2p:history")]);
+      const [latestRaw, historyRaw] = await Promise.all([env.P2P_KV.get(p2pKey(fiat, "latest")), env.P2P_KV.get(p2pKey(fiat, "history"))]);
       const history = historyRaw ? JSON.parse(historyRaw) : [];
       if (!latestRaw) {
-        const fresh = await pollAndStore(env);
+        const fresh = await pollAndStore(env, fiat);
         return json(request, env, { ...fresh.snapshot, history, dayStats: fresh.day, source: "fresh" });
       }
       const latest = JSON.parse(latestRaw);
       const today = new Date().toISOString().slice(0, 10);
-      const dayRaw = await env.P2P_KV.get(`p2p:day:${today}`);
+      const dayRaw = await env.P2P_KV.get(p2pKey(fiat, `day:${today}`));
       const dayStats = dayRaw ? JSON.parse(dayRaw) : null;
       return json(request, env, { ...latest, history, dayStats, ageMs: Date.now() - latest.ts, source: "cache" });
     } catch (err) {
@@ -2582,7 +2593,7 @@ async function handleP2P(request, env) {
   }
   if (url.pathname === "/api/history") {
     try {
-      const raw = env.P2P_KV ? await env.P2P_KV.get("p2p:history") : null;
+      const raw = env.P2P_KV ? await env.P2P_KV.get(p2pKey(fiat, "history")) : null;
       const history = raw ? JSON.parse(raw) : [];
       return json(request, env, { history, count: history.length });
     } catch (err) {
@@ -2591,10 +2602,10 @@ async function handleP2P(request, env) {
   }
   if (url.pathname === "/api/status") {
     try {
-      const raw = env.P2P_KV ? await env.P2P_KV.get("p2p:latest") : null;
+      const raw = env.P2P_KV ? await env.P2P_KV.get(p2pKey(fiat, "latest")) : null;
       const latest = raw ? JSON.parse(raw) : null;
       const today = new Date().toISOString().slice(0, 10);
-      const dayRaw = env.P2P_KV ? await env.P2P_KV.get(`p2p:day:${today}`) : null;
+      const dayRaw = env.P2P_KV ? await env.P2P_KV.get(p2pKey(fiat, `day:${today}`)) : null;
       const day = dayRaw ? JSON.parse(dayRaw) : null;
       return json(request, env, {
         ok: !!latest,
