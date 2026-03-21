@@ -3595,7 +3595,7 @@ async function refreshP2P(fiat=p2pFiat){
 
   try{
     // ── Try Worker API first ───────────────────────────────────
-    if(P2P_API_URL&&P2P_API_URL.trim()){
+    if(market.fiat==="QAR"&&P2P_API_URL&&P2P_API_URL.trim()){
       try{
         const data=await p2pFetchFromAPI(market.fiat);
         _applyP2PResponse(data,target);
