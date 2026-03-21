@@ -3489,6 +3489,11 @@ function clearAll(){
 const P2P_API_URL = "https://p2p-monitor.taheito26.workers.dev/";   // ← FILL THIS IN after Step 4 of the guide
 
 const BINANCE="https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search";
+const P2P_API_FALLBACKS = [
+  P2P_API_URL,
+  "https://p2p-tracker-api.taheito26.workers.dev/",
+  "https://p2p-tracker.taheito26.workers.dev/"
+].filter(Boolean);
 
 // ── Direct Binance fetch (fallback) ──────────────────────────────
 async function p2pFetchDirect(tt,fiat=p2pFiat){
@@ -3544,13 +3549,23 @@ function _applyP2PResponse(data,target=p2p){
 
 // ── Primary: fetch from your Cloudflare Worker API ───────────────
 async function p2pFetchFromAPI(fiat=p2pFiat){
-  const baseUrl=P2P_API_URL.replace(/\/+$/,"")+"/api/p2p";
-  const url=baseUrl+(baseUrl.includes("?")?"&":"?")+"fiat="+encodeURIComponent(String(fiat||p2pFiat||"QAR").toUpperCase());
-  const r=await fetch((/^\/api\//.test(url) ? MERCHANT_API_BASE + url : url),{signal:AbortSignal.timeout(10000)});
-  if(!r.ok) throw new Error(`Worker API ${r.status}`);
-  const data=await r.json();
-  if(data.error) throw new Error(data.error);
-  return data;
+  const fiatCode=encodeURIComponent(String(fiat||p2pFiat||"QAR").toUpperCase());
+  const apiBases=P2P_API_FALLBACKS.length?P2P_API_FALLBACKS:[P2P_API_URL];
+  let lastErr=null;
+  for(const base of apiBases){
+    const baseUrl=String(base||"").replace(/\/+$/,'')+"/api/p2p";
+    const url=baseUrl+(baseUrl.includes("?")?"&":"?")+"fiat="+fiatCode;
+    try{
+      const r=await fetch((/^\/api\//.test(url) ? MERCHANT_API_BASE + url : url),{signal:AbortSignal.timeout(10000)});
+      if(!r.ok) throw new Error(`Worker API ${r.status}`);
+      const data=await r.json();
+      if(data.error) throw new Error(data.error);
+      return data;
+    }catch(err){
+      lastErr=err;
+    }
+  }
+  throw lastErr||new Error("Worker API unavailable");
 }
 
 // ── Main refresh: API-first, falls back to direct Binance ─────────
