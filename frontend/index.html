@@ -5055,6 +5055,14 @@ function renderSettings(){
     
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;">
 
+      <div class="panel">
+        <div class="panel-head"><h2>👤 Account</h2><span class="pill muted">Session</span></div>
+        <div class="panel-body">
+          <div class="muted" style="font-size:10px;line-height:1.6;margin-bottom:10px;">Signed in as <span class="mono">${esc((_authUser&&(_authUser.email||_authUser.id||_authUser.name))||"Guest")}</span>.</div>
+          <button class="btn danger" id="settingsSignOutBtn" ${_authUser?"":"hidden"}>Log out</button>
+        </div>
+      </div>
+
       <!-- Box 2 -->
       <div class="panel">
         <div class="panel-head"><h2>⚡ Trading Config</h2><span class="pill muted">Thresholds · Validations</span></div>
@@ -5141,6 +5149,8 @@ function renderSettings(){
     <div id="tjPanelHost" style="margin-top:10px;">${typeof window.renderJournalPanel === "function" ? window.renderJournalPanel() : ""}</div>
 
 </div>`;
+
+  bindSignOut(document.getElementById("settingsSignOutBtn"));
 
   // Layout picker
   $$(".lt-card[data-lt]").forEach(c=>{c.addEventListener("click",()=>{settingsDraftSet_("ui.layout", c.dataset.lt); applyLayoutPreview_(); render(); toast("Pending layout: "+c.dataset.lt,"warn");});});
@@ -8054,18 +8064,22 @@ function openUserProfileModal(){
 }
 
 // ── Topbar user ───────────────────────────────────────────────────
+function handleSignOutAction(){
+  if (!_authUser) return;
+  if (!confirm("Sign out of " + (_authUser.email || "your account") + "?\n\nYour local data stays saved.")) return;
+  try { document.body.classList.remove("sidebar-open"); } catch(e) {}
+  authSignOut();
+}
+
+function bindSignOut(btn){
+  if (!btn || btn.dataset.boundSignOut === "1") return;
+  btn.dataset.boundSignOut = "1";
+  btn.addEventListener("click", handleSignOutAction);
+}
+
 async function renderTopbarUser() {
   var el = document.getElementById("topbarUser");
   var mobileSignOutBtn = document.getElementById("mobileSignOutBtn");
-  function bindSignOut(btn){
-    if (!btn || btn.dataset.boundSignOut === "1") return;
-    btn.dataset.boundSignOut = "1";
-    btn.addEventListener("click", function() {
-      if (!confirm("Sign out of " + (_authUser.email || "your account") + "?\n\nYour local data stays saved.")) return;
-      try { document.body.classList.remove("sidebar-open"); } catch(e) {}
-      authSignOut();
-    });
-  }
   if (mobileSignOutBtn) mobileSignOutBtn.classList.toggle("mobileSidebarAction", true), mobileSignOutBtn.hidden = !_authUser;
   if (!el) return;
   if (!_authUser) { el.innerHTML = ""; return; }
