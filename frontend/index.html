@@ -815,6 +815,7 @@ tbody tr { transition: background var(--lt-tr); }
 
 
 .mobileSidebarToggle { display: none; margin-right: 8px; }
+.mobileSidebarSignOut { display:none; width:100%; justify-content:center; margin-top:10px; padding:10px 12px; font-size:calc(10px * var(--ui-scale,1)); font-weight:800; }
 .sidebarBackdrop { display: none; }
 
 @media (max-width: 768px) {
@@ -823,6 +824,7 @@ tbody tr { transition: background var(--lt-tr); }
   #pageBody { min-height: 0; }
 
   .mobileSidebarToggle { display: grid; }
+  .mobileSidebarSignOut[data-visible="1"]{display:flex;}
   .sidebarBackdrop {
     display: block; position: fixed; inset: 0; background: rgba(0,0,0,.45);
     opacity: 0; pointer-events: none; transition: opacity var(--lt-tr); z-index: 24;
@@ -2147,6 +2149,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
       <button class="navBtn" data-go="settings" data-tip="Settings&#10;Layouts · themes · fonts · data export"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.5"/><path d="M19.4 15a7.9 7.9 0 0 0 .1-1l2-1.5-2-3.5-2.4 1a8 8 0 0 0-1.7-1L13 3h-4l-.9 2.9a8 8 0 0 0-1.7 1l-2.4-1-2 3.5L4 13a8 8 0 0 0 .1 1l-2 1.5 2 3.5 2.4-1a8 8 0 0 0 1.7 1L9 21h4l.9-2.9a8 8 0 0 0 1.7-1l2.4 1 2-3.5-2-1.6Z" stroke="currentColor" stroke-width="1.2"/></svg><div><div>Settings</div><small>Layout · themes</small></div></button>
     </nav>
     <div class="sideBanner" id="lowStockBanner" style="display:none;" onclick="navTo('stock')"></div>
+    <button class="btn secondary mobileSidebarSignOut" id="mobileSignOutBtn" type="button" data-visible="0">Sign out</button>
     <div class="sideFooter">
       <button class="iconBtn" id="themeToggleBtn" title="Toggle theme mode">
         <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" stroke="currentColor" stroke-width="1.5"/></svg>
@@ -8051,6 +8054,15 @@ function openUserProfileModal(){
 // ── Topbar user ───────────────────────────────────────────────────
 async function renderTopbarUser() {
   var el = document.getElementById("topbarUser");
+  var mobileSignOutBtn = document.getElementById("mobileSignOutBtn");
+  function bindSignOut(btn){
+    if (!btn || btn.dataset.boundSignOut === "1") return;
+    btn.dataset.boundSignOut = "1";
+    btn.addEventListener("click", function() {
+      if (confirm("Sign out of " + (_authUser.email || "your account") + "?\n\nYour local data stays saved.")) authSignOut();
+    });
+  }
+  if (mobileSignOutBtn) mobileSignOutBtn.dataset.visible = _authUser ? "1" : "0";
   if (!el) return;
   if (!_authUser) { el.innerHTML = ""; return; }
   
@@ -8096,10 +8108,8 @@ async function renderTopbarUser() {
 
   var pb = document.getElementById("userProfileBtn");
   if (pb) pb.addEventListener("click", function(){ try{ openUserProfileModal(); }catch(e){} });
-  var sob = document.getElementById("signOutBtn");
-  if (sob) sob.addEventListener("click", function() {
-    if (confirm("Sign out of " + (_authUser.email || "your account") + "?\n\nYour local data stays saved.")) authSignOut();
-  });
+  bindSignOut(document.getElementById("signOutBtn"));
+  bindSignOut(mobileSignOutBtn);
 }
 
 let _prefDebounce;
