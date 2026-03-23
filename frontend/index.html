@@ -3092,6 +3092,8 @@ function addTrade(){
   state.trades.push(trade);if(!inRange(ts))state.range="all";
   saveRecompute("Trade logged ✓","good");
   ["t_amt"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  if(getWACOP()>0) setSalePriceMode("fifo");
+  else if($("#t_sell")) $("#t_sell").value="";
   const tm=$("#t_msg");if(tm){tm.textContent="";tm.className="msg";}
   updateSalePreview();
 }
@@ -3176,6 +3178,25 @@ function setMode(m){
   $("#modeUSDT")?.classList.toggle("active",m==="USDT");
   $("#modeQAR")?.classList.toggle("active",m==="QAR");
   const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=m==="USDT"?"Quantity (USDT)":"Amount (QAR)";
+  updateSalePreview();
+}
+function setSalePriceMode(mode){
+  const input=$("#t_sell"), fifoBtn=$("#priceModeFifo"), manualBtn=$("#priceModeManual"), hidden=$("#t_price_mode");
+  if(hidden) hidden.value=mode;
+  fifoBtn?.classList.toggle("active",mode==="fifo");
+  manualBtn?.classList.toggle("active",mode==="manual");
+  if(!input) return;
+  if(mode==="fifo"){
+    const wacop=getWACOP();
+    if(Number.isFinite(wacop) && wacop>0){
+      input.value=fmtP(wacop);
+      input.readOnly=true;
+    }
+  }else{
+    input.readOnly=false;
+    input.focus();
+    input.select?.();
+  }
   updateSalePreview();
 }
 function updateSalePreview(){
@@ -3864,7 +3885,16 @@ function renderLedger(){
           </div>
           <div class="g2tight">
             <div class="field2"><div class="lbl" id="t_amt_lbl">Quantity</div><div class="inputBox"><input id="t_amt" inputmode="decimal" placeholder="0.00"/><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9h4.5a2.5 2.5 0 0 1 0 5H9" stroke-linecap="round"/></svg></div></div>
-            <div class="field2"><div class="lbl">Sell Price</div><div class="inputBox" style="display:flex;gap:5px;padding-right:5px;"><input id="t_sell" inputmode="decimal" placeholder="${wacop?fmtP(wacop):"0.00"}" value="${wacop?fmtP(wacop):""}"/><button class="sideAction" id="t_p2p" title="P2P rate" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 7h8M6 11h12M8 15h8" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0"/></svg></button></div></div>
+            <div class="field2"><div class="lbl">Sell Price</div>
+              <div style="display:grid;gap:6px;">
+                <div class="modeToggle">
+                  <button id="priceModeFifo" ${wacop?"class='active'":"disabled"} type="button">FIFO Avg</button>
+                  <button id="priceModeManual" ${wacop?"":"class='active'"} type="button">Manual</button>
+                </div>
+                <input type="hidden" id="t_price_mode" value="${wacop?"fifo":"manual"}"/>
+                <div class="inputBox" style="display:flex;gap:5px;padding-right:5px;"><input id="t_sell" inputmode="decimal" placeholder="${wacop?fmtP(wacop):"0.00"}" value="${wacop?fmtP(wacop):""}" ${wacop?"readonly":""}/><button class="sideAction" id="t_p2p" title="P2P rate" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 7h8M6 11h12M8 15h8" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0"/></svg></button></div>
+              </div>
+            </div>
           </div>
 <div class="field2" data-tip="Buyer name for this order&#10;Matches CRM customers automatically and creates a new one if needed">
             <div class="lbl">Buyer Name</div>
@@ -3896,6 +3926,25 @@ function renderLedger(){
     const match=(state.customers||[]).find(c=>normName(c.name)===normName(typed));
     idEl.value=match?match.id:"";
   };
+  $("#priceModeFifo")?.addEventListener("click",()=>setSalePriceMode("fifo"));
+  $("#priceModeManual")?.addEventListener("click",()=>setSalePriceMode("manual"));
+  $("#t_sell")?.addEventListener("input",()=>{
+    if(($("#t_price_mode")?.value||"manual")!=="manual") return;
+    updateSalePreview();
+  });
+  $("#t_sell")?.addEventListener("focus",()=>{
+    if(($("#t_price_mode")?.value||"manual")!=="manual") setSalePriceMode("manual");
+  });
+  $("#t_p2p")?.addEventListener("click",async()=>{
+    if(!p2p.ts) await refreshP2P(p2pFiat);
+    if(p2p.sellAvg){
+      setSalePriceMode("manual");
+      if($("#t_sell")) $("#t_sell").value=p2p.sellAvg.toFixed(2);
+      updateSalePreview();
+      toast("P2P rate applied","good");
+    } else toast("Refresh P2P first","warn");
+  });
+
   const tradeBuyerLookup=wireLookupDropdown({
     shellId:"t_cust_shell",
     inputId:"t_cust_name",
@@ -3927,7 +3976,6 @@ function renderLedger(){
   $("#t_csv")?.addEventListener("click",exportCsv);
   ["t_amt","t_sell","t_dt"].forEach(id=>document.getElementById(id)?.addEventListener("input",updateSalePreview));
   updateSalePreview();
-  $("#t_p2p")?.addEventListener("click",async()=>{if(!p2p.ts)await refreshP2P(p2pFiat);if(p2p.sellAvg&&$("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();toast("P2P rate applied","good");}});
   $("#showAll_t")?.addEventListener("click",()=>{state.range="all";saveRecompute();});
   const pb=$("#pageBody");
   if(pb)pb.addEventListener("click",e=>{const btn=e.target.closest("button[data-act]");if(!btn)return;const id=btn.dataset.id,act=btn.dataset.act;if(act==="edit")editTrade(id);if(act==="detail"){const safeId=id.replace(/[^a-zA-Z0-9_-]/g,"_");const r=document.getElementById("det-"+safeId);if(r){r.style.display=r.style.display==="none"?"table-row":"none";btn.textContent=r.style.display!=="none"?"▼ Hide":"▶ Details";}}});
