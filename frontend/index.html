@@ -352,6 +352,7 @@ body {
 .navBtn.active::before { opacity: 1; }
 .navBtn.active svg { color: var(--brand); }
 .navSec { display: none; }
+.mobileSidebarAction { display:none !important; margin-top: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
 .sideBanner {
   margin: 0 8px 6px; padding: 8px 10px; border-radius: var(--lt-radius-sm);
   border: 1px solid rgba(239,68,68,.25); background: rgba(239,68,68,.08);
@@ -823,6 +824,7 @@ tbody tr { transition: background var(--lt-tr); }
   #pageBody { min-height: 0; }
 
   .mobileSidebarToggle { display: grid; }
+  .mobileSidebarAction{display:flex !important;}
   .sidebarBackdrop {
     display: block; position: fixed; inset: 0; background: rgba(0,0,0,.45);
     opacity: 0; pointer-events: none; transition: opacity var(--lt-tr); z-index: 24;
@@ -2145,6 +2147,7 @@ html[data-ui-lang="ar"] .seg { direction: rtl; }
             
       <button class="navBtn" data-go="vault" data-tip="Vault &amp; Cloud Backup&#10;Google Drive · export · import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 16.2A4.5 4.5 0 0 0 17.5 8h-.57A7 7 0 1 0 4 15.5"/><polyline points="8 17 12 21 16 17"/><line x1="12" y1="21" x2="12" y2="13"/></svg><div><div>Vault</div><small>Cloud &amp; Backup</small></div></button>
       <button class="navBtn" data-go="settings" data-tip="Settings&#10;Layouts · themes · fonts · data export"><svg viewBox="0 0 24 24" fill="none"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.5"/><path d="M19.4 15a7.9 7.9 0 0 0 .1-1l2-1.5-2-3.5-2.4 1a8 8 0 0 0-1.7-1L13 3h-4l-.9 2.9a8 8 0 0 0-1.7 1l-2.4-1-2 3.5L4 13a8 8 0 0 0 .1 1l-2 1.5 2 3.5 2.4-1a8 8 0 0 0 1.7 1L9 21h4l.9-2.9a8 8 0 0 0 1.7-1l2.4 1 2-3.5-2-1.6Z" stroke="currentColor" stroke-width="1.2"/></svg><div><div>Settings</div><small>Layout · themes</small></div></button>
+      <button class="navBtn mobileSidebarAction" id="mobileSignOutBtn" type="button" hidden><svg viewBox="0 0 24 24" fill="none"><path d="M15 17l5-5-5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div>Sign out</div><small>End session</small></div></button>
     </nav>
     <div class="sideBanner" id="lowStockBanner" style="display:none;" onclick="navTo('stock')"></div>
     <div class="sideFooter">
@@ -2790,7 +2793,7 @@ function sanitize(s){
   out.checksDone=typeof out.checksDone==="object"?out.checksDone:{};
   out.cal=out.cal&&typeof out.cal==="object"?{...d.cal,...out.cal}:{year:new Date().getFullYear(),month:new Date().getMonth(),selectedDay:null};
   out.batches=Array.isArray(out.batches)?out.batches.map(b=>({id:String(b.id||uid()),ts:Number.isFinite(Number(b.ts))?Number(b.ts):Date.now(),source:String(b.source||""),note:String(b.note||""),buyPriceQAR:num(b.buyPriceQAR),initialUSDT:num(b.initialUSDT),revisions:Array.isArray(b.revisions)?b.revisions:[]})).filter(b=>b.buyPriceQAR>0&&b.initialUSDT>0):[];
-  out.trades=Array.isArray(out.trades)?out.trades.map(t=>({id:String(t.id||uid()),ts:Number.isFinite(Number(t.ts))?Number(t.ts):Date.now(),inputMode:t.inputMode==="QAR"?"QAR":"USDT",amountUSDT:num(t.amountUSDT),sellPriceQAR:num(t.sellPriceQAR),feeQAR:num(t.feeQAR),note:String(t.note||""),voided:!!t.voided,usesStock:t.usesStock!==false,revisions:Array.isArray(t.revisions)?t.revisions:[],customerId:String(t.customerId||"")})).filter(t=>t.amountUSDT>0&&t.sellPriceQAR>0):[];
+  out.trades=Array.isArray(out.trades)?out.trades.map(t=>({id:String(t.id||uid()),ts:Number.isFinite(Number(t.ts))?Number(t.ts):Date.now(),inputMode:t.inputMode==="QAR"?"QAR":"USDT",amountUSDT:num(t.amountUSDT),sellPriceQAR:num(t.sellPriceQAR),feeQAR:num(t.feeQAR),note:String(t.note||""),voided:!!t.voided,usesStock:t.usesStock!==false,avgBuyMode:t.avgBuyMode==="manual"?"manual":"fifo",manualAvgBuyQAR:num(t.manualAvgBuyQAR),revisions:Array.isArray(t.revisions)?t.revisions:[],customerId:String(t.customerId||"")})).filter(t=>t.amountUSDT>0&&t.sellPriceQAR>0):[];
   out.customers=Array.isArray(out.customers)?out.customers.map(c=>({
     id:String(c.id||uid()),
     name:String(c.name||""),
@@ -2851,7 +2854,10 @@ function recomputeFor(s){
     let need=t.amountUSDT,cost=0;const slices=[];
     for(const b of batches){if(b.ts>t.ts||need<=0||b.remainingUSDT<=0)continue;const take=Math.min(b.remainingUSDT,need);if(take>0){b.remainingUSDT-=take;need-=take;cost+=take*b.buyPriceQAR;slices.push({batchId:b.id,qty:take,priceQAR:b.buyPriceQAR,source:b.source,ts:b.ts});}}
     if(need>1e-9){for(const sl of slices){const bb=batches.find(x=>x.id===sl.batchId);if(bb)bb.remainingUSDT+=sl.qty;}issues.push("Trade "+t.id+": insufficient stock");tradeCalc.set(t.id,{ok:false,revenueQAR:rev,costQAR:0,feeQAR:t.feeQAR,netQAR:0,ppu:0,slices:[],avgBuyQAR:0,margin:0,reason:"Insufficient stock"});continue;}
-    const avgBuy=t.amountUSDT>0?cost/t.amountUSDT:0,net=rev-cost-t.feeQAR,margin=cost>0?(net/cost)*100:0;
+    const manualAvg=t.avgBuyMode==="manual"&&t.manualAvgBuyQAR>0?t.manualAvgBuyQAR:NaN;
+    const avgBuy=Number.isFinite(manualAvg)?manualAvg:(t.amountUSDT>0?cost/t.amountUSDT:0);
+    if(Number.isFinite(manualAvg)) cost=t.amountUSDT*manualAvg;
+    const net=rev-cost-t.feeQAR,margin=cost>0?(net/cost)*100:0;
     tradeCalc.set(t.id,{ok:true,revenueQAR:rev,costQAR:cost,feeQAR:t.feeQAR,netQAR:net,ppu:net/t.amountUSDT,slices,avgBuyQAR:avgBuy,margin,reason:""});
   }
   return{batches,tradeCalc,health:{ok:!issues.length,issues}};
@@ -3065,7 +3071,7 @@ function chartOpts(extra={}){
 // ── ACTIONS ──────────────────────────────────────────────────────
 function addTrade(){
   const ts=inputToTs($("#t_dt")?.value),mode=$("#t_mode_val")?.value||"USDT";
-  const sell=num($("#t_sell")?.value),raw=num($("#t_amt")?.value);const fee=0;
+  const sell=num($("#t_sell")?.value),raw=num($("#t_amt")?.value),avgBuy=num($("#t_avg_buy")?.value);const fee=0;
   const usesStock=$("#t_stock")?.checked??true;
   const buyerName=($("#t_cust_name")?.value||"").trim();
   let customerId=$("#t_cust")?.value.trim()||"";
@@ -3079,14 +3085,19 @@ function addTrade(){
   }
   const errs=[];
   if(!Number.isFinite(ts))errs.push("date");if(!(sell>0))errs.push("sell price");if(!(raw>0))errs.push("qty");
+  const avgBuyMode=$("#t_avg_buy_mode")?.value||"fifo";
+  if(avgBuyMode==="manual" && !(avgBuy>0)) errs.push("avg buy price");
   let amountUSDT=mode==="USDT"?raw:(sell>0?raw/sell:0);
   if(!(amountUSDT>0))errs.push("qty");
   if(errs.length){const el=$("#t_msg");if(el){el.textContent="Fix: "+errs.join(", ");el.className="msg err";}return;}
-  const id=uid(),trade={id,ts,inputMode:mode,amountUSDT,sellPriceQAR:sell,feeQAR:fee,note:"",voided:false,usesStock,revisions:[],customerId};
+  const id=uid(),trade={id,ts,inputMode:mode,amountUSDT,sellPriceQAR:sell,feeQAR:fee,note:"",voided:false,usesStock,avgBuyMode,manualAvgBuyQAR:avgBuyMode==="manual"?avgBuy:0,revisions:[],customerId};
   if(!state.prefs.allowInvalidTrades&&usesStock){const tmp=sanitize({...state,trades:state.trades.concat([trade])});const calc=recomputeFor(tmp).tradeCalc.get(id);if(!calc?.ok){const el=$("#t_msg");if(el){el.textContent="No eligible stock";el.className="msg err";}return;}}
   state.trades.push(trade);if(!inRange(ts))state.range="all";
   saveRecompute("Trade logged ✓","good");
   ["t_amt"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  if(getWACOP()>0) setAvgBuyPriceMode("fifo");
+  else if($("#t_avg_buy")) $("#t_avg_buy").value="";
+  if($("#t_sell")) $("#t_sell").value="";
   const tm=$("#t_msg");if(tm){tm.textContent="";tm.className="msg";}
   updateSalePreview();
 }
@@ -3173,12 +3184,32 @@ function setMode(m){
   const lbl=$("#t_amt_lbl");if(lbl)lbl.textContent=m==="USDT"?"Quantity (USDT)":"Amount (QAR)";
   updateSalePreview();
 }
+function setAvgBuyPriceMode(mode){
+  const input=$("#t_avg_buy"), fifoBtn=$("#avgBuyModeFifo"), manualBtn=$("#avgBuyModeManual"), hidden=$("#t_avg_buy_mode");
+  if(hidden) hidden.value=mode;
+  fifoBtn?.classList.toggle("active",mode==="fifo");
+  manualBtn?.classList.toggle("active",mode==="manual");
+  if(!input) return;
+  if(mode==="fifo"){
+    const wacop=getWACOP();
+    if(Number.isFinite(wacop) && wacop>0){
+      input.value=fmtP(wacop);
+      input.readOnly=true;
+    }
+  }else{
+    input.readOnly=false;
+    input.focus();
+    input.select?.();
+  }
+  updateSalePreview();
+}
 function updateSalePreview(){
   const mode=$("#t_mode_val")?.value||"USDT",sell=num($("#t_sell")?.value),raw=num($("#t_amt")?.value);const fee=0;
   let amt=mode==="USDT"?raw:(sell>0?raw/sell:0);
   const box=$("#salePreview");if(!box)return;
   if(!(amt>0)||!(sell>0)){box.innerHTML=`<div class="pt">Live Preview</div><div class="muted" style="font-size:calc(11px * var(--ui-scale,1));">Enter details above...</div>`;return;}
-  const rev=amt*sell,tmp=sanitize({...state,trades:state.trades.concat([{id:"_tmp",ts:inputToTs($("#t_dt")?.value)||Date.now(),inputMode:mode,amountUSDT:amt,sellPriceQAR:sell,feeQAR:fee,note:"",voided:false,usesStock:true}])});
+  const avgBuyMode=$("#t_avg_buy_mode")?.value||"fifo", manualAvgBuyQAR=num($("#t_avg_buy")?.value);
+  const rev=amt*sell,tmp=sanitize({...state,trades:state.trades.concat([{id:"_tmp",ts:inputToTs($("#t_dt")?.value)||Date.now(),inputMode:mode,amountUSDT:amt,sellPriceQAR:sell,feeQAR:fee,note:"",voided:false,usesStock:true,avgBuyMode,manualAvgBuyQAR:avgBuyMode==="manual"?manualAvgBuyQAR:0}])});
   const calc=recomputeFor(tmp).tradeCalc.get("_tmp"),ok=!!calc?.ok,cost=ok?calc.costQAR:NaN,net=ok?rev-cost-fee:NaN;
   box.innerHTML=`<div class="pt">Live Preview</div>
     ${Number.isFinite(calc?.avgBuyQAR)?`<div class="pr"><span>Avg Buy</span><strong style="color:var(--bad)">${fmtP(calc.avgBuyQAR)} QAR</strong></div>`:""}
@@ -3859,7 +3890,17 @@ function renderLedger(){
           </div>
           <div class="g2tight">
             <div class="field2"><div class="lbl" id="t_amt_lbl">Quantity</div><div class="inputBox"><input id="t_amt" inputmode="decimal" placeholder="0.00"/><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9h4.5a2.5 2.5 0 0 1 0 5H9" stroke-linecap="round"/></svg></div></div>
-            <div class="field2"><div class="lbl">Sell Price</div><div class="inputBox" style="display:flex;gap:5px;padding-right:5px;"><input id="t_sell" inputmode="decimal" placeholder="${wacop?fmtP(wacop):"0.00"}" value="${wacop?fmtP(wacop):""}"/><button class="sideAction" id="t_p2p" title="P2P rate" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 7h8M6 11h12M8 15h8" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0"/></svg></button></div></div>
+            <div class="field2"><div class="lbl">Avg Buy Price</div>
+              <div style="display:grid;gap:6px;">
+                <div class="modeToggle">
+                  <button id="avgBuyModeFifo" ${wacop?"class='active'":"disabled"} type="button">FIFO Avg</button>
+                  <button id="avgBuyModeManual" ${wacop?"":"class='active'"} type="button">Manual</button>
+                </div>
+                <input type="hidden" id="t_avg_buy_mode" value="${wacop?"fifo":"manual"}"/>
+                <div class="inputBox"><input id="t_avg_buy" inputmode="decimal" placeholder="${wacop?fmtP(wacop):"0.00"}" value="${wacop?fmtP(wacop):""}" ${wacop?"readonly":""}/></div>
+              </div>
+            </div>
+            <div class="field2"><div class="lbl">Sell Price</div><div class="inputBox" style="display:flex;gap:5px;padding-right:5px;"><input id="t_sell" inputmode="decimal" placeholder="0.00" value=""/><button class="sideAction" id="t_p2p" title="P2P rate" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 7h8M6 11h12M8 15h8" stroke-linecap="round"/><path d="M3 12a9 9 0 1 0 18 0"/></svg></button></div></div>
           </div>
 <div class="field2" data-tip="Buyer name for this order&#10;Matches CRM customers automatically and creates a new one if needed">
             <div class="lbl">Buyer Name</div>
@@ -3891,6 +3932,24 @@ function renderLedger(){
     const match=(state.customers||[]).find(c=>normName(c.name)===normName(typed));
     idEl.value=match?match.id:"";
   };
+  $("#avgBuyModeFifo")?.addEventListener("click",()=>setAvgBuyPriceMode("fifo"));
+  $("#avgBuyModeManual")?.addEventListener("click",()=>setAvgBuyPriceMode("manual"));
+  $("#t_avg_buy")?.addEventListener("input",()=>{
+    if(($("#t_avg_buy_mode")?.value||"manual")!=="manual") return;
+    updateSalePreview();
+  });
+  $("#t_avg_buy")?.addEventListener("focus",()=>{
+    if(($("#t_avg_buy_mode")?.value||"manual")!=="manual") setAvgBuyPriceMode("manual");
+  });
+  $("#t_p2p")?.addEventListener("click",async()=>{
+    if(!p2p.ts) await refreshP2P(p2pFiat);
+    if(p2p.sellAvg){
+      if($("#t_sell")) $("#t_sell").value=p2p.sellAvg.toFixed(2);
+      updateSalePreview();
+      toast("P2P rate applied","good");
+    } else toast("Refresh P2P first","warn");
+  });
+
   const tradeBuyerLookup=wireLookupDropdown({
     shellId:"t_cust_shell",
     inputId:"t_cust_name",
@@ -3920,9 +3979,8 @@ function renderLedger(){
   $("#modeQAR")?.addEventListener("click",()=>setMode("QAR"));
   $("#t_add")?.addEventListener("click",addTrade);
   $("#t_csv")?.addEventListener("click",exportCsv);
-  ["t_amt","t_sell","t_dt"].forEach(id=>document.getElementById(id)?.addEventListener("input",updateSalePreview));
+  ["t_amt","t_sell","t_dt","t_avg_buy"].forEach(id=>document.getElementById(id)?.addEventListener("input",updateSalePreview));
   updateSalePreview();
-  $("#t_p2p")?.addEventListener("click",async()=>{if(!p2p.ts)await refreshP2P(p2pFiat);if(p2p.sellAvg&&$("#t_sell")){$("#t_sell").value=p2p.sellAvg.toFixed(2);updateSalePreview();toast("P2P rate applied","good");}});
   $("#showAll_t")?.addEventListener("click",()=>{state.range="all";saveRecompute();});
   const pb=$("#pageBody");
   if(pb)pb.addEventListener("click",e=>{const btn=e.target.closest("button[data-act]");if(!btn)return;const id=btn.dataset.id,act=btn.dataset.act;if(act==="edit")editTrade(id);if(act==="detail"){const safeId=id.replace(/[^a-zA-Z0-9_-]/g,"_");const r=document.getElementById("det-"+safeId);if(r){r.style.display=r.style.display==="none"?"table-row":"none";btn.textContent=r.style.display!=="none"?"▼ Hide":"▶ Details";}}});
@@ -5050,6 +5108,14 @@ function renderSettings(){
     
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;">
 
+      <div class="panel">
+        <div class="panel-head"><h2>👤 Account</h2><span class="pill muted">Session</span></div>
+        <div class="panel-body">
+          <div class="muted" style="font-size:10px;line-height:1.6;margin-bottom:10px;">Signed in as <span class="mono">${esc((_authUser&&(_authUser.email||_authUser.id||_authUser.name))||"Guest")}</span>.</div>
+          <button class="btn danger" id="settingsSignOutBtn" ${_authUser?"":"hidden"}>Log out</button>
+        </div>
+      </div>
+
       <!-- Box 2 -->
       <div class="panel">
         <div class="panel-head"><h2>⚡ Trading Config</h2><span class="pill muted">Thresholds · Validations</span></div>
@@ -5136,6 +5202,8 @@ function renderSettings(){
     <div id="tjPanelHost" style="margin-top:10px;">${typeof window.renderJournalPanel === "function" ? window.renderJournalPanel() : ""}</div>
 
 </div>`;
+
+  bindSignOut(document.getElementById("settingsSignOutBtn"));
 
   // Layout picker
   $$(".lt-card[data-lt]").forEach(c=>{c.addEventListener("click",()=>{settingsDraftSet_("ui.layout", c.dataset.lt); applyLayoutPreview_(); render(); toast("Pending layout: "+c.dataset.lt,"warn");});});
@@ -8049,8 +8117,23 @@ function openUserProfileModal(){
 }
 
 // ── Topbar user ───────────────────────────────────────────────────
+function handleSignOutAction(){
+  if (!_authUser) return;
+  if (!confirm("Sign out of " + (_authUser.email || "your account") + "?\n\nYour local data stays saved.")) return;
+  try { document.body.classList.remove("sidebar-open"); } catch(e) {}
+  authSignOut();
+}
+
+function bindSignOut(btn){
+  if (!btn || btn.dataset.boundSignOut === "1") return;
+  btn.dataset.boundSignOut = "1";
+  btn.addEventListener("click", handleSignOutAction);
+}
+
 async function renderTopbarUser() {
   var el = document.getElementById("topbarUser");
+  var mobileSignOutBtn = document.getElementById("mobileSignOutBtn");
+  if (mobileSignOutBtn) mobileSignOutBtn.classList.toggle("mobileSidebarAction", true), mobileSignOutBtn.hidden = !_authUser;
   if (!el) return;
   if (!_authUser) { el.innerHTML = ""; return; }
   
@@ -8096,10 +8179,8 @@ async function renderTopbarUser() {
 
   var pb = document.getElementById("userProfileBtn");
   if (pb) pb.addEventListener("click", function(){ try{ openUserProfileModal(); }catch(e){} });
-  var sob = document.getElementById("signOutBtn");
-  if (sob) sob.addEventListener("click", function() {
-    if (confirm("Sign out of " + (_authUser.email || "your account") + "?\n\nYour local data stays saved.")) authSignOut();
-  });
+  bindSignOut(document.getElementById("signOutBtn"));
+  bindSignOut(mobileSignOutBtn);
 }
 
 let _prefDebounce;
